@@ -33,8 +33,16 @@ export type Ctx = {
  *
  * `turnId` is optional here: P1 has no turn concept outside `PatchSink`
  * (§"Turn gating"). Full threading through every event is P4's job.
+ *
+ * A discriminated union of one member on purpose. The plan already commits to
+ * more event kinds later — the full Jev distribution per question, `jev.*`
+ * vs `applied.*` plus which policy rule fired, per-slot arrival timestamps,
+ * degraded/crashed markers — and none of that is P1's job. `kind: 'node'`
+ * just means adding those is additive at every `ctx.telemetry` call site
+ * instead of a breaking widen.
  */
 export type Event = {
+  kind: 'node';
   node: string;
   ms: number;
   turnId?: string;

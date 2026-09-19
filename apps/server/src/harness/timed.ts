@@ -20,7 +20,7 @@ export const timed = <In, Out>(node: Node<In, Out>): Node<In, Out> => ({
       error = e;
       throw e;
     } finally {
-      ctx.telemetry({ node: node.name, ms: ctx.now() - t0, ...(threw ? { error } : {}) });
+      ctx.telemetry({ kind: 'node', node: node.name, ms: ctx.now() - t0, ...(threw ? { error } : {}) });
     }
   },
 });
