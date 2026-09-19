@@ -1,0 +1,20 @@
+/*
+ * The `geometric` font pairing. Bundled rather than referenced by stack alone:
+ * Raspberry Pi OS ships only DejaVu / Liberation / Noto / Piboto, none of them
+ * geometric, so without this face the `geometric` enum would render identically
+ * to `system` on the device — two axis values the user could not tell apart.
+ * MV3 forbids CDN imports, so it has to be local regardless.
+ *
+ * Jost, SIL Open Font License 1.1. See assets/Jost-OFL.txt.
+ * Latin subset, variable 100-900, 26KB.
+ */
+@font-face {
+  font-family: 'Jost';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/jost-latin-var.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>JIT UI — renderer harness</title>
+    <link rel="stylesheet" href="./harness.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <div>
+        <h1>Renderer harness</h1>
+        <p class="lede">
+          Fire each patch independently. The four agents race in production, so every ordering
+          here has to land the same surface.
+        </p>
+      </div>
+      <div class="pipeline" id="pipeline" aria-label="patch status"></div>
+    </header>
+
+    <main class="layout">
+      <aside class="rail">
+        <section class="panel">
+          <h2>Scenario</h2>
+          <label class="field">
+            <span>Intent</span>
+            <select id="scenario"></select>
+          </label>
+          <p class="hint" id="scenario-template"></p>
+        </section>
+
+        <section class="panel">
+          <h2>Fire a patch</h2>
+          <div class="fire">
+            <button type="button" data-fire="skeleton">
+              <b>Skeleton</b><span>agent 2 · structure</span>
+            </button>
+            <button type="button" data-fire="content">
+              <b>Content</b><span>agent 1 · slots</span>
+            </button>
+            <button type="button" data-fire="style">
+              <b>Style</b><span>agent 3 · enums</span>
+            </button>
+            <button type="button" data-fire="polish">
+              <b>Polish</b><span>agent 4 · raw tokens</span>
+            </button>
+          </div>
+          <div class="row">
+            <button type="button" class="ghost" id="shuffle">Fire all, shuffled</button>
+            <button type="button" class="ghost" id="staged">Fire all, staged</button>
+          </div>
+          <div class="row">
+            <button type="button" class="ghost danger" id="unreadable">
+              Fire unreadable polish
+            </button>
+            <button type="button" class="ghost" id="reset">Reset</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Style axes <span class="tag">agent 3</span></h2>
+          <div class="axes" id="axes"></div>
+          <p class="hint">
+            Five axes, 4 &times; 4 &times; 3 &times; 3 &times; 3. Jev picks one value per axis and
+            never emits a raw value.
+          </p>
+        </section>
+      </aside>
+
+      <div class="stage">
+        <div class="surface-frame">
+          <div id="surface"></div>
+        </div>
+
+        <section class="panel inspector">
+          <div class="tabs" role="tablist">
+            <button type="button" role="tab" data-tab="actions" aria-selected="true">Actions</button>
+            <button type="button" role="tab" data-tab="contrast" aria-selected="false">Contrast</button>
+            <button type="button" role="tab" data-tab="tokens" aria-selected="false">Tokens</button>
+            <button type="button" role="tab" data-tab="telemetry" aria-selected="false">Telemetry</button>
+          </div>
+          <div id="panel-actions" class="tabpanel"></div>
+          <div id="panel-contrast" class="tabpanel" hidden></div>
+          <div id="panel-tokens" class="tabpanel" hidden></div>
+          <div id="panel-telemetry" class="tabpanel" hidden></div>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

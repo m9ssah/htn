@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>JIT UI — reflow check</title>
+    <link rel="stylesheet" href="./harness.css" />
+  </head>
+  <body>
+    <main class="layout" style="grid-template-columns: 1fr">
+      <div class="stage">
+        <section class="panel">
+          <h2>Layout stability</h2>
+          <p class="lede">
+            Real geometry, in a real browser. jsdom and happy-dom perform no layout, so this is
+            the only place the no-reflow guarantee can actually be measured.
+          </p>
+          <div id="out"></div>
+        </section>
+      </div>
+    </main>
+    <div id="probe" style="position: absolute; left: -10000px; top: 0; width: 520px"></div>
+    <script type="module" src="./reflow-check.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,425 @@
+/*
+ * Harness chrome. Deliberately namespaced away from the renderer's own styles —
+ * nothing in here may leak into #surface, or the harness would be lying about
+ * what the renderer paints.
+ */
+
+:root {
+  color-scheme: light dark;
+  --h-bg: #f7f7f8;
+  --h-panel: #ffffff;
+  --h-fg: #16161a;
+  --h-muted: #6b6b76;
+  --h-line: #e3e3e5;
+  --h-accent: #3b5bdb;
+  --h-ok: #15803d;
+  --h-bad: #b91c1c;
+  --h-radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --h-bg: #0c0c0e;
+    --h-panel: #141418;
+    --h-fg: #e9e9ec;
+    --h-muted: #8b8b96;
+    --h-line: #26262b;
+    --h-accent: #8fa2f8;
+    --h-ok: #4ade80;
+    --h-bad: #f87171;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0 20px 64px;
+  background: var(--h-bg);
+  color: var(--h-fg);
+  font:
+    14px/1.5 ui-sans-serif,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
+
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  justify-content: space-between;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 26px 0 18px;
+}
+
+h1 {
+  margin: 0 0 4px;
+  font-size: 19px;
+  letter-spacing: -0.015em;
+}
+
+.lede {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--h-muted);
+  font-size: 13px;
+}
+
+/* Patch status strip ------------------------------------------------ */
+
+.pipeline {
+  display: flex;
+  gap: 6px;
+}
+
+.pipeline span {
+  padding: 4px 10px;
+  border: 1px solid var(--h-line);
+  border-radius: 999px;
+  color: var(--h-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+}
+
+.pipeline span[data-on='true'] {
+  border-color: var(--h-accent);
+  background: color-mix(in srgb, var(--h-accent) 12%, transparent);
+  color: var(--h-accent);
+}
+
+.pipeline span[data-on='rejected'] {
+  border-color: var(--h-bad);
+  background: color-mix(in srgb, var(--h-bad) 12%, transparent);
+  color: var(--h-bad);
+}
+
+/* Layout ------------------------------------------------------------ */
+
+.layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+@media (max-width: 920px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rail,
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.panel {
+  padding: 15px;
+  border: 1px solid var(--h-line);
+  border-radius: var(--h-radius);
+  background: var(--h-panel);
+}
+
+.panel h2 {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 12px;
+  color: var(--h-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.tag {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--h-accent) 14%, transparent);
+  color: var(--h-accent);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+
+/* Controls ---------------------------------------------------------- */
+
+.field {
+  display: block;
+}
+
+.field span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--h-muted);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+
+select {
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid var(--h-line);
+  border-radius: 7px;
+  background: var(--h-bg);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+
+button {
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.fire {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.fire button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 1px solid var(--h-line);
+  background: var(--h-bg);
+  color: inherit;
+  text-align: left;
+}
+
+.fire button:hover {
+  border-color: var(--h-accent);
+}
+
+.fire button b {
+  font-size: 12px;
+}
+
+.fire button span {
+  color: var(--h-muted);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+.row {
+  display: flex;
+  gap: 7px;
+  margin-top: 7px;
+}
+
+.ghost {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--h-line);
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+}
+
+.ghost:hover {
+  border-color: var(--h-accent);
+}
+
+.ghost.danger:hover {
+  border-color: var(--h-bad);
+  color: var(--h-bad);
+}
+
+.axes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hint {
+  margin: 10px 0 0;
+  color: var(--h-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* The render surface ------------------------------------------------ */
+
+.surface-frame {
+  display: flex;
+  overflow: hidden;
+  min-height: 460px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--h-line);
+  border-radius: var(--h-radius);
+}
+
+/* The renderer owns everything inside; give it the whole box. */
+#surface {
+  align-self: stretch;
+  width: 100%;
+  min-height: 460px;
+}
+
+/* Inspector --------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.tabs button {
+  padding: 5px 11px;
+  border: 1px solid var(--h-line);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+}
+
+.tabs button[aria-selected='true'] {
+  border-color: var(--h-accent);
+  background: var(--h-accent);
+  color: #fff;
+}
+
+.tabpanel {
+  min-height: 150px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+th,
+td {
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px solid var(--h-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: var(--h-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+td code {
+  font:
+    11px/1.5 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+
+.pass {
+  color: var(--h-ok);
+  font-weight: 600;
+}
+
+.fail {
+  color: var(--h-bad);
+  font-weight: 600;
+}
+
+.empty {
+  padding: 18px 0;
+  color: var(--h-muted);
+  font-size: 12px;
+}
+
+.banner {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--h-bad);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--h-bad) 9%, transparent);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.banner b {
+  color: var(--h-bad);
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 7px;
+}
+
+.swatch {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border: 1px solid var(--h-line);
+  border-radius: 7px;
+}
+
+.swatch i {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border: 1px solid var(--h-line);
+  border-radius: 5px;
+}
+
+.swatch div {
+  min-width: 0;
+}
+
+.swatch code {
+  display: block;
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.swatch code:last-child {
+  color: var(--h-muted);
+}
+
+.log {
+  margin: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  font:
+    11px/1.7 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+
+.log div {
+  padding: 2px 0;
+  border-bottom: 1px solid var(--h-line);
+}
+
+.log .t {
+  color: var(--h-muted);
+}
+
+.log .rejected {
+  color: var(--h-bad);
+}

@@ -1,0 +1,521 @@
+/*
+ * The component vocabulary, as paint.
+ *
+ * Every visual decision here resolves through a CSS custom property, because a
+ * style or polish patch must be able to change the look without touching a
+ * single node. If a value is hardcoded here that a patch should be able to
+ * reach, that is a bug.
+ *
+ * Read `css-vars.ts` alongside this file — the two are asserted to agree.
+ */
+
+@import '@jit/tokens/fonts.css';
+
+/* ------------------------------------------------------------------ *
+ * Surface
+ * ------------------------------------------------------------------ */
+
+.jit-root {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: var(--jit-pad);
+  background: var(--jit-bg);
+  color: var(--jit-fg);
+  font-family: var(--jit-font-body);
+  font-size: calc(13px * var(--jit-scale));
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.jit-root * {
+  box-sizing: border-box;
+}
+
+/* The template's outermost node carries the width the skeleton patch asked for. */
+.jit-root > * {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--jit-maxw);
+}
+
+/*
+ * Motif layer. Driven purely by --jit-motif so that changing it is a repaint —
+ * no data attribute, no class, nothing a polish patch would have to mutate a
+ * node to reach. `none` resolves to background-image: none and paints nothing.
+ */
+.jit-root::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.42;
+  background-image: var(--jit-motif);
+  background-size: 120px 120px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Layout
+ * ------------------------------------------------------------------ */
+
+.c-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jit-gap);
+}
+
+.c-row {
+  display: flex;
+  gap: var(--jit-gap);
+  align-items: flex-start;
+}
+
+.c-row > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.c-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--jit-gap);
+}
+
+.c-card {
+  padding: var(--jit-pad);
+  border: 1px solid var(--jit-border);
+  border-radius: var(--jit-radius);
+  background: var(--jit-surface);
+}
+
+.c-divider {
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: var(--jit-border);
+}
+
+.c-btngroup {
+  display: flex;
+  gap: var(--jit-gap);
+}
+
+.c-btngroup > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Space reservation
+ *
+ * A slot that declares `lines` reserves its box from the component's own type
+ * metrics before any content exists, and KEEPS that minimum afterwards. The
+ * reservation is expressed in the same calc() the filled component uses, so it
+ * stays correct when a later style patch changes --jit-scale. Content landing
+ * can therefore never pull the layout upward.
+ * ------------------------------------------------------------------ */
+
+[data-slot],
+.c-label {
+  min-height: calc(var(--ph-fs, 0px) * var(--ph-lh, 1) * var(--ph-lines, 1));
+}
+
+/*
+ * Padded components reserve their padding and borders too. box-sizing is
+ * border-box, so a min-height derived from line metrics alone would fall short
+ * by exactly the padding — which is the gap that moves everything below it.
+ */
+.c-badge {
+  min-height: calc(var(--ph-fs) * var(--ph-lh) * var(--ph-lines, 1) + 4px);
+}
+
+.c-alert,
+.c-btn {
+  min-height: calc(var(--ph-fs) * var(--ph-lh) * var(--ph-lines, 1) + 20px * var(--jit-density-f) + 2px);
+}
+
+/* ------------------------------------------------------------------ *
+ * Content components
+ * ------------------------------------------------------------------ */
+
+.c-heading {
+  --ph-lh: 1.16;
+  margin: 0;
+  color: var(--jit-fg);
+  font-family: var(--jit-font-display);
+  font-weight: var(--jit-weight-display);
+  line-height: var(--ph-lh);
+  letter-spacing: -0.018em;
+  text-wrap: balance;
+}
+
+.c-heading[data-level='1'] {
+  --ph-fs: calc(25px * var(--jit-scale));
+  font-size: var(--ph-fs);
+}
+
+.c-heading[data-level='2'] {
+  --ph-fs: calc(18px * var(--jit-scale));
+  font-size: var(--ph-fs);
+}
+
+.c-heading[data-level='3'] {
+  --ph-fs: calc(14px * var(--jit-scale));
+  --ph-lh: 1.35;
+  font-size: var(--ph-fs);
+  letter-spacing: -0.008em;
+}
+
+.c-text {
+  --ph-fs: calc(13px * var(--jit-scale));
+  --ph-lh: 1.58;
+  margin: 0;
+  color: var(--jit-fg);
+  font-size: var(--ph-fs);
+  line-height: var(--ph-lh);
+  text-wrap: pretty;
+}
+
+.c-text[data-tone='muted'] {
+  color: var(--jit-muted);
+}
+
+.c-label {
+  --ph-fs: calc(10px * var(--jit-scale));
+  --ph-lh: 1.6;
+  display: block;
+  color: var(--jit-muted);
+  font-size: var(--ph-fs);
+  font-weight: 600;
+  line-height: var(--ph-lh);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.c-metric .c-label {
+  margin-bottom: 3px;
+}
+
+.c-metric .m-value {
+  min-height: calc(24px * var(--jit-scale) * 1.1);
+  color: var(--jit-fg);
+  font-family: var(--jit-font-display);
+  font-size: calc(24px * var(--jit-scale));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.c-metric .m-delta {
+  min-height: calc(11px * var(--jit-scale) * 1.5);
+  margin-top: 2px;
+  color: var(--jit-muted);
+  font-size: calc(11px * var(--jit-scale));
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+
+.c-media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--jit-radius-sm);
+  background-color: var(--jit-border);
+  background-position: center;
+  background-size: cover;
+  color: var(--jit-muted);
+  font-size: calc(11px * var(--jit-scale));
+}
+
+.c-badge {
+  --ph-fs: calc(10px * var(--jit-scale));
+  --ph-lh: 1.6;
+  display: inline-block;
+  align-self: flex-start;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--jit-accent-soft);
+  color: var(--jit-accent);
+  font-size: var(--ph-fs);
+  font-weight: 700;
+  line-height: var(--ph-lh);
+  letter-spacing: 0.06em;
+}
+
+.c-listitem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  /* box-sizing is border-box, so the reservation carries the border too. */
+  min-height: calc(13px * var(--jit-scale) * 1.5 + 16px * var(--jit-density-f) + 1px);
+  padding: calc(8px * var(--jit-density-f)) 0;
+  line-height: 1.5;
+  border-bottom: 1px solid var(--jit-border);
+}
+
+.c-listitem:last-child {
+  min-height: calc(13px * var(--jit-scale) * 1.5 + 16px * var(--jit-density-f));
+  border-bottom: 0;
+}
+
+.c-listitem .li-title {
+  font-size: calc(13px * var(--jit-scale));
+}
+
+.c-listitem .li-meta {
+  flex: 0 0 auto;
+  color: var(--jit-muted);
+  font-size: calc(12px * var(--jit-scale));
+  font-variant-numeric: tabular-nums;
+}
+
+.c-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 74px;
+}
+
+.c-bars .b-bar {
+  display: block;
+  flex: 1 1 0;
+  min-height: 2px;
+  border-radius: calc(var(--jit-radius-sm) / 2) calc(var(--jit-radius-sm) / 2) 0 0;
+  background: var(--jit-accent);
+}
+
+.c-rule {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: calc(12px * var(--jit-scale) * 1.5);
+  color: var(--jit-muted);
+  font-size: calc(12px * var(--jit-scale));
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+
+.c-alert {
+  --ph-fs: calc(12px * var(--jit-scale));
+  --ph-lh: 1.55;
+  padding: calc(10px * var(--jit-density-f)) 12px;
+  border: 1px solid var(--jit-border);
+  border-radius: var(--jit-radius-sm);
+  background: var(--jit-accent-soft);
+  font-size: var(--ph-fs);
+  line-height: var(--ph-lh);
+}
+
+.c-progress {
+  overflow: hidden;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--jit-border);
+}
+
+.c-progress .p-fill {
+  display: block;
+  height: 100%;
+  background: var(--jit-accent);
+  transition: width 0.3s ease;
+}
+
+/* ------------------------------------------------------------------ *
+ * Interactive components
+ * ------------------------------------------------------------------ */
+
+.c-btn {
+  --ph-fs: calc(13px * var(--jit-scale));
+  --ph-lh: 1.4;
+  display: block;
+  width: 100%;
+  padding: calc(10px * var(--jit-density-f)) 14px;
+  border: 1px solid transparent;
+  border-radius: var(--jit-radius-sm);
+  background: var(--jit-accent);
+  color: var(--jit-on-accent);
+  font-family: var(--jit-font-body);
+  font-size: var(--ph-fs);
+  font-weight: 600;
+  line-height: var(--ph-lh);
+  letter-spacing: 0.005em;
+  cursor: pointer;
+}
+
+.c-btn[data-variant='secondary'] {
+  border-color: var(--jit-border);
+  background: transparent;
+  color: var(--jit-fg);
+}
+
+.c-btn[data-variant='ghost'] {
+  border-color: transparent;
+  background: transparent;
+  color: var(--jit-muted);
+}
+
+.c-field .c-label {
+  margin-bottom: 4px;
+}
+
+.c-field .f-input {
+  width: 100%;
+  padding: calc(9px * var(--jit-density-f)) 11px;
+  border: 1px solid var(--jit-border);
+  border-radius: var(--jit-radius-sm);
+  background: var(--jit-input);
+  color: var(--jit-fg);
+  font-family: var(--jit-font-body);
+  font-size: calc(13px * var(--jit-scale));
+  line-height: 1.4;
+}
+
+.c-field .f-input::placeholder {
+  color: var(--jit-muted);
+}
+
+.c-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: calc(13px * var(--jit-scale) * 1.5 + 8px);
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.c-toggle .t-label {
+  font-size: calc(13px * var(--jit-scale));
+}
+
+.c-toggle .t-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 22px;
+  border: 1px solid var(--jit-border);
+  border-radius: 999px;
+  background: var(--jit-input);
+  transition: background 0.18s ease;
+}
+
+.c-toggle .t-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--jit-muted);
+  transition:
+    left 0.18s ease,
+    background 0.18s ease;
+}
+
+.c-toggle[data-on='true'] .t-switch {
+  border-color: var(--jit-accent);
+  background: var(--jit-accent);
+}
+
+.c-toggle[data-on='true'] .t-switch::after {
+  left: 18px;
+  background: var(--jit-on-accent);
+}
+
+/*
+ * Focus. This is an accessibility tool; an unreachable-by-keyboard control is
+ * not an acceptable trade for a tidier default state.
+ */
+.jit-root :is(.c-btn, .f-input, .c-toggle):focus-visible {
+  outline: 2px solid var(--jit-accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Shimmer
+ *
+ * An overlay rather than a restyle of the text nodes: it covers exactly the box
+ * the slot reserved, whether or not that box currently contains any text, so
+ * every component gets a correct placeholder from one rule.
+ * ------------------------------------------------------------------ */
+
+[data-shimmer] {
+  position: relative;
+  color: transparent;
+  /*
+   * The ::after overlay covers the padding box, not the border box, so a
+   * component with its own background (a Button's accent) would still show a
+   * ring of it through the border. Neutralise both.
+   */
+  background-color: var(--jit-border);
+  border-color: var(--jit-border);
+}
+
+/*
+ * An empty inline element generates no line box, so a text slot with no value
+ * would collapse and everything under it would jump when content landed. A
+ * zero-width space forces exactly one line box, at the component's own metrics,
+ * contributing no width.
+ */
+[data-shimmer]:is(.c-heading, .c-text, .c-label, .c-badge, .c-alert, .c-btn)::before {
+  content: '\200b';
+}
+
+[data-shimmer]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: var(--jit-radius-sm);
+  /*
+   * Fully opaque. Animating opacity would let the component's own background
+   * show through — a shimmering Button would read as an accent-coloured button
+   * that had already loaded.
+   */
+  background-color: var(--jit-border);
+  background-image: linear-gradient(
+    90deg,
+    transparent 20%,
+    color-mix(in srgb, var(--jit-fg) 9%, transparent) 50%,
+    transparent 80%
+  );
+  background-size: 220% 100%;
+  animation: jit-shimmer 1.6s ease-in-out infinite;
+}
+
+.c-badge[data-shimmer]::after {
+  border-radius: 999px;
+}
+
+@keyframes jit-shimmer {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -130% 0;
+  }
+}
+
+/*
+ * "Reduce motion" is a request this product exists to honour. The shimmer still
+ * reads as a placeholder at rest — it just stops moving.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .jit-root *,
+  [data-shimmer]::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  [data-shimmer]::after {
+    background-image: none;
+  }
+}

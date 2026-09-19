@@ -1,0 +1,23 @@
+{
+  "name": "@jit/tokens",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./fonts.css": "./fonts.css",
+    "./assets/*": "./assets/*"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "fonts.css", "assets"],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@jit/schema": "*"
+  }
+}
