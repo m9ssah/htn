@@ -1,0 +1,12 @@
+model_name: nllb-200-distilled-600m
+model_metadata:
+  avatar_url: https://huggingface.co
+requirements:
+  - transformers
+  - torch
+  - sentencepiece
+resources:
+  cpu: "2"
+  memory: 8Gi
+  use_gpu: true
+  accelerator: T4  # You can also use L4 for faster cold starts
