@@ -25,11 +25,28 @@ const $ = <T extends HTMLElement>(id: string): T => {
 };
 
 const shell = $('shell');
+const surface = $('surface');
 const rail = createRail($('rail'), $('fader'));
-const renderer: Renderer = createRenderer($('surface'), { transitions: true });
+const renderer: Renderer = createRenderer(surface, { transitions: true });
 
+const LAYERS: readonly (readonly [HTMLElement, ShellState])[] = [
+  [$('greeting'), 'greeting'],
+  [$('home'), 'home'],
+  [surface, 'surface'],
+];
+
+/**
+ * The three stage layers are all in the DOM at once so the pan between them is
+ * a transform rather than a mount, which also means two of them are always
+ * offscreen furniture. `aria-hidden` has to follow the live layer or a screen
+ * reader reads all three at once — including the face, whose label is the only
+ * way its mood is available to somebody who cannot see it.
+ */
 const setState = (state: ShellState): void => {
   shell.dataset['state'] = state;
+  for (const [layer, id] of LAYERS) {
+    layer.setAttribute('aria-hidden', String(id !== state));
+  }
 };
 
 /* ------------------------------------------------------------------ *
@@ -93,6 +110,13 @@ function advance(to = beat + 1): void {
 
   setState('surface');
   face.setMood('thinking');
+
+  // Marks the generation boundary for the shell's own transition. The renderer
+  // stages patches but cannot tell one generation from the next — from its side
+  // a new skeleton is simply more patches — so flipping the value here is what
+  // restarts `gen-in` and gives the swap a single deliberate beat. See the
+  // "Generated surfaces" block in shell.css.
+  surface.dataset['gen'] = surface.dataset['gen'] === '0' ? '1' : '0';
 
   // Mirrors the real pipeline: structure paints first, content and style land
   // after, and nothing waits on anything else.

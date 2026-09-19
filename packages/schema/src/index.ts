@@ -70,6 +70,8 @@ export type CssVar =
   | '--jit-fg'
   | '--jit-muted'
   | '--jit-accent'
+  /** Gradient partner for `--jit-accent`; a neighbour in hue, not a second brand. */
+  | '--jit-accent-2'
   | '--jit-on-accent'
   | '--jit-accent-soft'
   | '--jit-input'
@@ -77,6 +79,7 @@ export type CssVar =
   | '--jit-font-display'
   | '--jit-font-body'
   | '--jit-weight-display'
+  | '--jit-tracking-display'
   | '--jit-scale'
   // space
   | '--jit-gap'

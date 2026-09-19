@@ -67,6 +67,24 @@
   background-size: 120px 120px;
 }
 
+/*
+ * The lit accent field.
+ *
+ * Metro paints a flat colour block; this paints the same block with one
+ * interpolated pass across it, which is the whole of the "modern" in the brief.
+ * It is defined once here and referenced by every accent surface so they cannot
+ * drift apart, and it is a static paint — never animated — so the device
+ * composites it once and spends nothing per frame.
+ *
+ * `--jit-accent-2` equals `--jit-accent` in the `contrast` palette, where this
+ * correctly collapses back to the flat block. It lives in the `--ph-*` internal
+ * namespace because `--jit-*` is the patch contract and the renderer declares
+ * none of it.
+ */
+.jit-root {
+  --ph-accent-field: linear-gradient(135deg, var(--jit-accent), var(--jit-accent-2));
+}
+
 /* ------------------------------------------------------------------ *
  * Layout
  * ------------------------------------------------------------------ */
@@ -158,7 +176,7 @@
   font-family: var(--jit-font-display);
   font-weight: var(--jit-weight-display);
   line-height: var(--ph-lh);
-  letter-spacing: -0.018em;
+  letter-spacing: var(--jit-tracking-display);
   text-wrap: balance;
 }
 
@@ -217,7 +235,7 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--jit-tracking-display);
 }
 
 .c-metric .m-delta {
@@ -335,7 +353,8 @@
   flex: 1 1 0;
   min-height: 2px;
   border-radius: calc(var(--jit-radius-sm) / 2) calc(var(--jit-radius-sm) / 2) 0 0;
-  background: var(--jit-accent);
+  /* Bars read bottom-up, so this one is lit along its own axis. */
+  background: linear-gradient(to top, var(--jit-accent), var(--jit-accent-2));
 }
 
 .c-rule {
@@ -370,7 +389,7 @@
 .c-progress .p-fill {
   display: block;
   height: 100%;
-  background: var(--jit-accent);
+  background: var(--ph-accent-field);
   transition: width 0.3s ease;
 }
 
@@ -386,7 +405,7 @@
   padding: calc(10px * var(--jit-density-f)) 14px;
   border: 1px solid transparent;
   border-radius: var(--jit-radius-sm);
-  background: var(--jit-accent);
+  background: var(--ph-accent-field);
   color: var(--jit-on-accent);
   font-family: var(--jit-font-body);
   font-size: var(--ph-fs);

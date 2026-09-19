@@ -1,20 +1,50 @@
 /*
- * The `geometric` font pairing. Bundled rather than referenced by stack alone:
- * Raspberry Pi OS ships only DejaVu / Liberation / Noto / Piboto, none of them
- * geometric, so without this face the `geometric` enum would render identically
- * to `system` on the device — two axis values the user could not tell apart.
- * MV3 forbids CDN imports, so it has to be local regardless.
+ * The two faces this device ships.
  *
- * Jost, SIL Open Font License 1.1. See assets/Jost-OFL.txt.
- * Latin subset, variable 100-900, 26KB.
+ * Both are bundled rather than referenced by stack alone: Raspberry Pi OS ships
+ * only DejaVu / Liberation / Noto / Piboto, so anything named-but-not-bundled
+ * silently resolves to DejaVu and the device stops looking like the design.
+ * MV3 forbids CDN imports, so it has to be local regardless.
+ */
+
+/*
+ * Manrope, SIL Open Font License 1.1. See assets/Manrope-OFL.txt.
+ * Latin subset, variable 200-800, 24KB.
+ *
+ * The product voice. Stands in for Segoe UI, which is proprietary and cannot be
+ * shipped: Manrope carries the same humanist-geometric register and, unlike
+ * Segoe, goes down to 200, which is the weight the display type is set at.
  */
 @font-face {
-  font-family: 'Jost';
+  font-family: 'Manrope';
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 200 800;
   font-display: swap;
-  src: url('./assets/jost-latin-var.woff2') format('woff2-variations');
+  src: url('./assets/manrope-latin-var.woff2') format('woff2-variations');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
     U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
     U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/*
+ * The face's glyph set. GNU FreeFont (FreeSans), GPL-3 with the Special Font
+ * Exception, which explicitly permits embedding in a document without the
+ * document inheriting the licence. See assets/FreeSans-LICENSE.txt.
+ *
+ * 2.3KB, 27 glyphs, and it exists for one reason: Manrope contains NONE of the
+ * characters the emoticon is built from. U+1D54, U+25E1, U+0298 and U+25DD are
+ * modifier letters and geometric-shape codepoints that no UI face carries, so
+ * without this the device falls back per-glyph to whatever DejaVu happens to
+ * have — which is a different face, at a different weight, for every eye.
+ *
+ * Deliberately NOT given a unicode-range: a range-scoped face applies document
+ * wide, and FreeSans's parentheses would then replace Manrope's everywhere on
+ * the device. It is scoped by family name instead, applied only on `.face`.
+ */
+@font-face {
+  font-family: 'JIT Kaomoji';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('./assets/kaomoji-subset.woff2') format('woff2');
 }
