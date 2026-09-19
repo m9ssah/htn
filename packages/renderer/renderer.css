@@ -68,21 +68,30 @@
 }
 
 /*
- * The lit accent field.
+ * The accent ramp.
  *
- * Metro paints a flat colour block; this paints the same block with one
- * interpolated pass across it, which is the whole of the "modern" in the brief.
- * It is defined once here and referenced by every accent surface so they cannot
- * drift apart, and it is a static paint — never animated — so the device
- * composites it once and spends nothing per frame.
+ * Three stops, never two. Two colours read as a crossfade between two things;
+ * three read as one material catching the light, and the middle stop is what
+ * carries that. The palette guarantees the three are hue neighbours — see
+ * `tokens/palettes.ts` — so the ramp sweeps rather than collides.
  *
- * `--jit-accent-2` equals `--jit-accent` in the `contrast` palette, where this
- * correctly collapses back to the flat block. It lives in the `--ph-*` internal
- * namespace because `--jit-*` is the patch contract and the renderer declares
- * none of it.
+ * Used in exactly two places: the primary button and the progress fill. Those
+ * are small, active, and benefit from reading as energy. Everywhere else the
+ * accent is the flat block Metro asks for — a large field with a gradient
+ * across it is the thing this design is explicitly not.
+ *
+ * All three stops are equal in the `contrast` palette, where this correctly
+ * collapses to a solid fill. It is static paint, rasterised once and never
+ * animated. It lives in the `--ph-*` internal namespace because `--jit-*` is
+ * the patch contract and the renderer declares none of it.
  */
 .jit-root {
-  --ph-accent-field: linear-gradient(135deg, var(--jit-accent), var(--jit-accent-2));
+  --ph-accent-ramp: linear-gradient(
+    135deg,
+    var(--jit-accent),
+    var(--jit-accent-2),
+    var(--jit-accent-3)
+  );
 }
 
 /* ------------------------------------------------------------------ *
@@ -353,8 +362,7 @@
   flex: 1 1 0;
   min-height: 2px;
   border-radius: calc(var(--jit-radius-sm) / 2) calc(var(--jit-radius-sm) / 2) 0 0;
-  /* Bars read bottom-up, so this one is lit along its own axis. */
-  background: linear-gradient(to top, var(--jit-accent), var(--jit-accent-2));
+  background: var(--jit-accent);
 }
 
 .c-rule {
@@ -389,7 +397,7 @@
 .c-progress .p-fill {
   display: block;
   height: 100%;
-  background: var(--ph-accent-field);
+  background: var(--ph-accent-ramp);
   transition: width 0.3s ease;
 }
 
@@ -405,7 +413,7 @@
   padding: calc(10px * var(--jit-density-f)) 14px;
   border: 1px solid transparent;
   border-radius: var(--jit-radius-sm);
-  background: var(--ph-accent-field);
+  background: var(--ph-accent-ramp);
   color: var(--jit-on-accent);
   font-family: var(--jit-font-body);
   font-size: var(--ph-fs);

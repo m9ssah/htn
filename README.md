@@ -22,10 +22,27 @@ npm install
 
 ### The look
 
-Metro's bones, a modern skin. Metro supplies the structure — tile grid, type
+Metro's bones, a modern skin. Metro supplies the structure — a tile mosaic, type
 doing the hierarchy, colour as a field rather than an outline — and the surface
-treatment is current: one small radius, accent fields lit by a gradient rather
-than printed flat, depth as fill rather than stroke.
+treatment is current: one small radius, depth as fill rather than stroke.
+
+**The ground is always dark.** All four palettes are dark by construction, and
+`applyPolish` enforces the same rule against agent 4's raw tokens: a patch that
+would paint a light background has its colours reverted to the enum base, while
+its shape, type and density still land. The shell cannot restyle itself, so a
+light surface inside it reads as a white card dropped on a black device rather
+than as a themed surface.
+
+**Colour.** The home mosaic carries four saturated accents on a plum ground and
+a tile is distinguished by which one it wears. The chrome — rail, fader, face,
+focus rings — uses a single accent and never joins in; a second colour in the
+chrome is what makes a multi-accent palette read as inconsistent.
+
+**Gradients are three stops, never two,** and appear in exactly two places: the
+primary button and the progress fill. Two colours read as a crossfade between
+two things; three read as one material catching the light. Never on a tile,
+never on the face — a large field with a gradient across it is the thing this
+design is not.
 
 Type is **Manrope** (bundled, variable 200-800), standing in for Segoe UI, which
 is proprietary and cannot ship. Display type is set at 200.

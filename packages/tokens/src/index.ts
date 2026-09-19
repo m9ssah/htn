@@ -9,9 +9,15 @@ export {
 } from './scale.js';
 export { DEFAULT_MAX_WIDTH, applyPolish, resolve } from './resolve.js';
 export {
+  COLOR_VARS,
+  LIGHT_GROUND_LUMINANCE,
+  isLightGround,
+} from './dark.js';
+export {
   AA_NORMAL,
   checkContrast,
   contrastRatio,
+  luminance,
   parseColor,
   type CheckContrastOptions,
 } from './contrast.js';
