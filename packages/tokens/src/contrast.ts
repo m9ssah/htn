@@ -83,28 +83,42 @@ const PAIR_VARS: Record<ContrastPair, { fg: keyof TokenSet; bg: keyof TokenSet }
   'fg-on-surface': { fg: '--jit-fg', bg: '--jit-surface' },
   'muted-on-surface': { fg: '--jit-muted', bg: '--jit-surface' },
   'on-accent-on-accent': { fg: '--jit-on-accent', bg: '--jit-accent' },
+  // Alert (recovery.diagnosis) inherits body text color onto this background.
+  'fg-on-accent-soft': { fg: '--jit-fg', bg: '--jit-accent-soft' },
+  // Badge sets its text to accent explicitly, on this same background.
+  'accent-on-accent-soft': { fg: '--jit-accent', bg: '--jit-accent-soft' },
 };
 
 const PAIRS_BY_SURFACE: Record<Surface, ContrastPair[]> = {
   bg: ['fg-on-bg', 'muted-on-bg'],
   surface: ['fg-on-surface', 'muted-on-surface'],
+  'accent-soft': ['fg-on-accent-soft', 'accent-on-accent-soft'],
 };
 
 export type CheckContrastOptions = {
   /**
    * The grounds the active template actually draws text on. `reader` has no Card
    * and paints straight onto bg; every other template paints inside one. Omit to
-   * require all five pairs.
+   * require the four bg/surface pairs (plus on-accent-on-accent, always
+   * required). Pass `'accent-soft'` too for a template whose tree contains a
+   * `Badge` or an `Alert`.
    */
   surfaces?: readonly Surface[];
 };
 
 /**
- * WCAG AA check over the five pairs the renderer can actually produce.
+ * WCAG AA check over the seven pairs the renderer can actually produce.
  *
  * Nothing is ever skipped. An unparseable colour yields a FAILING check with a
  * null ratio and a reason, because "we could not tell" and "it is fine" must not
  * look the same to the caller.
+ *
+ * `on-accent-on-accent` is always required — every template renders at least
+ * one button via `getActions()`. `fg-on-accent-soft` and `accent-on-accent-soft`
+ * are opt-in via `surfaces: [...,'accent-soft']`, the same as `surface`, because
+ * only templates with a `Badge` or an `Alert` in their tree paint on that
+ * ground — see the renderer's template tests for the check that a template
+ * containing either always declares it.
  *
  * Pure, so the orchestrator can run this before emitting a polish patch — which
  * is the real fix when agent 4 goes unreadable. Rejecting at the renderer is the
