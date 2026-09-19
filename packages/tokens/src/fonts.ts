@@ -3,37 +3,54 @@ import type { FontPairing } from '@jit/schema';
 export type FontDefinition = {
   display: string;
   body: string;
-  /** Display weight. Jost and the system stacks carry different optical weight. */
+  /** Display weight. Manrope and the system stacks carry different optical weight. */
   weightDisplay: string;
+  /**
+   * Display tracking. Carries as much of a pairing's voice as the family does:
+   * `geometric` and `system` are the same face, and this is what separates them.
+   */
+  trackingDisplay: string;
 };
 
-const SYSTEM_SANS =
-  'ui-sans-serif,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
+/**
+ * Manrope leads every stack that is not deliberately something else. It is
+ * bundled (see fonts.css), so on the device it is what actually paints; the
+ * native names behind it are a no-download fast path on a dev machine that
+ * already has one, and `Segoe UI` is first among them because this design is
+ * drawn to Segoe's metrics.
+ */
+const PRODUCT_SANS =
+  '"Manrope",ui-sans-serif,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
 
 /**
- * Four pairings. `geometric` leads with the bundled Jost face (see fonts.css) and
- * lists native equivalents behind it as a no-download fast path on machines that
- * already have one.
+ * Four pairings. `system` and `geometric` share the Manrope face and diverge on
+ * weight and tracking instead of family: 200 tracked wide is the Metro display
+ * voice, 300 tracked tight is the product voice, and the two are further apart
+ * on screen than two different families at the same settings would be.
  */
 export const FONTS: Record<FontPairing, FontDefinition> = {
   system: {
-    display: SYSTEM_SANS,
-    body: SYSTEM_SANS,
-    weightDisplay: '700',
+    display: PRODUCT_SANS,
+    body: PRODUCT_SANS,
+    weightDisplay: '300',
+    trackingDisplay: '-0.02em',
   },
   editorial: {
     display: 'Georgia,"Iowan Old Style","Times New Roman",serif',
-    body: SYSTEM_SANS,
-    weightDisplay: '600',
+    body: PRODUCT_SANS,
+    weightDisplay: '400',
+    trackingDisplay: '-0.01em',
   },
   geometric: {
-    display: '"Jost","Avenir Next",Futura,"Century Gothic",sans-serif',
-    body: '"Jost","Avenir Next",Futura,"Century Gothic",sans-serif',
-    weightDisplay: '600',
+    display: PRODUCT_SANS,
+    body: PRODUCT_SANS,
+    weightDisplay: '200',
+    trackingDisplay: '0.06em',
   },
   mono: {
     display: 'ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace',
     body: 'ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace',
-    weightDisplay: '700',
+    weightDisplay: '500',
+    trackingDisplay: '-0.01em',
   },
 };

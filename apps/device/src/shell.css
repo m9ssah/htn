@@ -9,20 +9,60 @@
  * and if the chrome moved with them the device would have no constant at all.
  *
  * Target: 800x480 landscape, 4" touchscreen, viewed from about a metre.
+ *
+ * ---------------------------------------------------------------------------
+ * The look: Metro's bones, a modern skin.
+ *
+ * Metro supplies the structure — a tile grid, type doing the hierarchy, colour
+ * as a field rather than an outline, and no chrome, borders or shadows drawing
+ * boxes around things. What is modern is the surface treatment: a small uniform
+ * radius, accent fields that are lit by a gradient instead of printed flat, and
+ * depth expressed as a lighter fill rather than a stroke.
+ *
+ * ---------------------------------------------------------------------------
+ * The motion budget.
+ *
+ * This runs on an embedded GPU, so the rule is absolute: ONLY `opacity` and
+ * `transform` are ever animated. Both are composited, so the device never
+ * relayouts or repaints mid-transition no matter what is being generated
+ * behind the animation. Gradients, radii and shadows are all static paint.
+ *
+ * Nothing below animates `filter`, `backdrop-filter`, `box-shadow`, `width`,
+ * `height` or any colour — every one of those forces per-frame work on the CPU.
+ * If a future effect seems to need one, it does not.
+ * ---------------------------------------------------------------------------
  */
 
 :root {
-  /* Metro: true black, one saturated accent, no in-between greys doing work. */
-  --sh-bg: #000000;
-  --sh-fg: #ffffff;
-  --sh-dim: #7d8a94;
-  --sh-line: #1c2226;
-  --sh-accent: #00c8d7;
-  --sh-accent-deep: #007782;
+  /* Near-black with a blue cast: black enough to read as Metro, warm enough
+     under the panel's backlight not to look like a dead pixel field. */
+  --sh-bg: #05070b;
+  --sh-surface: #10141c;
+  --sh-surface-hi: #182030;
+  --sh-fg: #f2f4f8;
+  --sh-dim: #78829a;
+  --sh-line: #1b2130;
+
+  --sh-accent: #6d5cf6;
+  --sh-accent-2: #3ba8ff;
+  --sh-accent-deep: #221d52;
   --sh-warn: #f2a33c;
+
+  /* One lit field, defined once, used by every accent surface. Static paint. */
+  --sh-accent-field: linear-gradient(135deg, var(--sh-accent), var(--sh-accent-2));
+
+  /* Modern, not round: Metro's zero radius reads as dated, a pill reads as a
+     phone app. 10px is the Fluent answer and the right one here. */
+  --sh-radius: 10px;
+  --sh-radius-sm: 6px;
 
   --sh-rail-h: 72px;
   --sh-pad: 22px;
+
+  /* One decelerating curve for every entrance on the device, so the greeting,
+     the tiles and a generated surface all arrive with the same hand. */
+  --sh-ease: cubic-bezier(0.16, 0.84, 0.28, 1);
+  --sh-ease-exit: cubic-bezier(0.4, 0, 0.9, 0.4);
 
   color-scheme: dark;
 }
@@ -50,9 +90,10 @@ body {
   margin: 0;
   background: var(--sh-bg);
   color: var(--sh-fg);
-  font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
-  /* Metro's signature: large, light, tightly tracked. */
-  font-weight: 300;
+  font-family: 'Manrope', ui-sans-serif, 'Segoe UI', system-ui, sans-serif;
+  /* Metro's signature, and the reason the bundled face goes down to 200:
+     large, light, tightly tracked. */
+  font-weight: 200;
   -webkit-font-smoothing: antialiased;
   user-select: none;
 }
@@ -71,45 +112,62 @@ body {
   min-height: 0;
 }
 
-/* Each stage layer owns the full area; only one is live at a time. */
+/* ------------------------------------------------------------------ *
+ * Stage transitions
+ *
+ * Three layers, one live at a time, moving as a single horizontal pan: the
+ * outgoing layer leaves to the left while the incoming one arrives from the
+ * right, both at once. That is Metro's page transition, and it is also the
+ * cheapest one available — two composited transforms and two opacities.
+ *
+ * Opacity is quicker than the pan on purpose. The layers overlap in space, so
+ * if they faded at the same rate as they moved, the two would be legible on top
+ * of each other through the middle of the transition.
+ * ------------------------------------------------------------------ */
+
 .stage > section {
   position: absolute;
   inset: 0;
   opacity: 0;
   transition:
-    opacity 320ms ease,
-    transform 420ms cubic-bezier(0.1, 0.82, 0.25, 1);
+    opacity 220ms var(--sh-ease-exit),
+    transform 420ms var(--sh-ease);
   pointer-events: none;
+  will-change: transform, opacity;
 }
 
 .shell[data-state='greeting'] .greeting,
 .shell[data-state='home'] .home,
 .shell[data-state='surface'] .surface {
   opacity: 1;
+  /* Incoming layers get the slower fade, so the arriving one leads. */
+  transition-timing-function: var(--sh-ease), var(--sh-ease);
+  transition-duration: 300ms, 420ms;
   pointer-events: auto;
 }
 
-/* Leaving layers slide against the incoming one — Metro's horizontal pan. */
+/* Layers that have been left behind sit off to the left. */
 .shell[data-state='home'] .greeting,
 .shell[data-state='surface'] .greeting {
-  transform: translateX(-12%);
+  transform: translate3d(-14%, 0, 0);
 }
 
 .shell[data-state='surface'] .home {
-  transform: translateX(-8%);
+  transform: translate3d(-10%, 0, 0);
 }
 
+/* Layers not yet reached wait off to the right. */
 .shell[data-state='greeting'] .home,
 .shell[data-state='greeting'] .surface,
 .shell[data-state='home'] .surface {
-  transform: translateX(10%);
+  transform: translate3d(12%, 0, 0);
 }
 
 /* ------------------------------------------------------------------ *
  * The face
  *
- * Four rectangles. Everything it expresses is scale, position and colour —
- * cheap enough that a Pi never drops a frame holding its gaze.
+ * Two kaomoji stacked in one grid cell, crossfading. See emoticon.ts — the
+ * whole expression system is `opacity` on two spans of text.
  * ------------------------------------------------------------------ */
 
 .greeting {
@@ -117,78 +175,80 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 34px;
+  gap: 30px;
 }
 
 .face {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 26px;
+  display: grid;
+  /* Both frames occupy the same cell, so the crossfade never moves anything. */
+  grid-template: 'face' auto / auto;
+  font-family: 'JIT Kaomoji', 'Manrope', sans-serif;
+  font-size: 58px;
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  white-space: pre;
+  /* Each mood sets its own cadence; this is the resting one. */
+  --face-beat: 3.8s;
 }
 
-.face-eyes {
-  display: flex;
-  gap: 46px;
+.face-frame {
+  grid-area: face;
+  background: var(--sh-accent-field);
+  /* The face is the one place the accent field is worn as the mark itself
+     rather than behind one. Clipping the gradient to the glyphs costs the same
+     as painting it to a box: one static gradient, rasterised once. */
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: face-rest var(--face-beat) var(--sh-ease) infinite;
+  will-change: opacity;
 }
 
-.face-eye {
-  display: block;
-  width: 26px;
-  height: 58px;
-  border-radius: 13px;
-  background: var(--sh-accent);
-  transform-origin: center;
-  animation: face-blink 5.2s ease-in-out infinite;
+.face-frame--beat {
+  animation-name: face-beat;
 }
 
-.face-eye--r {
-  animation-delay: 0.04s;
-}
-
-.face-mouth {
-  display: flex;
-  width: 84px;
-  height: 22px;
-  justify-content: center;
-}
-
-.face-mouth i {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-bottom: 7px solid var(--sh-accent);
-  border-radius: 0 0 60px 60px;
-  transition:
-    width 300ms ease,
-    border-radius 300ms ease,
-    opacity 300ms ease;
-}
-
-@keyframes face-blink {
+/*
+ * The wink. The beat frame is up for roughly 8% of the cycle — long enough to
+ * register, short enough that the resting face is what the device is wearing.
+ * The two keyframe sets are exact inverses so total opacity is always 1 and the
+ * two frames are never both legible.
+ */
+@keyframes face-rest {
   0%,
-  92%,
+  84%,
   100% {
-    transform: scaleY(1);
+    opacity: 1;
   }
+  88%,
   95% {
-    transform: scaleY(0.08);
+    opacity: 0;
   }
 }
 
-/* Greeting: a wave in, then a squint-smile. */
-.face[data-mood='greeting'] {
-  animation: face-arrive 900ms cubic-bezier(0.14, 0.9, 0.2, 1.1) both;
+@keyframes face-beat {
+  0%,
+  84%,
+  100% {
+    opacity: 0;
+  }
+  88%,
+  95% {
+    opacity: 1;
+  }
 }
 
-.face[data-mood='greeting'] .face-eye {
-  animation: face-hello 2.2s ease-in-out;
+/* Greeting: the face arrives, then winks with both eyes at double speed. */
+.face[data-mood='greeting'] {
+  --face-beat: 1.1s;
+  animation: face-arrive 620ms var(--sh-ease) both;
 }
 
 @keyframes face-arrive {
   from {
     opacity: 0;
-    transform: scale(0.72) translateY(26px);
+    transform: scale(0.86) translate3d(0, 18px, 0);
   }
   to {
     opacity: 1;
@@ -196,83 +256,64 @@ body {
   }
 }
 
-@keyframes face-hello {
-  0%,
-  100% {
-    transform: scaleY(1);
-  }
-  40%,
-  56% {
-    transform: scaleY(0.22) translateY(-6px);
-  }
+/* Listening: quick, attentive pulse and a slight lean in. */
+.face[data-mood='listening'] {
+  --face-beat: 1.4s;
+  transform: scale(1.06);
+  transition: transform 260ms var(--sh-ease);
 }
 
-/* Listening: eyes widen, the accent lifts. */
-.face[data-mood='listening'] .face-eye {
-  height: 66px;
-  animation: none;
-  background: var(--sh-fg);
-}
-
-.face[data-mood='listening'] .face-mouth i {
-  width: 46%;
-  border-radius: 60px;
-}
-
-/* Thinking: the gaze tracks. */
-.face[data-mood='thinking'] .face-eyes {
-  animation: face-scan 1.5s ease-in-out infinite;
+/* Thinking: the gaze tracks side to side, and the eyes flick faster. */
+.face[data-mood='thinking'] {
+  --face-beat: 1.6s;
+  animation: face-scan 2.1s ease-in-out infinite;
 }
 
 @keyframes face-scan {
   0%,
   100% {
-    transform: translateX(-9px);
+    transform: translate3d(-7px, 0, 0);
   }
   50% {
-    transform: translateX(9px);
+    transform: translate3d(7px, 0, 0);
   }
 }
 
 /*
- * Unsure: dimmed and tilted. The device is not guessing, and it says so before
+ * Unsure: tilted and slowed. The device is not guessing, and it says so before
  * it does anything — the same signal the LEDs give.
  */
 .face[data-mood='unsure'] {
-  transform: rotate(-7deg);
+  --face-beat: 5.2s;
+  transform: rotate(-6deg);
+  transition: transform 300ms var(--sh-ease);
 }
 
-.face[data-mood='unsure'] .face-eye {
-  height: 26px;
-  background: var(--sh-dim);
-  animation: none;
+.face[data-mood='unsure'] .face-frame {
+  /* The one mood that drops the accent: it is not a confident state. */
+  background: none;
+  color: var(--sh-dim);
+  -webkit-text-fill-color: var(--sh-dim);
 }
 
-.face[data-mood='unsure'] .face-mouth i {
-  width: 34%;
-  border-radius: 60px 60px 0 0;
-  border-bottom-color: var(--sh-dim);
-}
-
-.face[data-mood='pleased'] .face-eye {
-  height: 20px;
-  border-radius: 13px 13px 3px 3px;
-  animation: none;
+/* Pleased: a held squint-smile rather than a wink. */
+.face[data-mood='pleased'] {
+  --face-beat: 2.4s;
 }
 
 .greeting-word {
   color: var(--sh-dim);
-  font-size: 19px;
-  font-weight: 200;
-  letter-spacing: 0.16em;
+  font-size: 18px;
+  font-weight: 300;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  animation: rise 600ms 500ms cubic-bezier(0.1, 0.82, 0.25, 1) backwards;
+  animation: rise 520ms 420ms var(--sh-ease) backwards;
 }
 
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translate3d(0, 12px, 0);
   }
   to {
     opacity: 1;
@@ -283,80 +324,88 @@ body {
 /* ------------------------------------------------------------------ *
  * Home — the resting state
  *
- * Metro proper: no cards, no borders, no radius. Colour fields on black and
- * type doing the structural work.
+ * Metro proper: colour fields on black, no cards and no outlines, type doing
+ * the structural work. Modern only in the radius and in the accent tile being
+ * lit rather than flat.
  * ------------------------------------------------------------------ */
 
 .home {
   display: flex;
   flex-direction: column;
   padding: var(--sh-pad) var(--sh-pad) 0;
-  gap: 16px;
+  gap: 14px;
 }
 
 .home-head {
-  font-size: 13px;
-  font-weight: 400;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
   color: var(--sh-dim);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
 }
 
 .home-ask {
   margin: 0;
-  font-size: 46px;
+  font-size: 50px;
   font-weight: 200;
   line-height: 1.02;
-  letter-spacing: -0.028em;
+  /* Metro tracks its display type in, but 200 has almost no sidebearing left to
+     give: below about -0.03em the round letters start touching their neighbours. */
+  letter-spacing: -0.025em;
   text-wrap: balance;
+  white-space: pre-line;
 }
 
 .tiles {
   display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(4, 1fr);
   margin-top: auto;
   padding-bottom: 18px;
+  gap: 10px;
+  grid-template-columns: repeat(4, 1fr);
 }
 
 .tile {
   display: flex;
+  min-height: 104px;
   flex-direction: column;
   justify-content: flex-end;
-  min-height: 104px;
-  padding: 12px;
-  background: var(--sh-line);
-  /* Zero radius is the whole point; a rounded tile is not a tile. */
-  border-radius: 0;
-  animation: tile-in 420ms cubic-bezier(0.1, 0.82, 0.25, 1) backwards;
-  animation-delay: calc(var(--i, 0) * 60ms);
-  transform-origin: left center;
+  padding: 13px;
+  border-radius: var(--sh-radius);
+  background: var(--sh-surface);
+  animation: tile-in 380ms var(--sh-ease) backwards;
+  animation-delay: calc(var(--i, 0) * 55ms);
 }
 
 .tile[data-accent='true'] {
-  background: var(--sh-accent-deep);
+  background: var(--sh-accent-field);
 }
 
 .tile b {
   font-size: 15px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
+  font-weight: 500;
+  letter-spacing: -0.012em;
 }
 
 .tile span {
   color: var(--sh-dim);
   font-size: 11px;
+  font-weight: 300;
   letter-spacing: 0.04em;
 }
 
 .tile[data-accent='true'] span {
-  color: #bdf0f5;
+  color: #d9d5ff;
 }
 
+/*
+ * Metro's tile entrance was a perspective flip. Kept, but shallower and without
+ * the horizontal slide: the original rotates far enough that the back face of
+ * the tile catches the backlight on this panel and flashes.
+ */
 @keyframes tile-in {
   from {
     opacity: 0;
-    transform: perspective(1200px) rotateY(48deg) translateX(14%);
+    transform: perspective(900px) rotateY(34deg) translate3d(8%, 0, 0);
   }
   to {
     opacity: 1;
@@ -364,12 +413,46 @@ body {
   }
 }
 
+.tile:active {
+  transform: scale(0.97);
+  transition: transform 120ms var(--sh-ease);
+}
+
 /* ------------------------------------------------------------------ *
  * Generated surfaces
+ *
+ * The renderer stages its own patches, but it has no idea that one generation
+ * has replaced another — from its side a new skeleton is just more patches. The
+ * shell marks the boundary: `data-gen` flips on every generation, which
+ * restarts the animation below and gives the swap a single, deliberate beat.
+ *
+ * Two identical rules keyed on the two values is what makes it restart. It is
+ * not a duplicate: dropping either one means the animation only ever plays once.
  * ------------------------------------------------------------------ */
 
 .surface {
   overflow: hidden auto;
+}
+
+.surface[data-gen='0'],
+.surface[data-gen='1'] {
+  animation: gen-in 360ms var(--sh-ease);
+}
+
+/*
+ * A lift rather than a pan. The stage pan already means "somewhere else"; this
+ * has to mean "same place, new answer", and vertical motion at this distance is
+ * the only one that reads as replacement instead of navigation.
+ */
+@keyframes gen-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* The renderer paints its own background; give it the whole layer. */
@@ -420,12 +503,13 @@ body {
 .key-pip {
   width: 34px;
   height: 4px;
+  border-radius: 2px;
   background: var(--sh-line);
   transition: background 220ms ease;
 }
 
 .key[data-state='live'] .key-pip {
-  background: var(--sh-accent);
+  background: var(--sh-accent-field);
 }
 
 .key[data-state='pending'] .key-pip {
@@ -450,13 +534,13 @@ body {
 /* A control silently changing meaning is the worst thing this device can do. */
 .key-label.is-remapped,
 .fader-label.is-remapped {
-  animation: remap 380ms cubic-bezier(0.1, 0.82, 0.25, 1);
+  animation: remap 340ms var(--sh-ease);
 }
 
 @keyframes remap {
   0% {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translate3d(0, 9px, 0);
   }
   100% {
     opacity: 1;
@@ -465,7 +549,7 @@ body {
 }
 
 .key:active .key-label {
-  color: var(--sh-accent);
+  color: var(--sh-accent-2);
 }
 
 /* ------------------------------------------------------------------ *
@@ -484,23 +568,25 @@ body {
 }
 
 .fader-label {
+  color: var(--sh-accent-2);
   font-size: 11px;
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: 0.17em;
   text-transform: uppercase;
-  color: var(--sh-accent);
 }
 
 .fader-track {
   display: block;
+  overflow: hidden;
   height: 3px;
+  border-radius: 999px;
   background: var(--sh-line);
 }
 
 .fader-track i {
   display: block;
   height: 100%;
-  background: var(--sh-accent);
+  background: var(--sh-accent-field);
   transition: width 120ms linear;
 }
 
@@ -509,6 +595,7 @@ body {
   justify-content: space-between;
   color: var(--sh-dim);
   font-size: 10px;
+  font-weight: 300;
   letter-spacing: 0.08em;
 }
 
@@ -523,18 +610,22 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 12px;
-  background: var(--sh-accent-deep);
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: var(--sh-accent-field);
   color: #ffffff;
   font-size: 11px;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  animation: rise 220ms var(--sh-ease);
 }
 
 .listening i {
   display: block;
   width: 3px;
   height: 12px;
+  border-radius: 2px;
   background: currentColor;
   animation: vu 900ms ease-in-out infinite;
 }
@@ -566,6 +657,10 @@ body {
  *
  * This device is for people who may need it. Every animation above is
  * decoration over a state that is already legible without it.
+ *
+ * The face is the one exception worth naming: with motion reduced it stops
+ * winking and simply holds its resting frame, which still differs per mood, so
+ * the expression survives losing the animation.
  * ------------------------------------------------------------------ */
 
 @media (prefers-reduced-motion: reduce) {
@@ -574,5 +669,9 @@ body {
   .shell *::after {
     animation: none !important;
     transition-duration: 1ms !important;
+  }
+
+  .face-frame--beat {
+    opacity: 0;
   }
 }

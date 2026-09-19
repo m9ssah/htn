@@ -30,6 +30,7 @@ export function resolve(theme: ThemeEnums): TokenSet {
     '--jit-fg': palette.fg,
     '--jit-muted': palette.muted,
     '--jit-accent': palette.accent,
+    '--jit-accent-2': palette.accent2,
     '--jit-on-accent': palette.onAccent,
     '--jit-accent-soft': palette.accentSoft,
     '--jit-input': palette.input,
@@ -37,6 +38,7 @@ export function resolve(theme: ThemeEnums): TokenSet {
     '--jit-font-display': font.display,
     '--jit-font-body': font.body,
     '--jit-weight-display': font.weightDisplay,
+    '--jit-tracking-display': font.trackingDisplay,
     '--jit-scale': density.scale,
 
     '--jit-gap': density.gap,
