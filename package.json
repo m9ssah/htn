@@ -4,14 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b --force",
     "test": "vitest run",
     "test:watch": "vitest",
-    "harness": "npm run harness -w @jit/renderer"
+    "harness": "npm run harness -w @jit/renderer",
+    "clean": "rm -rf packages/*/dist apps/*/dist && find . -name '*.tsbuildinfo' -not -path '*/node_modules/*' -delete",
+    "dev": "npm run dev -w @jit/device"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

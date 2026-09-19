@@ -22,11 +22,18 @@ export default defineConfig({
     ],
   },
   test: {
+    /*
+     * worker_threads, not forked processes. The default `forks` pool fails to
+     * start its workers under memory pressure — with dev servers and a headless
+     * Chrome running it reports "Timeout waiting for worker to respond", which
+     * looks exactly like a test failure and is not one.
+     */
+    pool: 'threads',
     environment: 'happy-dom',
-    include: ['packages/*/test/**/*.test.ts'],
+    include: ['packages/*/test/**/*.test.ts', 'apps/*/test/**/*.test.ts'],
     typecheck: {
       enabled: true,
-      include: ['packages/*/test/**/*.test-d.ts'],
+      include: ['packages/*/test/**/*.test-d.ts', 'apps/*/test/**/*.test-d.ts'],
       tsconfig: './tsconfig.typecheck.json',
     },
   },

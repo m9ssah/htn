@@ -4,6 +4,7 @@ import { BUTTON_COUNT, RANGE_CONTROL_COUNT } from '@jit/schema';
 import { checkContrast, resolve } from '@jit/tokens';
 import {
   BOOTSTRAP_THEME,
+  EXIT_DURATION_MS,
   POLISH_REJECTED_EVENT,
   RENDERER_CSS_VARS,
   TEMPLATES,
@@ -86,12 +87,12 @@ describe('patches arrive in any order', () => {
 
   it('keeps getActions() identical regardless of ordering', () => {
     const forward = createRenderer(document.createElement('div'));
-    forward.applySkeleton(skeleton('recipe_overview'));
-    forward.applyContent(fullContent('recipe_overview'));
+    forward.applySkeleton(skeleton('item_detail'));
+    forward.applyContent(fullContent('item_detail'));
 
     const backward = createRenderer(document.createElement('div'));
-    backward.applyContent(fullContent('recipe_overview'));
-    backward.applySkeleton(skeleton('recipe_overview'));
+    backward.applyContent(fullContent('item_detail'));
+    backward.applySkeleton(skeleton('item_detail'));
 
     expect(backward.getActions()).toEqual(forward.getActions());
   });
@@ -104,17 +105,17 @@ describe('patches arrive in any order', () => {
 describe('content arriving before its skeleton', () => {
   it('does not throw', () => {
     const renderer = createRenderer(root);
-    expect(() => renderer.applyContent(fullContent('recipe_overview'))).not.toThrow();
+    expect(() => renderer.applyContent(fullContent('item_detail'))).not.toThrow();
   });
 
   it('buffers, then applies when the structure lands', () => {
     const renderer = createRenderer(root);
-    renderer.applyContent(fullContent('recipe_overview'));
+    renderer.applyContent(fullContent('item_detail'));
     expect(root.textContent).toBe('');
 
-    renderer.applySkeleton(skeleton('recipe_overview'));
-    expect(root.querySelector('[data-slot="recipe_overview.title"]')?.textContent).toBe(
-      'Heading recipe_overview.title',
+    renderer.applySkeleton(skeleton('item_detail'));
+    expect(root.querySelector('[data-slot="item_detail.title"]')?.textContent).toBe(
+      'Heading item_detail.title',
     );
     expect(root.querySelectorAll('[data-shimmer]')).toHaveLength(0);
   });
@@ -142,8 +143,8 @@ describe('applying a polish patch', () => {
     // Proving that the patch touches no node at all is the stronger claim: a
     // change that cannot reach the tree cannot move it.
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('recipe_overview'));
-    renderer.applyContent(fullContent('recipe_overview'));
+    renderer.applySkeleton(skeleton('item_detail'));
+    renderer.applyContent(fullContent('item_detail'));
     renderer.applyStyle(style);
 
     const before = root.innerHTML;
@@ -198,7 +199,7 @@ describe('a polish patch that fails AA', () => {
 
   it('is rejected whole — not partially applied', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('recipe_overview'));
+    renderer.applySkeleton(skeleton('item_detail'));
     renderer.applyStyle(style);
 
     const base = resolve(style.theme);
@@ -211,7 +212,7 @@ describe('a polish patch that fails AA', () => {
 
   it('retains the rejection with its ratios, so the failure is debuggable', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('recipe_overview'));
+    renderer.applySkeleton(skeleton('item_detail'));
     renderer.applyPolish(unreadable);
 
     const rejection = renderer.getLastRejection();
@@ -226,7 +227,7 @@ describe('a polish patch that fails AA', () => {
     const seen: unknown[] = [];
     root.addEventListener(POLISH_REJECTED_EVENT, (e) => seen.push((e as CustomEvent).detail));
 
-    renderer.applySkeleton(skeleton('recipe_overview'));
+    renderer.applySkeleton(skeleton('item_detail'));
     renderer.applyPolish(unreadable);
 
     expect(seen).toHaveLength(1);
@@ -250,7 +251,7 @@ describe('a polish patch that fails AA', () => {
 
     // dashboard renders inside a Card, so only the surface pairs are required.
     const inCard = createRenderer(document.createElement('div'));
-    inCard.applySkeleton(skeleton('recipe_overview'));
+    inCard.applySkeleton(skeleton('item_detail'));
     inCard.applyPolish(cardOnly);
     expect(inCard.getLastRejection()).toBeNull();
 
@@ -301,7 +302,7 @@ describe('getActions', () => {
 
     expect(summary).toEqual({
       choice_cards: ['range:set_preference', 'press:select_1', 'press:select_2', 'press:select_3'],
-      recipe_overview: ['range:set_batch', 'press:start_baking'],
+      item_detail: ['range:set_amount', 'press:begin'],
       focus_step: ['press:prev_step', 'press:next_step', 'press:step_done'],
       recovery: ['press:start_over', 'press:apply_fix'],
       // Deliberately actionless: the script calls for an open prompt here, so
@@ -354,7 +355,7 @@ describe('getActions', () => {
 
   it('carries the generated axis once content lands, and null before', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('recipe_overview'));
+    renderer.applySkeleton(skeleton('item_detail'));
 
     const before = renderer.getActions().find((a) => a.kind === 'range');
     expect(before).toMatchObject({ kind: 'range', range: null, label: null });
@@ -362,7 +363,7 @@ describe('getActions', () => {
     renderer.applyContent({
       v: 1,
       slots: {
-        'recipe_overview.batch': {
+        'item_detail.axis': {
           kind: 'Slider',
           label: 'Batch size',
           min: 12,
@@ -383,12 +384,12 @@ describe('getActions', () => {
 
   it('gives the same fader a different meaning on each surface', () => {
     // The demo's first moment: one physical control, three generated meanings.
-    const meanings = (['choice_cards', 'recipe_overview', 'message_drafts'] as const).map((id) => {
+    const meanings = (['choice_cards', 'item_detail', 'message_drafts'] as const).map((id) => {
       const renderer = createRenderer(document.createElement('div'));
       renderer.applySkeleton(skeleton(id));
       return renderer.getActions().find((a) => a.kind === 'range')?.action;
     });
-    expect(meanings).toEqual(['set_preference', 'set_batch', 'set_tone']);
+    expect(meanings).toEqual(['set_preference', 'set_amount', 'set_tone']);
   });
 
   it('gives every action a unique string within its template', () => {
@@ -431,28 +432,28 @@ describe('the skeleton', () => {
 
   it('collapses a slot the instance does not use, instead of shimmering forever', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('recipe_overview'));
+    renderer.applySkeleton(skeleton('item_detail'));
 
-    const slot = () => root.querySelector<HTMLElement>('[data-slot="recipe_overview.ingredient8"]');
+    const slot = () => root.querySelector<HTMLElement>('[data-slot="item_detail.line8"]');
     expect(slot()?.hidden).toBe(false);
     expect(slot()?.hasAttribute('data-shimmer')).toBe(true);
 
-    renderer.applyContent({ v: 1, slots: { 'recipe_overview.ingredient8': null } });
+    renderer.applyContent({ v: 1, slots: { 'item_detail.line8': null } });
     expect(slot()?.hidden).toBe(true);
   });
 
   it('drains a null that arrived before the skeleton', () => {
     const renderer = createRenderer(root);
-    renderer.applyContent({ v: 1, slots: { 'recipe_overview.ingredient8': null } });
-    renderer.applySkeleton(skeleton('recipe_overview'));
+    renderer.applyContent({ v: 1, slots: { 'item_detail.line8': null } });
+    renderer.applySkeleton(skeleton('item_detail'));
     expect(
-      root.querySelector<HTMLElement>('[data-slot="recipe_overview.ingredient8"]')?.hidden,
+      root.querySelector<HTMLElement>('[data-slot="item_detail.line8"]')?.hidden,
     ).toBe(true);
   });
 
   it('applies the template width from the patch, not the enum default', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton({ v: 1, templateId: 'recipe_overview', maxWidth: 470 });
+    renderer.applySkeleton({ v: 1, templateId: 'item_detail', maxWidth: 470 });
     expect(root.style.getPropertyValue('--jit-maxw')).toBe('470px');
   });
 
@@ -468,9 +469,9 @@ describe('the skeleton', () => {
 
   it('replaces the previous template cleanly when a new skeleton lands', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('recipe_overview'));
+    renderer.applySkeleton(skeleton('item_detail'));
     renderer.applySkeleton(skeleton('generic_answer'));
-    expect(root.querySelectorAll('[data-slot^="recipe_overview."]')).toHaveLength(0);
+    expect(root.querySelectorAll('[data-slot^="item_detail."]')).toHaveLength(0);
     expect(root.querySelectorAll('[data-slot^="generic_answer."]')).toHaveLength(6);
   });
 });
@@ -494,10 +495,91 @@ describe('token coverage', () => {
 
   it('paints a complete, AA-passing surface from a bare skeleton patch', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('recipe_overview'));
+    renderer.applySkeleton(skeleton('item_detail'));
     for (const name of RENDERER_CSS_VARS) {
       expect(root.style.getPropertyValue(name), name).not.toBe('');
     }
     expect(checkContrast(renderer.getState().tokens!).pass).toBe(true);
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Surface transitions
+ * ------------------------------------------------------------------ */
+
+describe('transitioning between surfaces', () => {
+  it('cuts straight over when transitions are off, which is the default', () => {
+    const renderer = createRenderer(root);
+    renderer.applySkeleton(skeleton('choice_cards'));
+    renderer.applySkeleton(skeleton('focus_step'));
+
+    expect(root.children).toHaveLength(1);
+    expect(root.querySelectorAll('[data-exiting]')).toHaveLength(0);
+  });
+
+  it('keeps the outgoing surface on screen while the new one arrives', () => {
+    const renderer = createRenderer(root, { transitions: true });
+    renderer.applySkeleton(skeleton('choice_cards'));
+    renderer.applySkeleton(skeleton('focus_step'));
+
+    // Both trees are present: the old one pivoting away, the new one arriving.
+    expect(root.children).toHaveLength(2);
+    expect(root.querySelectorAll('[data-exiting]')).toHaveLength(1);
+    expect(root.querySelectorAll('[data-entering]')).toHaveLength(1);
+    // The incoming surface is the one that owns the slots.
+    expect(root.querySelector('[data-entering] [data-slot^="focus_step."]')).not.toBeNull();
+  });
+
+  it('removes the outgoing surface once it has left', async () => {
+    vi.useFakeTimers();
+    try {
+      const renderer = createRenderer(root, { transitions: true });
+      renderer.applySkeleton(skeleton('choice_cards'));
+      renderer.applySkeleton(skeleton('focus_step'));
+      expect(root.children).toHaveLength(2);
+
+      vi.advanceTimersByTime(EXIT_DURATION_MS + 1);
+      expect(root.children).toHaveLength(1);
+      expect(root.querySelector('[data-slot^="focus_step."]')).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('never stacks two outgoing surfaces', () => {
+    // Three surfaces in quick succession — overlapping exits read as a glitch.
+    const renderer = createRenderer(root, { transitions: true });
+    renderer.applySkeleton(skeleton('choice_cards'));
+    renderer.applySkeleton(skeleton('focus_step'));
+    renderer.applySkeleton(skeleton('recovery'));
+
+    expect(root.querySelectorAll('[data-exiting]')).toHaveLength(1);
+    expect(root.children).toHaveLength(2);
+  });
+
+  it('numbers slots in DOM order so the entrance can stagger', () => {
+    const renderer = createRenderer(root, { transitions: true });
+    renderer.applySkeleton(skeleton('choice_cards'));
+
+    const indices = [...root.querySelectorAll<HTMLElement>('[data-slot], .c-divider')].map((el) =>
+      Number(el.style.getPropertyValue('--i')),
+    );
+    expect(indices).toEqual([...indices].sort((a, b) => a - b));
+    expect(new Set(indices).size).toBe(indices.length);
+    expect(indices[0]).toBe(0);
+  });
+
+  it('still applies buffered content to the incoming surface mid-transition', () => {
+    const renderer = createRenderer(root, { transitions: true });
+    renderer.applySkeleton(skeleton('choice_cards'));
+    renderer.applySkeleton(skeleton('recovery'));
+    renderer.applyContent({
+      v: 1,
+      slots: { 'recovery.title': { kind: 'Heading', text: 'Too much sugar' } },
+    });
+
+    expect(root.querySelector('[data-entering] [data-slot="recovery.title"]')?.textContent).toBe(
+      'Too much sugar',
+    );
   });
 });

@@ -1,5 +1,6 @@
 export {
   BOOTSTRAP_THEME,
+  EXIT_DURATION_MS,
   POLISH_REJECTED_EVENT,
   createRenderer,
   type PolishRejection,

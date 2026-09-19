@@ -586,6 +586,76 @@
 }
 
 /* ------------------------------------------------------------------ *
+ * Surface transitions
+ *
+ * A turnstile: the outgoing surface pivots away around its left edge while the
+ * incoming one pivots in, its slots staggered a few milliseconds apart so the
+ * surface reads as rebuilding itself rather than as a page navigating.
+ *
+ * Only `transform` and `opacity` are animated — both composited, neither
+ * triggering layout. That matters twice over: it keeps the Pi at frame rate,
+ * and it means a transition can never move a slot's reserved box.
+ * ------------------------------------------------------------------ */
+
+.jit-root > [data-exiting] {
+  position: absolute;
+  z-index: 0;
+  top: var(--jit-pad);
+  right: var(--jit-pad);
+  left: var(--jit-pad);
+  margin-inline: auto;
+  /* Centred by the auto margins rather than a translate, so the animation owns
+     `transform` outright and the two cannot fight. */
+  pointer-events: none;
+  animation: jit-exit 200ms cubic-bezier(0.4, 0, 0.9, 0.4) forwards;
+  transform-origin: left center;
+}
+
+.jit-root > [data-entering] :is([data-slot], .c-divider) {
+  /* `backwards` so the start state applies during the stagger delay — without
+     it every slot flashes at full opacity before its turn. */
+  animation: jit-enter 300ms cubic-bezier(0.1, 0.82, 0.25, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 26ms);
+  transform-origin: left center;
+}
+
+@keyframes jit-exit {
+  from {
+    opacity: 1;
+    transform: perspective(1400px) rotateY(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: perspective(1400px) rotateY(-32deg) translateX(-6%);
+  }
+}
+
+/* A slot resolving from shimmer to content. */
+[data-filled] {
+  animation: jit-fill 240ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@keyframes jit-fill {
+  from {
+    opacity: 0.15;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes jit-enter {
+  from {
+    opacity: 0;
+    transform: perspective(1400px) rotateY(42deg) translateX(9%);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1400px) rotateY(0deg);
+  }
+}
+
+/* ------------------------------------------------------------------ *
  * Shimmer
  *
  * An overlay rather than a restyle of the text nodes: it covers exactly the box
@@ -656,9 +726,16 @@
  */
 @media (prefers-reduced-motion: reduce) {
   .jit-root *,
+  .jit-root > [data-exiting],
   [data-shimmer]::after {
     animation: none !important;
     transition: none !important;
+  }
+
+  /* No turnstile, but the outgoing surface must still not be visible under the
+     incoming one while it waits to be removed. */
+  .jit-root > [data-exiting] {
+    opacity: 0;
   }
 
   [data-shimmer]::after {

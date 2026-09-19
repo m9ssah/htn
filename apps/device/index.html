@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Kiosk: the viewport is the panel. No zoom, no scroll, no chrome. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>JIT UI</title>
+    <link rel="stylesheet" href="./src/shell.css" />
+  </head>
+  <body>
+    <div class="shell" id="shell" data-state="greeting" data-rail="bottom">
+      <div class="stage">
+        <!-- Resting state: the device's face, then its home. -->
+        <section class="greeting" id="greeting" aria-hidden="true"></section>
+        <section class="home" id="home" aria-hidden="true"></section>
+        <!-- Generated surfaces. The renderer owns everything inside. -->
+        <section class="surface" id="surface"></section>
+      </div>
+
+      <footer class="rail" id="rail"></footer>
+      <div class="fader" id="fader" hidden></div>
+      <div class="listening" id="listening" hidden><i></i><i></i><i></i><span>Listening</span></div>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

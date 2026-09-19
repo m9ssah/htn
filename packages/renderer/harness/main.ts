@@ -21,6 +21,7 @@ const surface = $('surface');
 const log: { at: string; text: string; bad: boolean }[] = [];
 
 const renderer = createRenderer(surface, {
+  transitions: true,
   onTelemetry: (event) => {
     log.unshift({
       at: new Date().toLocaleTimeString([], { hour12: false }),
@@ -381,6 +382,19 @@ function applyDeepLink(): void {
     scenarioSelect.value = String(index);
   }
   reset();
+
+  // ?from=<index> renders another surface first, so the next one arrives as a
+  // transition rather than a first paint. Used to inspect the turnstile.
+  const from = Number(params.get('from'));
+  if (Number.isInteger(from) && from >= 0 && from < SCENARIOS.length) {
+    const previous = SCENARIOS[from]!;
+    renderer.applySkeleton({
+      v: 1,
+      templateId: previous.templateId,
+      maxWidth: TEMPLATES[previous.templateId].maxWidth,
+    });
+    renderer.applyContent(previous.content);
+  }
 
   const fire_ = params.get('fire');
   if (!fire_) return;

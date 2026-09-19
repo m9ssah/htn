@@ -1,0 +1,16 @@
+{
+  "name": "@jit/device",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host"
+  },
+  "dependencies": {
+    "@jit/renderer": "*",
+    "@jit/schema": "*",
+    "@jit/tokens": "*"
+  }
+}

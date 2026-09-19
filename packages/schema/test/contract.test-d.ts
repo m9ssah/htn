@@ -64,7 +64,7 @@ describe('ContentPatch', () => {
     expectTypeOf<SlotValueFor<'choice_cards.axis'>>().toEqualTypeOf<
       SlotValueFor<'message_drafts.tone'>
     >();
-    expectTypeOf<SlotValueFor<'recipe_overview.batch'>>().toExtend<{ kind: 'Slider' }>();
+    expectTypeOf<SlotValueFor<'item_detail.axis'>>().toExtend<{ kind: 'Slider' }>();
   });
 
   it('rejects a value of the wrong kind for a slot', () => {
@@ -92,7 +92,7 @@ describe('ContentPatch', () => {
 
   it('accepts null for a slot this instance does not use', () => {
     // A six-ingredient recipe in a template that reserves eight.
-    const patch: ContentPatch = { v: 1, slots: { 'recipe_overview.ingredient7': null } };
+    const patch: ContentPatch = { v: 1, slots: { 'item_detail.line7': null } };
     void patch;
   });
 });
@@ -166,9 +166,9 @@ describe('ActionDescriptor', () => {
   it('carries the generated axis on a range action', () => {
     const action: ActionDescriptor = {
       index: 0,
-      action: 'set_batch',
+      action: 'set_amount',
       kind: 'range',
-      slot: 'recipe_overview.batch',
+      slot: 'item_detail.axis',
       label: 'Batch size',
       range: {
         min: 12,

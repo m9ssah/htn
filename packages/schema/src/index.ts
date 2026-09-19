@@ -23,7 +23,7 @@ export type TemplateId =
   /** Choose between generated options. A slider scrubs the axis they vary on. */
   | 'choice_cards'
   /** The chosen thing, whole, with the quantities a slider can rescale. */
-  | 'recipe_overview'
+  | 'item_detail'
   /** One instruction at a time. Deliberately sparse; the encoder scrubs steps. */
   | 'focus_step'
   /** Something went wrong: diagnosis, recommended fix, consequence. */
@@ -170,20 +170,20 @@ export interface SlotKindMap {
   'choice_cards.option2': 'ListItem';
   'choice_cards.option3': 'ListItem';
 
-  // recipe_overview — the chosen thing, whole
-  'recipe_overview.title': 'Heading';
-  'recipe_overview.yield': 'Text';
-  'recipe_overview.batch': 'Slider';
-  'recipe_overview.ingredientsLabel': 'Label';
-  'recipe_overview.ingredient1': 'ListItem';
-  'recipe_overview.ingredient2': 'ListItem';
-  'recipe_overview.ingredient3': 'ListItem';
-  'recipe_overview.ingredient4': 'ListItem';
-  'recipe_overview.ingredient5': 'ListItem';
-  'recipe_overview.ingredient6': 'ListItem';
-  'recipe_overview.ingredient7': 'ListItem';
-  'recipe_overview.ingredient8': 'ListItem';
-  'recipe_overview.start': 'Button';
+  // item_detail — the chosen thing, whole
+  'item_detail.title': 'Heading';
+  'item_detail.subtitle': 'Text';
+  'item_detail.axis': 'Slider';
+  'item_detail.linesLabel': 'Label';
+  'item_detail.line1': 'ListItem';
+  'item_detail.line2': 'ListItem';
+  'item_detail.line3': 'ListItem';
+  'item_detail.line4': 'ListItem';
+  'item_detail.line5': 'ListItem';
+  'item_detail.line6': 'ListItem';
+  'item_detail.line7': 'ListItem';
+  'item_detail.line8': 'ListItem';
+  'item_detail.primary': 'Button';
 
   // focus_step — one instruction at a time
   'focus_step.progress': 'Label';

@@ -44,8 +44,20 @@ export type TelemetryEvent =
   | { type: 'polish-applied'; interpretedAs: string; report: ContrastReport }
   | { type: 'polish-rejected'; interpretedAs: string; report: ContrastReport };
 
+/** How long an outgoing surface takes to leave. Mirrors `jit-exit` in the CSS. */
+export const EXIT_DURATION_MS = 200;
+
 export type RendererOptions = {
   onTelemetry?: (event: TelemetryEvent) => void;
+  /**
+   * Animate between surfaces instead of cutting.
+   *
+   * Off by default: while a surface is leaving, BOTH trees are in the DOM, so
+   * the rendered markup depends on wall-clock time. Tests assert on exact DOM,
+   * and a renderer whose output depends on when you looked at it is not
+   * testable. The device and the harness turn it on.
+   */
+  transitions?: boolean;
 };
 
 export type RendererState = {
@@ -79,6 +91,7 @@ export function createRenderer(root: HTMLElement, options: RendererOptions = {})
   let maxWidth: number | null = null;
   let tokens: TokenSet | null = null;
   let rejection: PolishRejection | null = null;
+  let exiting: { node: Element; timer: ReturnType<typeof setTimeout> } | null = null;
 
   /**
    * Content accumulates independently of structure. A content patch that
@@ -97,6 +110,9 @@ export function createRenderer(root: HTMLElement, options: RendererOptions = {})
    * Structure
    * ---------------------------------------------------------------- */
 
+  /** DOM-order position, so the entry animation can stagger down the surface. */
+  let staggerIndex = 0;
+
   const buildNode = (node: TemplateNode): HTMLElement => {
     if (isLeaf(node)) {
       const spec = LEAVES[node.type];
@@ -108,6 +124,8 @@ export function createRenderer(root: HTMLElement, options: RendererOptions = {})
         element.style.setProperty('--ph-lines', String(node.lines));
       }
       if (node.detail !== undefined) element.dataset['hasDetail'] = String(node.detail);
+      element.style.setProperty('--i', String(staggerIndex));
+      staggerIndex += 1;
       const known = content[node.slot];
       spec.fill(element, known ?? undefined);
       if (known === null) element.hidden = true;
@@ -118,6 +136,8 @@ export function createRenderer(root: HTMLElement, options: RendererOptions = {})
     if (node.type === 'Divider') {
       const divider = document.createElement('hr');
       divider.className = STRUCTURAL_CLASS.Divider;
+      divider.style.setProperty('--i', String(staggerIndex));
+      staggerIndex += 1;
       return divider;
     }
 
@@ -182,7 +202,37 @@ export function createRenderer(root: HTMLElement, options: RendererOptions = {})
       template = TEMPLATES[patch.templateId];
       maxWidth = patch.maxWidth;
       slotElements.clear();
-      root.replaceChildren(buildNode(template.tree));
+      staggerIndex = 0;
+
+      const next = buildNode(template.tree);
+
+      // A surface still on its way out when the next one arrives goes
+      // immediately — two overlapping exits read as a glitch, not a flourish.
+      if (exiting !== null) {
+        clearTimeout(exiting.timer);
+        exiting.node.remove();
+        exiting = null;
+      }
+
+      const previous = options.transitions === true ? root.firstElementChild : null;
+      if (previous === null) {
+        root.replaceChildren(next);
+      } else {
+        // The outgoing tree is taken out of flow so the incoming one occupies
+        // the same space. Both are on screen for EXIT_DURATION_MS.
+        previous.setAttribute('data-exiting', '');
+        next.setAttribute('data-entering', '');
+        root.append(next);
+        const node = previous;
+        exiting = {
+          node,
+          timer: setTimeout(() => {
+            node.remove();
+            exiting = null;
+          }, EXIT_DURATION_MS),
+        };
+      }
+
       paintTokens();
       emit({ type: 'skeleton', templateId: patch.templateId });
     },
@@ -205,7 +255,20 @@ export function createRenderer(root: HTMLElement, options: RendererOptions = {})
           continue;
         }
         element.hidden = false;
+        const wasEmpty = element.hasAttribute('data-shimmer');
         LEAVES[value.kind].fill(element, value);
+        // Fade the text up as the shimmer goes, so a slot resolving reads as
+        // settling rather than snapping. Opacity only — never layout.
+        //
+        // Behind the same flag as the surface transition, and for the same
+        // reason: a slot filled AT build time (content beat the skeleton) never
+        // shimmered, so it would carry no marker, and the DOM would differ by
+        // arrival order. Animation must not be observable in the markup.
+        if (wasEmpty && options.transitions === true) {
+          element.removeAttribute('data-filled');
+          void element.offsetWidth;
+          element.setAttribute('data-filled', '');
+        }
       }
       emit({ type: 'content', slots });
     },

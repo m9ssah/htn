@@ -85,14 +85,14 @@ export const SCENARIOS: Scenario[] = [
   {
     beat: '0:30',
     intent: '(tap Classic Chocolate Chip) — the fader is remapped',
-    templateId: 'recipe_overview',
+    templateId: 'item_detail',
     content: {
       v: 1,
       slots: {
-        'recipe_overview.title': { kind: 'Heading', text: 'Classic Chocolate Chip' },
-        'recipe_overview.yield': { kind: 'Text', text: 'Makes 30 cookies · about 35 minutes' },
+        'item_detail.title': { kind: 'Heading', text: 'Classic Chocolate Chip' },
+        'item_detail.subtitle': { kind: 'Text', text: 'Makes 30 cookies · about 35 minutes' },
         // The fader's SECOND meaning, thirty seconds later. Moment #1.
-        'recipe_overview.batch': {
+        'item_detail.axis': {
           kind: 'Slider',
           label: 'Batch size',
           min: 12,
@@ -101,22 +101,22 @@ export const SCENARIOS: Scenario[] = [
           value: 30,
           unit: 'cookies',
         },
-        'recipe_overview.ingredientsLabel': { kind: 'Label', text: 'Ingredients' },
-        'recipe_overview.ingredient1': {
+        'item_detail.linesLabel': { kind: 'Label', text: 'Ingredients' },
+        'item_detail.line1': {
           kind: 'ListItem',
           title: 'Plain flour',
           meta: '3⅓ cups',
         },
-        'recipe_overview.ingredient2': { kind: 'ListItem', title: 'Butter', meta: '1⅔ cups' },
-        'recipe_overview.ingredient3': { kind: 'ListItem', title: 'Caster sugar', meta: '1¼ cups' },
-        'recipe_overview.ingredient4': { kind: 'ListItem', title: 'Brown sugar', meta: '1¼ cups' },
-        'recipe_overview.ingredient5': { kind: 'ListItem', title: 'Eggs', meta: '3' },
-        'recipe_overview.ingredient6': { kind: 'ListItem', title: 'Chocolate chips', meta: '2 cups' },
-        'recipe_overview.ingredient7': { kind: 'ListItem', title: 'Baking soda', meta: '1⅔ tsp' },
+        'item_detail.line2': { kind: 'ListItem', title: 'Butter', meta: '1⅔ cups' },
+        'item_detail.line3': { kind: 'ListItem', title: 'Caster sugar', meta: '1¼ cups' },
+        'item_detail.line4': { kind: 'ListItem', title: 'Brown sugar', meta: '1¼ cups' },
+        'item_detail.line5': { kind: 'ListItem', title: 'Eggs', meta: '3' },
+        'item_detail.line6': { kind: 'ListItem', title: 'Chocolate chips', meta: '2 cups' },
+        'item_detail.line7': { kind: 'ListItem', title: 'Baking soda', meta: '1⅔ tsp' },
         // A shorter recipe sends null and the row collapses rather than
         // shimmering forever. Here: salt is folded into the dry step.
-        'recipe_overview.ingredient8': null,
-        'recipe_overview.start': { kind: 'Button', text: 'Start baking' },
+        'item_detail.line8': null,
+        'item_detail.primary': { kind: 'Button', text: 'Start baking' },
       },
     },
     style: warmKitchen,
