@@ -79,6 +79,10 @@ npm test           # vitest, including type-level contract tests
 npm run harness    # dev harness at http://localhost:3001
 ```
 
+The device app runs at `http://localhost:3000/`. Its visual testbench lives at
+`http://localhost:3000/testbench`; it presents every demo surface inside the
+Pi's native 800×480 viewport, with a design-system primitives gallery first.
+
 ## The harness
 
 Fires each of the four patches independently, so the staging is inspectable by
