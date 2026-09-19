@@ -5,7 +5,8 @@
   "type": "module",
   "main": "./dist/index.js",
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "node": "tsc -b && node dist/cli.js"
   },
   "dependencies": {
     "@jit/schema": "*",
