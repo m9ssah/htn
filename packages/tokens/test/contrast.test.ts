@@ -99,9 +99,9 @@ describe('checkContrast', () => {
   });
 
   it('narrows the required pairs to the grounds a template actually paints on', () => {
-    // The reference's own ticket_detail polish: a dark page behind a light card.
+    // A dark page behind a light card.
     // fg is unreadable on bg and perfectly readable on surface — and every
-    // ticket_detail node lives inside a Card, so only surface is real.
+    // node lives inside a Card, so only surface is real.
     const tokens: TokenSet = {
       ...resolve(theme()),
       '--jit-bg': '#1b1b1d',

@@ -13,7 +13,7 @@ const VALUE_FOR: { [K in SlotValue['kind']]: (slot: string) => Extract<SlotValue
   Metric: (s) => ({ kind: 'Metric', label: `Label ${s}`, value: '48,250', delta: '+4.6%' }),
   Media: (s) => ({ kind: 'Media', caption: `Media ${s}` }),
   Badge: (s) => ({ kind: 'Badge', text: `Badge ${s}` }),
-  ListItem: (s) => ({ kind: 'ListItem', title: `Item ${s}`, meta: '$6,405.50' }),
+  ListItem: (s) => ({ kind: 'ListItem', title: `Item ${s}`, detail: 'detail', meta: '$6.40' }),
   Bars: () => ({ kind: 'Bars', values: [52, 38, 78, 60] }),
   Rule: (s) => ({ kind: 'Rule', left: `Left ${s}`, right: 'Right' }),
   Button: (s) => ({ kind: 'Button', text: `Press ${s}` }),
@@ -21,6 +21,17 @@ const VALUE_FOR: { [K in SlotValue['kind']]: (slot: string) => Extract<SlotValue
   Toggle: (s) => ({ kind: 'Toggle', label: `Option ${s}`, on: true }),
   Progress: () => ({ kind: 'Progress', pct: 68 }),
   Alert: (s) => ({ kind: 'Alert', text: `Alert ${s}` }),
+  Slider: (s) => ({
+    kind: 'Slider',
+    label: `Axis ${s}`,
+    min: 0,
+    max: 10,
+    step: 1,
+    value: 4,
+    unit: 'x',
+    minLabel: 'Low',
+    maxLabel: 'High',
+  }),
 };
 
 export function slotsOf(template: Template): { slot: SlotId; kind: SlotValue['kind'] }[] {

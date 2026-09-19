@@ -52,7 +52,7 @@ describe('ThemeEnums', () => {
 
 describe('ContentPatch', () => {
   it('binds a slot to the one component kind that consumes it', () => {
-    expectTypeOf<SlotValueFor<'dashboard.primaryMetric'>>().toEqualTypeOf<{
+    expectTypeOf<SlotValueFor<'recovery.outcome'>>().toEqualTypeOf<{
       kind: 'Metric';
       label: string;
       value: string;
@@ -60,11 +60,18 @@ describe('ContentPatch', () => {
     }>();
   });
 
+  it('binds the three sliders to the Slider variant', () => {
+    expectTypeOf<SlotValueFor<'choice_cards.axis'>>().toEqualTypeOf<
+      SlotValueFor<'message_drafts.tone'>
+    >();
+    expectTypeOf<SlotValueFor<'recipe_overview.batch'>>().toExtend<{ kind: 'Slider' }>();
+  });
+
   it('rejects a value of the wrong kind for a slot', () => {
     const patch: ContentPatch = {
       v: 1,
-      // @ts-expect-error primaryMetric is a Metric slot, not a Heading slot
-      slots: { 'dashboard.primaryMetric': { kind: 'Heading', text: 'nope' } },
+      // @ts-expect-error outcome is a Metric slot, not a Heading slot
+      slots: { 'recovery.outcome': { kind: 'Heading', text: 'nope' } },
     };
     void patch;
   });
@@ -73,7 +80,7 @@ describe('ContentPatch', () => {
     const patch: ContentPatch = {
       v: 1,
       // @ts-expect-error no such slot
-      slots: { 'dashboard.profit': { kind: 'Metric', label: 'a', value: 'b' } },
+      slots: { 'recovery.profit': { kind: 'Metric', label: 'a', value: 'b' } },
     };
     void patch;
   });
@@ -82,28 +89,31 @@ describe('ContentPatch', () => {
     const patch: ContentPatch = { v: 1, slots: {} };
     void patch;
   });
+
+  it('accepts null for a slot this instance does not use', () => {
+    // A six-ingredient recipe in a template that reserves eight.
+    const patch: ContentPatch = { v: 1, slots: { 'recipe_overview.ingredient7': null } };
+    void patch;
+  });
 });
 
 describe('SlotsOf', () => {
   it('derives a template’s slots from the ID prefix', () => {
-    expectTypeOf<SlotsOf<'confirm_action'>>().toEqualTypeOf<
-      | 'confirm_action.title'
-      | 'confirm_action.warning'
-      | 'confirm_action.cancel'
-      | 'confirm_action.confirm'
+    expectTypeOf<SlotsOf<'summary_done'>>().toEqualTypeOf<
+      'summary_done.title' | 'summary_done.result' | 'summary_done.prompt'
     >();
   });
 });
 
 describe('the other three patches', () => {
   it('SkeletonPatch carries structure only', () => {
-    const patch: SkeletonPatch = { v: 1, templateId: 'reader', maxWidth: 440 };
+    const patch: SkeletonPatch = { v: 1, templateId: 'focus_step', maxWidth: 560 };
     void patch;
   });
 
   it('SkeletonPatch rejects an unknown template', () => {
-    // @ts-expect-error agent 2 selects from a finite list
-    const patch: SkeletonPatch = { v: 1, templateId: 'kanban_board', maxWidth: 440 };
+    // @ts-expect-error 'ticket_detail' was retired in the pivot
+    const patch: SkeletonPatch = { v: 1, templateId: 'ticket_detail', maxWidth: 440 };
     void patch;
   });
 
@@ -145,10 +155,55 @@ describe('ActionDescriptor', () => {
   it('allows a null label, because getActions() runs before content lands', () => {
     const action: ActionDescriptor = {
       index: 0,
-      action: 'confirm',
+      action: 'apply_fix',
       kind: 'press',
-      slot: 'confirm_action.confirm',
+      slot: 'recovery.primary',
       label: null,
+    };
+    void action;
+  });
+
+  it('carries the generated axis on a range action', () => {
+    const action: ActionDescriptor = {
+      index: 0,
+      action: 'set_batch',
+      kind: 'range',
+      slot: 'recipe_overview.batch',
+      label: 'Batch size',
+      range: {
+        min: 12,
+        max: 30,
+        step: 6,
+        value: 18,
+        unit: 'cookies',
+        minLabel: null,
+        maxLabel: null,
+      },
+    };
+    void action;
+  });
+
+  it('allows a null range, for the same reason it allows a null label', () => {
+    const action: ActionDescriptor = {
+      index: 0,
+      action: 'set_tone',
+      kind: 'range',
+      slot: 'message_drafts.tone',
+      label: null,
+      range: null,
+    };
+    void action;
+  });
+
+  it('will not let a press action carry a range', () => {
+    const action: ActionDescriptor = {
+      index: 0,
+      action: 'send',
+      kind: 'press',
+      slot: 'message_drafts.send',
+      label: null,
+      // @ts-expect-error a press has no axis
+      range: null,
     };
     void action;
   });

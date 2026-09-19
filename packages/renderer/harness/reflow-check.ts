@@ -61,7 +61,14 @@ for (const templateId of TEMPLATE_IDS) {
   renderer.applySkeleton({ v: 1, templateId, maxWidth: TEMPLATES[templateId].maxWidth });
   const atSkeleton = positions(host);
 
-  renderer.applyContent(scenario.content);
+  // A slot explicitly set to null collapses, which IS a reflow — a deliberate
+  // exception, because the alternative is shimmering forever on a row that will
+  // never fill. Strip those so this measures the reservation guarantee itself:
+  // every slot that does receive content must not move.
+  const filled = Object.fromEntries(
+    Object.entries(scenario.content.slots).filter(([, v]) => v !== null),
+  ) as typeof scenario.content.slots;
+  renderer.applyContent({ v: 1, slots: filled });
   const atContent = positions(host);
   const [contentDelta, contentSlot] = worstDelta(atSkeleton, atContent);
   rows.push({

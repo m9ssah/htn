@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ContentPatch, PolishPatch, SkeletonPatch, StylePatch, TemplateId } from '@jit/schema';
+import type { PolishPatch, SkeletonPatch, StylePatch, TemplateId } from '@jit/schema';
+import { BUTTON_COUNT, RANGE_CONTROL_COUNT } from '@jit/schema';
 import { checkContrast, resolve } from '@jit/tokens';
 import {
   BOOTSTRAP_THEME,
@@ -85,12 +86,12 @@ describe('patches arrive in any order', () => {
 
   it('keeps getActions() identical regardless of ordering', () => {
     const forward = createRenderer(document.createElement('div'));
-    forward.applySkeleton(skeleton('auth_form'));
-    forward.applyContent(fullContent('auth_form'));
+    forward.applySkeleton(skeleton('recipe_overview'));
+    forward.applyContent(fullContent('recipe_overview'));
 
     const backward = createRenderer(document.createElement('div'));
-    backward.applyContent(fullContent('auth_form'));
-    backward.applySkeleton(skeleton('auth_form'));
+    backward.applyContent(fullContent('recipe_overview'));
+    backward.applySkeleton(skeleton('recipe_overview'));
 
     expect(backward.getActions()).toEqual(forward.getActions());
   });
@@ -103,31 +104,31 @@ describe('patches arrive in any order', () => {
 describe('content arriving before its skeleton', () => {
   it('does not throw', () => {
     const renderer = createRenderer(root);
-    expect(() => renderer.applyContent(fullContent('dashboard'))).not.toThrow();
+    expect(() => renderer.applyContent(fullContent('recipe_overview'))).not.toThrow();
   });
 
   it('buffers, then applies when the structure lands', () => {
     const renderer = createRenderer(root);
-    renderer.applyContent(fullContent('dashboard'));
+    renderer.applyContent(fullContent('recipe_overview'));
     expect(root.textContent).toBe('');
 
-    renderer.applySkeleton(skeleton('dashboard'));
-    expect(root.querySelector('[data-slot="dashboard.title"]')?.textContent).toBe(
-      'Heading dashboard.title',
+    renderer.applySkeleton(skeleton('recipe_overview'));
+    expect(root.querySelector('[data-slot="recipe_overview.title"]')?.textContent).toBe(
+      'Heading recipe_overview.title',
     );
     expect(root.querySelectorAll('[data-shimmer]')).toHaveLength(0);
   });
 
   it('merges successive partial content patches', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('confirm_action'));
-    renderer.applyContent({ v: 1, slots: { 'confirm_action.title': { kind: 'Heading', text: 'A' } } });
-    renderer.applyContent({ v: 1, slots: { 'confirm_action.cancel': { kind: 'Button', text: 'B' } } });
+    renderer.applySkeleton(skeleton('recovery'));
+    renderer.applyContent({ v: 1, slots: { 'recovery.title': { kind: 'Heading', text: 'A' } } });
+    renderer.applyContent({ v: 1, slots: { 'recovery.primary': { kind: 'Button', text: 'B' } } });
 
-    expect(root.querySelector('[data-slot="confirm_action.title"]')?.textContent).toBe('A');
-    expect(root.querySelector('[data-slot="confirm_action.cancel"]')?.textContent).toBe('B');
-    // The two still-unfilled slots stay shimmering.
-    expect(root.querySelectorAll('[data-shimmer]')).toHaveLength(2);
+    expect(root.querySelector('[data-slot="recovery.title"]')?.textContent).toBe('A');
+    expect(root.querySelector('[data-slot="recovery.primary"]')?.textContent).toBe('B');
+    // The six still-unfilled slots stay shimmering.
+    expect(root.querySelectorAll('[data-shimmer]')).toHaveLength(6);
   });
 });
 
@@ -141,8 +142,8 @@ describe('applying a polish patch', () => {
     // Proving that the patch touches no node at all is the stronger claim: a
     // change that cannot reach the tree cannot move it.
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('dashboard'));
-    renderer.applyContent(fullContent('dashboard'));
+    renderer.applySkeleton(skeleton('recipe_overview'));
+    renderer.applyContent(fullContent('recipe_overview'));
     renderer.applyStyle(style);
 
     const before = root.innerHTML;
@@ -169,7 +170,7 @@ describe('applying a polish patch', () => {
 
   it('actually changes the tokens it was given', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('reader'));
+    renderer.applySkeleton(skeleton('generic_answer'));
     renderer.applyPolish(polish);
     expect(root.style.getPropertyValue('--jit-radius')).toBe('26px');
     expect(root.style.getPropertyValue('--jit-accent')).toBe('#a8325c');
@@ -177,7 +178,7 @@ describe('applying a polish patch', () => {
 
   it('leaves untouched axes on the enum base', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('reader'));
+    renderer.applySkeleton(skeleton('generic_answer'));
     renderer.applyStyle(style);
     renderer.applyPolish(polish);
     expect(root.style.getPropertyValue('--jit-gap')).toBe(resolve(style.theme)['--jit-gap']);
@@ -197,7 +198,7 @@ describe('a polish patch that fails AA', () => {
 
   it('is rejected whole — not partially applied', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('dashboard'));
+    renderer.applySkeleton(skeleton('recipe_overview'));
     renderer.applyStyle(style);
 
     const base = resolve(style.theme);
@@ -210,7 +211,7 @@ describe('a polish patch that fails AA', () => {
 
   it('retains the rejection with its ratios, so the failure is debuggable', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('dashboard'));
+    renderer.applySkeleton(skeleton('recipe_overview'));
     renderer.applyPolish(unreadable);
 
     const rejection = renderer.getLastRejection();
@@ -225,7 +226,7 @@ describe('a polish patch that fails AA', () => {
     const seen: unknown[] = [];
     root.addEventListener(POLISH_REJECTED_EVENT, (e) => seen.push((e as CustomEvent).detail));
 
-    renderer.applySkeleton(skeleton('dashboard'));
+    renderer.applySkeleton(skeleton('recipe_overview'));
     renderer.applyPolish(unreadable);
 
     expect(seen).toHaveLength(1);
@@ -249,20 +250,20 @@ describe('a polish patch that fails AA', () => {
 
     // dashboard renders inside a Card, so only the surface pairs are required.
     const inCard = createRenderer(document.createElement('div'));
-    inCard.applySkeleton(skeleton('dashboard'));
+    inCard.applySkeleton(skeleton('recipe_overview'));
     inCard.applyPolish(cardOnly);
     expect(inCard.getLastRejection()).toBeNull();
 
     // reader has no Card and paints straight onto bg, so the same set fails.
     const onBg = createRenderer(document.createElement('div'));
-    onBg.applySkeleton(skeleton('reader'));
+    onBg.applySkeleton(skeleton('generic_answer'));
     onBg.applyPolish(cardOnly);
     expect(onBg.getLastRejection()?.report.pass).toBe(false);
   });
 
   it('re-evaluates when a later style patch changes the base underneath it', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('reader'));
+    renderer.applySkeleton(skeleton('generic_answer'));
     renderer.applyPolish({
       v: 1,
       tokens: { '--jit-fg': '#ffffff' },
@@ -299,14 +300,16 @@ describe('getActions', () => {
     }
 
     expect(summary).toEqual({
-      task_focus: ['press:mark_in', 'press:mark_out', 'press:confirm'],
-      ticket_detail: ['press:view_ticket'],
-      auth_form: ['text:enter_email', 'text:enter_password', 'press:submit', 'press:recover'],
-      dashboard: [],
-      reader: [],
-      settings_panel: ['toggle:toggle_1', 'toggle:toggle_2', 'toggle:toggle_3', 'toggle:toggle_4'],
-      confirm_action: ['press:cancel', 'press:confirm'],
-      progress_task: ['press:cancel'],
+      choice_cards: ['range:set_preference', 'press:select_1', 'press:select_2', 'press:select_3'],
+      recipe_overview: ['range:set_batch', 'press:start_baking'],
+      focus_step: ['press:prev_step', 'press:next_step', 'press:step_done'],
+      recovery: ['press:start_over', 'press:apply_fix'],
+      // Deliberately actionless: the script calls for an open prompt here, so
+      // the LEDs going dark is the correct behaviour, not a gap.
+      summary_done: [],
+      people_picker: ['press:pick_1', 'press:pick_2', 'press:pick_3', 'press:write_messages'],
+      message_drafts: ['range:set_tone', 'press:edit', 'press:send'],
+      generic_answer: ['press:primary_action'],
     });
   });
 
@@ -325,24 +328,67 @@ describe('getActions', () => {
 
   it('is available at skeleton paint, with labels null until content lands', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('settings_panel'));
+    renderer.applySkeleton(skeleton('people_picker'));
     expect(renderer.getActions().map((a) => a.label)).toEqual([null, null, null, null]);
 
-    renderer.applyContent(fullContent('settings_panel'));
+    renderer.applyContent(fullContent('people_picker'));
     expect(renderer.getActions().map((a) => a.label)).toEqual([
-      'Option settings_panel.option1',
-      'Option settings_panel.option2',
-      'Option settings_panel.option3',
-      'Option settings_panel.option4',
+      'Item people_picker.person1',
+      'Item people_picker.person2',
+      'Item people_picker.person3',
+      'Press people_picker.confirm',
     ]);
   });
 
-  it('never exceeds the four physical buttons the device has', () => {
+  it('never exceeds the hardware: four buttons and one fader', () => {
     for (const templateId of TEMPLATE_IDS) {
       const renderer = createRenderer(document.createElement('div'));
       renderer.applySkeleton(skeleton(templateId));
-      expect(renderer.getActions().length, templateId).toBeLessThanOrEqual(4);
+      const actions = renderer.getActions();
+      const ranges = actions.filter((a) => a.kind === 'range');
+      const pressable = actions.filter((a) => a.kind !== 'range');
+      expect(pressable.length, `${templateId} buttons`).toBeLessThanOrEqual(BUTTON_COUNT);
+      expect(ranges.length, `${templateId} faders`).toBeLessThanOrEqual(RANGE_CONTROL_COUNT);
     }
+  });
+
+  it('carries the generated axis once content lands, and null before', () => {
+    const renderer = createRenderer(root);
+    renderer.applySkeleton(skeleton('recipe_overview'));
+
+    const before = renderer.getActions().find((a) => a.kind === 'range');
+    expect(before).toMatchObject({ kind: 'range', range: null, label: null });
+
+    renderer.applyContent({
+      v: 1,
+      slots: {
+        'recipe_overview.batch': {
+          kind: 'Slider',
+          label: 'Batch size',
+          min: 12,
+          max: 30,
+          step: 6,
+          value: 18,
+          unit: 'cookies',
+        },
+      },
+    });
+
+    expect(renderer.getActions().find((a) => a.kind === 'range')).toMatchObject({
+      kind: 'range',
+      label: 'Batch size',
+      range: { min: 12, max: 30, step: 6, value: 18, unit: 'cookies' },
+    });
+  });
+
+  it('gives the same fader a different meaning on each surface', () => {
+    // The demo's first moment: one physical control, three generated meanings.
+    const meanings = (['choice_cards', 'recipe_overview', 'message_drafts'] as const).map((id) => {
+      const renderer = createRenderer(document.createElement('div'));
+      renderer.applySkeleton(skeleton(id));
+      return renderer.getActions().find((a) => a.kind === 'range')?.action;
+    });
+    expect(meanings).toEqual(['set_preference', 'set_batch', 'set_tone']);
   });
 
   it('gives every action a unique string within its template', () => {
@@ -372,22 +418,47 @@ describe('the skeleton', () => {
 
   it('reserves a box for every slot that declares one', () => {
     const host = document.createElement('div');
-    createRenderer(host).applySkeleton(skeleton('reader'));
-    const para = host.querySelector<HTMLElement>('[data-slot="reader.para1"]');
-    expect(para?.style.getPropertyValue('--ph-lines')).toBe('3');
-    expect(host.querySelector<HTMLElement>('[data-slot="reader.title"]')?.style
-      .getPropertyValue('--ph-lines')).toBe('2');
+    createRenderer(host).applySkeleton(skeleton('generic_answer'));
+    expect(
+      host.querySelector<HTMLElement>('[data-slot="generic_answer.body"]')?.style
+        .getPropertyValue('--ph-lines'),
+    ).toBe('3');
+    expect(
+      host.querySelector<HTMLElement>('[data-slot="generic_answer.title"]')?.style
+        .getPropertyValue('--ph-lines'),
+    ).toBe('2');
+  });
+
+  it('collapses a slot the instance does not use, instead of shimmering forever', () => {
+    const renderer = createRenderer(root);
+    renderer.applySkeleton(skeleton('recipe_overview'));
+
+    const slot = () => root.querySelector<HTMLElement>('[data-slot="recipe_overview.ingredient8"]');
+    expect(slot()?.hidden).toBe(false);
+    expect(slot()?.hasAttribute('data-shimmer')).toBe(true);
+
+    renderer.applyContent({ v: 1, slots: { 'recipe_overview.ingredient8': null } });
+    expect(slot()?.hidden).toBe(true);
+  });
+
+  it('drains a null that arrived before the skeleton', () => {
+    const renderer = createRenderer(root);
+    renderer.applyContent({ v: 1, slots: { 'recipe_overview.ingredient8': null } });
+    renderer.applySkeleton(skeleton('recipe_overview'));
+    expect(
+      root.querySelector<HTMLElement>('[data-slot="recipe_overview.ingredient8"]')?.hidden,
+    ).toBe(true);
   });
 
   it('applies the template width from the patch, not the enum default', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton({ v: 1, templateId: 'dashboard', maxWidth: 470 });
+    renderer.applySkeleton({ v: 1, templateId: 'recipe_overview', maxWidth: 470 });
     expect(root.style.getPropertyValue('--jit-maxw')).toBe('470px');
   });
 
   it('paints a declared bootstrap theme before any style patch arrives', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('reader'));
+    renderer.applySkeleton(skeleton('generic_answer'));
     expect(renderer.getState().themeSource).toBe('bootstrap');
     expect(root.style.getPropertyValue('--jit-bg')).toBe(resolve(BOOTSTRAP_THEME)['--jit-bg']);
 
@@ -397,10 +468,10 @@ describe('the skeleton', () => {
 
   it('replaces the previous template cleanly when a new skeleton lands', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('dashboard'));
-    renderer.applySkeleton(skeleton('reader'));
-    expect(root.querySelectorAll('[data-slot^="dashboard."]')).toHaveLength(0);
-    expect(root.querySelectorAll('[data-slot^="reader."]')).toHaveLength(5);
+    renderer.applySkeleton(skeleton('recipe_overview'));
+    renderer.applySkeleton(skeleton('generic_answer'));
+    expect(root.querySelectorAll('[data-slot^="recipe_overview."]')).toHaveLength(0);
+    expect(root.querySelectorAll('[data-slot^="generic_answer."]')).toHaveLength(6);
   });
 });
 
@@ -423,7 +494,7 @@ describe('token coverage', () => {
 
   it('paints a complete, AA-passing surface from a bare skeleton patch', () => {
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('dashboard'));
+    renderer.applySkeleton(skeleton('recipe_overview'));
     for (const name of RENDERER_CSS_VARS) {
       expect(root.style.getPropertyValue(name), name).not.toBe('');
     }

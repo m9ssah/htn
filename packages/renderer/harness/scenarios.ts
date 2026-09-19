@@ -1,15 +1,21 @@
 import type { ContentPatch, PolishPatch, StylePatch, TemplateId } from '@jit/schema';
 
 /**
- * Scenarios exist only in the harness. The renderer takes patches and paints; it
- * has no idea what a "user intent" is, and shipping demo content inside it would
- * be the first step toward a lookup table.
+ * The demo, as patches.
  *
- * Arrow glyphs are restricted to U+2191/U+2193, which are inside the bundled
- * Jost latin subset. U+2197 is not, and would fall back mid-word.
+ * Scenarios exist only in the harness. The renderer takes patches and paints; it
+ * has no idea what a cookie is, and shipping demo content inside it would be the
+ * first step back toward a lookup table.
+ *
+ * Every number here is one the orchestrator will compute from the typed recipe
+ * rather than generate — these are fixtures standing in for that arithmetic, so
+ * they are internally consistent: 18 cookies scaled to 30, then doubled to 60 by
+ * the sugar recovery, leaving 30 extra to give away.
  */
 export type Scenario = {
+  /** What the presenter says, or does. */
   intent: string;
+  beat: string;
   templateId: TemplateId;
   content: ContentPatch;
   style: StylePatch;
@@ -17,430 +23,292 @@ export type Scenario = {
   polish: PolishPatch | null;
 };
 
+const warmKitchen: StylePatch = {
+  v: 1,
+  theme: {
+    palette: 'mono',
+    fontPairing: 'editorial',
+    density: 'normal',
+    radius: 'soft',
+    motif: 'none',
+  },
+};
+
 export const SCENARIOS: Scenario[] = [
   {
-    intent: 'I just need to trim this clip',
-    templateId: 'task_focus',
+    beat: '0:00',
+    intent: 'I want to bake chocolate chip cookies tonight. Something easy.',
+    templateId: 'choice_cards',
     content: {
       v: 1,
       slots: {
-        'task_focus.badge': { kind: 'Badge', text: 'Trim' },
-        'task_focus.title': { kind: 'Heading', text: 'Clip 4' },
-        'task_focus.preview': { kind: 'Media', caption: 'preview' },
-        'task_focus.range': { kind: 'Rule', left: '00:12.40 – 00:47.10', right: '34.7s' },
-        'task_focus.markIn': { kind: 'Button', text: 'Mark in' },
-        'task_focus.markOut': { kind: 'Button', text: 'Mark out' },
-        'task_focus.confirm': { kind: 'Button', text: 'Apply trim' },
-      },
-    },
-    style: {
-      v: 1,
-      theme: {
-        palette: 'slate',
-        fontPairing: 'system',
-        density: 'normal',
-        radius: 'soft',
-        motif: 'none',
-      },
-    },
-    polish: {
-      v: 1,
-      interpretedAs: 'pared-back cutting tool, nothing decorative',
-      tokens: {
-        '--jit-bg': '#0a0b0d',
-        '--jit-surface': '#121417',
-        '--jit-border': '#1f242a',
-        '--jit-accent': '#4ade80',
-        '--jit-on-accent': '#04150b',
-        '--jit-fg': '#eef2f4',
-        '--jit-muted': '#93a1ac',
-        '--jit-radius': '6px',
-        '--jit-radius-sm': '4px',
-        '--jit-accent-soft': '#0f2418',
-      },
-    },
-  },
-
-  {
-    intent: 'show me my train ticket',
-    templateId: 'ticket_detail',
-    content: {
-      v: 1,
-      slots: {
-        'ticket_detail.operator': { kind: 'Label', text: 'LNER / e-ticket' },
-        'ticket_detail.title': { kind: 'Heading', text: 'London to Edinburgh' },
-        'ticket_detail.summary': { kind: 'Text', text: 'Mon 21 Sep · Direct · 4h 22m' },
-        'ticket_detail.origin': { kind: 'Metric', label: "King's Cross", value: '08:30' },
-        'ticket_detail.destination': { kind: 'Metric', label: 'Waverley', value: '12:52' },
-        'ticket_detail.seat': { kind: 'Rule', left: 'Standard · Coach C · Seat 24', right: 'K9QP2' },
-        'ticket_detail.view': { kind: 'Button', text: 'View ticket' },
-      },
-    },
-    style: {
-      v: 1,
-      theme: {
-        palette: 'mono',
-        fontPairing: 'system',
-        density: 'normal',
-        radius: 'soft',
-        motif: 'none',
-      },
-    },
-    polish: {
-      v: 1,
-      interpretedAs: 'rail operator livery, ticket-stock feel',
-      tokens: {
-        '--jit-bg': '#1b1b1d',
-        '--jit-surface': '#fbfaf7',
-        '--jit-border': '#ded9d0',
-        '--jit-accent': '#c4122f',
-        '--jit-on-accent': '#ffffff',
-        '--jit-fg': '#18181a',
-        '--jit-muted': '#5f5a52',
-        '--jit-radius': '4px',
-        '--jit-radius-sm': '3px',
-        '--jit-accent-soft': '#fbe9ec',
-      },
-    },
-  },
-
-  {
-    intent: 'log me in',
-    templateId: 'auth_form',
-    content: {
-      v: 1,
-      slots: {
-        'auth_form.title': { kind: 'Heading', text: 'Sign in' },
-        'auth_form.subtitle': { kind: 'Text', text: 'Continue to your workspace.' },
-        'auth_form.email': { kind: 'TextField', label: 'Email', placeholder: 'you@company.com' },
-        'auth_form.password': {
-          kind: 'TextField',
-          label: 'Password',
-          placeholder: 'Enter your password',
-        },
-        'auth_form.submit': { kind: 'Button', text: 'Sign in' },
-        'auth_form.recover': { kind: 'Button', text: 'Forgot password?' },
-      },
-    },
-    style: {
-      v: 1,
-      theme: {
-        palette: 'slate',
-        fontPairing: 'geometric',
-        density: 'normal',
-        radius: 'soft',
-        motif: 'none',
-      },
-    },
-    polish: {
-      v: 1,
-      interpretedAs: 'restrained product auth, single accent',
-      tokens: {
-        '--jit-bg': '#0d0f13',
-        '--jit-surface': '#15181e',
-        '--jit-border': '#242933',
-        '--jit-accent': '#e8e8ea',
-        '--jit-on-accent': '#15181e',
-        '--jit-fg': '#eceef2',
-        '--jit-muted': '#98a1b0',
-        '--jit-radius': '14px',
-        '--jit-radius-sm': '9px',
-        '--jit-accent-soft': '#1d2129',
-      },
-    },
-  },
-
-  {
-    intent: 'how did sales do this month',
-    templateId: 'dashboard',
-    content: {
-      v: 1,
-      slots: {
-        'dashboard.title': { kind: 'Heading', text: 'Overview' },
-        'dashboard.period': { kind: 'Text', text: 'Aug 1–31, 2026' },
-        'dashboard.primaryMetric': {
-          kind: 'Metric',
-          label: 'Net revenue',
-          value: '$48,250',
-          delta: '↑ 4.6%',
-        },
-        'dashboard.secondaryMetric': {
-          kind: 'Metric',
-          label: 'Orders',
-          value: '384',
-          delta: '↓ 2.3%',
-        },
-        'dashboard.tertiaryMetric': {
-          kind: 'Metric',
-          label: 'Avg order',
-          value: '$125.65',
-          delta: '↑ 7.1%',
-        },
-        'dashboard.chartLabel': { kind: 'Label', text: 'Weekly revenue' },
-        'dashboard.chart': { kind: 'Bars', values: [52, 38, 78, 60] },
-        'dashboard.listLabel': { kind: 'Label', text: 'Recent payouts' },
-        'dashboard.item1': { kind: 'ListItem', title: 'Aug 28', meta: '$6,405.50' },
-        'dashboard.item2': { kind: 'ListItem', title: 'Aug 21', meta: '$11,280.00' },
-        'dashboard.item3': { kind: 'ListItem', title: 'Aug 14', meta: '$9,140.25' },
-      },
-    },
-    style: {
-      v: 1,
-      theme: {
-        palette: 'mono',
-        fontPairing: 'system',
-        density: 'compact',
-        radius: 'soft',
-        motif: 'none',
-      },
-    },
-    polish: {
-      v: 1,
-      interpretedAs: 'dense analyst view, low chrome, numbers first',
-      tokens: {
-        '--jit-bg': '#fbfcfd',
-        '--jit-surface': '#ffffff',
-        '--jit-border': '#e4e9ef',
-        '--jit-accent': '#1d4ed8',
-        '--jit-on-accent': '#ffffff',
-        '--jit-fg': '#0f1620',
-        '--jit-muted': '#55647a',
-        '--jit-radius': '10px',
-        '--jit-radius-sm': '6px',
-        '--jit-gap': '10px',
-        '--jit-pad': '18px',
-        '--jit-scale': '0.96',
-        '--jit-accent-soft': '#e8effc',
-      },
-    },
-  },
-
-  {
-    intent: 'too much going on — just let me read',
-    templateId: 'reader',
-    content: {
-      v: 1,
-      slots: {
-        'reader.title': { kind: 'Heading', text: 'The quiet interface' },
-        'reader.byline': { kind: 'Text', text: '4 min read · updated today' },
-        'reader.para1': {
+        'choice_cards.title': { kind: 'Heading', text: 'Chocolate chip, tonight' },
+        'choice_cards.subtitle': {
           kind: 'Text',
-          text: 'Every control that is present but unused is a decision the reader pays for.',
+          text: 'Three ways. Slide to trade time for impact.',
         },
-        'reader.para2': {
-          kind: 'Text',
-          text: 'Subsetting is not simplification. The capability remains; only what is currently irrelevant is withdrawn from view.',
+        // The fader's FIRST meaning.
+        'choice_cards.axis': {
+          kind: 'Slider',
+          label: 'Effort',
+          min: 0,
+          max: 4,
+          step: 1,
+          value: 1,
+          minLabel: 'Quick',
+          maxLabel: 'Impressive',
         },
-        'reader.para3': {
-          kind: 'Text',
-          text: 'When intent changes, the surface changes with it.',
+        'choice_cards.option1': {
+          kind: 'ListItem',
+          title: 'Classic Chocolate Chip',
+          detail: '35 min · 18 cookies',
+          meta: '$6.40',
         },
+        'choice_cards.option2': {
+          kind: 'ListItem',
+          title: 'Brown Butter',
+          detail: '55 min · 18 cookies',
+          meta: '$8.10',
+        },
+        'choice_cards.option3': {
+          kind: 'ListItem',
+          title: 'Double Chocolate',
+          detail: '45 min · 20 cookies',
+          meta: '$9.25',
+        },
+      },
+    },
+    style: warmKitchen,
+    polish: null,
+  },
+
+  {
+    beat: '0:30',
+    intent: '(tap Classic Chocolate Chip) — the fader is remapped',
+    templateId: 'recipe_overview',
+    content: {
+      v: 1,
+      slots: {
+        'recipe_overview.title': { kind: 'Heading', text: 'Classic Chocolate Chip' },
+        'recipe_overview.yield': { kind: 'Text', text: 'Makes 30 cookies · about 35 minutes' },
+        // The fader's SECOND meaning, thirty seconds later. Moment #1.
+        'recipe_overview.batch': {
+          kind: 'Slider',
+          label: 'Batch size',
+          min: 12,
+          max: 30,
+          step: 6,
+          value: 30,
+          unit: 'cookies',
+        },
+        'recipe_overview.ingredientsLabel': { kind: 'Label', text: 'Ingredients' },
+        'recipe_overview.ingredient1': {
+          kind: 'ListItem',
+          title: 'Plain flour',
+          meta: '3⅓ cups',
+        },
+        'recipe_overview.ingredient2': { kind: 'ListItem', title: 'Butter', meta: '1⅔ cups' },
+        'recipe_overview.ingredient3': { kind: 'ListItem', title: 'Caster sugar', meta: '1¼ cups' },
+        'recipe_overview.ingredient4': { kind: 'ListItem', title: 'Brown sugar', meta: '1¼ cups' },
+        'recipe_overview.ingredient5': { kind: 'ListItem', title: 'Eggs', meta: '3' },
+        'recipe_overview.ingredient6': { kind: 'ListItem', title: 'Chocolate chips', meta: '2 cups' },
+        'recipe_overview.ingredient7': { kind: 'ListItem', title: 'Baking soda', meta: '1⅔ tsp' },
+        // A shorter recipe sends null and the row collapses rather than
+        // shimmering forever. Here: salt is folded into the dry step.
+        'recipe_overview.ingredient8': null,
+        'recipe_overview.start': { kind: 'Button', text: 'Start baking' },
+      },
+    },
+    style: warmKitchen,
+    polish: null,
+  },
+
+  {
+    beat: '1:00',
+    intent: '(tap Start baking) — planning interface gives way to doing',
+    templateId: 'focus_step',
+    content: {
+      v: 1,
+      slots: {
+        'focus_step.progress': { kind: 'Label', text: 'Step 3 of 7' },
+        'focus_step.instruction': { kind: 'Heading', text: 'Add dry ingredients' },
+        'focus_step.detail1': { kind: 'ListItem', title: 'Plain flour', meta: '3⅓ cups' },
+        'focus_step.detail2': { kind: 'ListItem', title: 'Baking soda', meta: '1⅔ tsp' },
+        'focus_step.detail3': { kind: 'ListItem', title: 'Salt', meta: '¾ tsp' },
+        'focus_step.prev': { kind: 'Button', text: 'Back' },
+        'focus_step.next': { kind: 'Button', text: 'Skip' },
+        'focus_step.done': { kind: 'Button', text: 'Done' },
       },
     },
     style: {
       v: 1,
-      theme: {
-        palette: 'mono',
-        fontPairing: 'editorial',
-        density: 'spacious',
-        radius: 'sharp',
-        motif: 'none',
-      },
+      theme: { ...warmKitchen.theme, density: 'spacious' },
     },
-    polish: {
-      v: 1,
-      interpretedAs: 'quiet long-form reading, warm paper, editorial',
-      tokens: {
-        '--jit-bg': '#f4f1ea',
-        '--jit-surface': '#f4f1ea',
-        '--jit-border': '#ded8cb',
-        '--jit-accent': '#1a1a18',
-        '--jit-on-accent': '#f4f1ea',
-        '--jit-fg': '#22201c',
-        '--jit-muted': '#5d574d',
-        '--jit-radius': '0px',
-        '--jit-radius-sm': '0px',
-        '--jit-scale': '1.18',
-        '--jit-gap': '26px',
-        '--jit-accent-soft': '#e8e2d5',
-      },
-    },
+    polish: null,
   },
 
   {
-    intent: 'make it softer and calmer',
-    templateId: 'settings_panel',
+    beat: '1:40',
+    intent: 'Wait, I accidentally added twice as much sugar.',
+    templateId: 'recovery',
     content: {
       v: 1,
       slots: {
-        'settings_panel.title': { kind: 'Heading', text: 'Comfort' },
-        'settings_panel.option1': { kind: 'Toggle', label: 'Reduce motion', on: true },
-        'settings_panel.option2': { kind: 'Toggle', label: 'Hide metrics', on: true },
-        'settings_panel.option3': { kind: 'Toggle', label: 'Larger text', on: true },
-        'settings_panel.option4': { kind: 'Toggle', label: 'Mute notifications', on: false },
-      },
-    },
-    style: {
-      v: 1,
-      theme: {
-        palette: 'rose',
-        fontPairing: 'editorial',
-        density: 'spacious',
-        radius: 'round',
-        motif: 'floral',
-      },
-    },
-    polish: {
-      v: 1,
-      interpretedAs: 'soft, calm — dusty rose, generous air, blooming edges',
-      tokens: {
-        '--jit-bg': '#fdf2f4',
-        '--jit-surface': '#fffafb',
-        '--jit-border': '#f0d3dc',
-        '--jit-accent': '#a8325c',
-        '--jit-on-accent': '#fffafc',
-        '--jit-fg': '#432630',
-        '--jit-muted': '#7d5460',
-        '--jit-radius': '26px',
-        '--jit-radius-sm': '18px',
-        '--jit-gap': '24px',
-        '--jit-pad': '30px',
-        '--jit-scale': '1.06',
-        '--jit-accent-soft': '#fae6ec',
-      },
-    },
-  },
-
-  {
-    intent: 'delete everything from last week',
-    templateId: 'confirm_action',
-    content: {
-      v: 1,
-      slots: {
-        'confirm_action.title': { kind: 'Heading', text: 'Confirm deletion' },
-        'confirm_action.warning': {
+        'recovery.kind': { kind: 'Label', text: 'Correction' },
+        'recovery.title': { kind: 'Heading', text: 'Too much sugar' },
+        'recovery.diagnosis': {
           kind: 'Alert',
-          text: 'This removes 47 items recorded between Sep 8 and Sep 14. It cannot be undone.',
+          text: 'You added about 2× the intended sugar — roughly 2½ cups instead of 1¼.',
         },
-        'confirm_action.cancel': { kind: 'Button', text: 'Cancel' },
-        'confirm_action.confirm': { kind: 'Button', text: 'Delete 47' },
-      },
-    },
-    style: {
-      v: 1,
-      theme: {
-        palette: 'slate',
-        fontPairing: 'system',
-        density: 'normal',
-        radius: 'soft',
-        motif: 'none',
-      },
-    },
-    polish: {
-      v: 1,
-      interpretedAs: 'destructive confirmation — make the weight felt',
-      tokens: {
-        '--jit-bg': '#140b08',
-        '--jit-surface': '#1e100b',
-        '--jit-border': '#3d1f14',
-        '--jit-accent': '#e2543a',
-        '--jit-on-accent': '#1a0703',
-        '--jit-fg': '#f6e4dd',
-        '--jit-muted': '#c2a096',
-        '--jit-radius': '8px',
-        '--jit-radius-sm': '6px',
-        '--jit-accent-soft': '#2d130c',
-      },
-    },
-  },
-
-  {
-    intent: 'how long until the export is done',
-    templateId: 'progress_task',
-    content: {
-      v: 1,
-      slots: {
-        'progress_task.status': { kind: 'Label', text: 'Exporting' },
-        'progress_task.title': { kind: 'Heading', text: 'final_cut_v3.mp4' },
-        'progress_task.progress': { kind: 'Progress', pct: 68 },
-        'progress_task.detail': { kind: 'Rule', left: '68% · 1080p', right: '~2m 10s left' },
-        'progress_task.cancel': { kind: 'Button', text: 'Cancel export' },
-      },
-    },
-    style: {
-      v: 1,
-      theme: {
-        palette: 'slate',
-        fontPairing: 'mono',
-        density: 'normal',
-        radius: 'soft',
-        motif: 'geometric',
-      },
-    },
-    polish: {
-      v: 1,
-      interpretedAs: 'terminal-flavoured progress readout',
-      tokens: {
-        '--jit-bg': '#060a07',
-        '--jit-surface': '#0b120d',
-        '--jit-border': '#1b2a20',
-        '--jit-accent': '#35d07f',
-        '--jit-on-accent': '#03150b',
-        '--jit-fg': '#d6ecdc',
-        '--jit-muted': '#8aa695',
-        '--jit-radius': '4px',
-        '--jit-radius-sm': '2px',
-        '--jit-accent-soft': '#0d2116',
-      },
-    },
-  },
-
-  {
-    intent: "I can't read this — make it high contrast",
-    templateId: 'reader',
-    content: {
-      v: 1,
-      slots: {
-        'reader.title': { kind: 'Heading', text: 'The quiet interface' },
-        'reader.byline': { kind: 'Text', text: '4 min read' },
-        'reader.para1': {
+        'recovery.planLabel': { kind: 'Label', text: 'Best recovery' },
+        'recovery.plan': {
           kind: 'Text',
-          text: 'Every control that is present but unused is a decision the reader pays for.',
+          text: 'Double everything already in the bowl, and the rest of the recipe with it.',
         },
-        'reader.para2': { kind: 'Text', text: 'Subsetting is not simplification.' },
-        'reader.para3': { kind: 'Text', text: 'When intent changes, the surface changes with it.' },
+        // Computed from the typed recipe, never generated. 30 -> 60.
+        'recovery.outcome': {
+          kind: 'Metric',
+          label: 'This will make',
+          value: '60 cookies',
+          delta: 'you planned for 30',
+        },
+        'recovery.secondary': { kind: 'Button', text: 'Start over' },
+        'recovery.primary': { kind: 'Button', text: 'Fix recipe' },
       },
     },
-    style: {
-      v: 1,
-      theme: {
-        palette: 'contrast',
-        fontPairing: 'system',
-        density: 'spacious',
-        radius: 'sharp',
-        motif: 'none',
-      },
-    },
+    style: warmKitchen,
     polish: {
       v: 1,
-      interpretedAs: 'maximum legibility, low vision — push past the preset',
+      interpretedAs: 'something went wrong — make it legible, not alarming',
       tokens: {
-        '--jit-bg': '#000000',
-        '--jit-surface': '#000000',
-        '--jit-border': '#ffffff',
-        '--jit-accent': '#ffe600',
-        '--jit-on-accent': '#000000',
-        '--jit-fg': '#ffffff',
-        '--jit-muted': '#f2f2f2',
-        '--jit-scale': '1.42',
-        '--jit-gap': '28px',
-        '--jit-pad': '26px',
-        '--jit-radius': '0px',
-        '--jit-radius-sm': '0px',
-        '--jit-accent-soft': '#262200',
-        '--jit-weight-display': '800',
+        '--jit-bg': '#fdf8f3',
+        '--jit-surface': '#ffffff',
+        '--jit-border': '#e8d9c8',
+        '--jit-accent': '#a8541f',
+        '--jit-on-accent': '#ffffff',
+        '--jit-fg': '#2b1d12',
+        '--jit-muted': '#6d5744',
+        '--jit-accent-soft': '#fbeee2',
       },
     },
+  },
+
+  {
+    beat: '2:10',
+    intent: '(fast-forward) — done, and deliberately actionless',
+    templateId: 'summary_done',
+    content: {
+      v: 1,
+      slots: {
+        'summary_done.title': { kind: 'Heading', text: 'Cookies done' },
+        'summary_done.result': {
+          kind: 'Metric',
+          label: 'Made',
+          value: '60 cookies',
+          delta: 'you planned for 30',
+        },
+        'summary_done.prompt': {
+          kind: 'Text',
+          text: 'That is 30 more than you need. What do you want to do with them?',
+        },
+      },
+    },
+    style: warmKitchen,
+    polish: null,
+  },
+
+  {
+    beat: '2:20',
+    intent: 'Who could I give some to?',
+    templateId: 'people_picker',
+    content: {
+      v: 1,
+      slots: {
+        'people_picker.title': { kind: 'Heading', text: 'Share the extras' },
+        'people_picker.subtitle': { kind: 'Text', text: '30 extra cookies' },
+        'people_picker.person1': { kind: 'ListItem', title: 'Alex', detail: 'Roommate' },
+        'people_picker.person2': { kind: 'ListItem', title: 'Maya', detail: 'Friend' },
+        'people_picker.person3': { kind: 'ListItem', title: 'Daniel', detail: 'Classmate' },
+        'people_picker.confirm': { kind: 'Button', text: 'Write messages' },
+      },
+    },
+    style: warmKitchen,
+    polish: null,
+  },
+
+  {
+    beat: '2:35',
+    intent: '(tap Alex and Daniel, then Write messages) — out of the baking domain',
+    templateId: 'message_drafts',
+    content: {
+      v: 1,
+      slots: {
+        'message_drafts.title': { kind: 'Heading', text: 'Two messages' },
+        // The fader's THIRD meaning. Variants are pre-generated, so moving it
+        // never waits on a model.
+        'message_drafts.tone': {
+          kind: 'Slider',
+          label: 'Tone',
+          min: 0,
+          max: 4,
+          step: 1,
+          value: 1,
+          minLabel: 'Casual',
+          maxLabel: 'Polished',
+        },
+        'message_drafts.name1': { kind: 'Label', text: 'Alex · roommate' },
+        'message_drafts.body1': {
+          kind: 'Text',
+          text: 'made way too many cookies 😭 want some?',
+        },
+        'message_drafts.name2': { kind: 'Label', text: 'Daniel · classmate' },
+        'message_drafts.body2': {
+          kind: 'Text',
+          text: 'Hey — I ended up making a huge batch of cookies. I can bring some to class tomorrow if you’d like.',
+        },
+        'message_drafts.edit': { kind: 'Button', text: 'Edit' },
+        'message_drafts.send': { kind: 'Button', text: 'Send both' },
+      },
+    },
+    style: { v: 1, theme: { ...warmKitchen.theme, fontPairing: 'system' } },
+    polish: null,
+  },
+
+  {
+    beat: '3:00',
+    intent: '(judge handoff) "how much did all this cost me?"',
+    templateId: 'generic_answer',
+    content: {
+      v: 1,
+      slots: {
+        'generic_answer.title': { kind: 'Heading', text: 'About $12.80 on ingredients' },
+        'generic_answer.body': {
+          kind: 'Text',
+          text: 'You doubled the batch part-way through, so the shopping list doubled with it. Here is where it went.',
+        },
+        'generic_answer.point1': {
+          kind: 'ListItem',
+          title: 'Butter',
+          detail: '3⅓ cups',
+          meta: '$5.20',
+        },
+        'generic_answer.point2': {
+          kind: 'ListItem',
+          title: 'Chocolate chips',
+          detail: '4 cups',
+          meta: '$4.60',
+        },
+        'generic_answer.point3': {
+          kind: 'ListItem',
+          title: 'Flour, sugar, eggs',
+          detail: 'pantry staples',
+          meta: '$3.00',
+        },
+        'generic_answer.action': { kind: 'Button', text: 'Add to shopping list' },
+      },
+    },
+    style: warmKitchen,
+    polish: null,
   },
 ];
 

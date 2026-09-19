@@ -5,7 +5,15 @@
     "declaration": false,
     "declarationMap": false,
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": ".",
+    // Resolve to source, matching vitest.config.ts, so a typecheck never
+    // depends on `dist/` being built or up to date.
+    "paths": {
+      "@jit/schema": ["packages/schema/src/index.ts"],
+      "@jit/tokens": ["packages/tokens/src/index.ts"],
+      "@jit/renderer": ["packages/renderer/src/index.ts"]
+    }
   },
   "include": [
     "packages/*/src/**/*.ts",

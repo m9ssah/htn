@@ -3,8 +3,8 @@
  * package in the repo codes against these types and nothing else.
  *
  * Zero imports, zero runtime dependencies — this file must stay type-only so it
- * can be consumed by the extension's service worker, the Pi kiosk, and the
- * orchestrator without dragging anything along.
+ * can be consumed by the kiosk, the orchestrator and the GPIO bridge without
+ * dragging anything along.
  */
 
 /* ------------------------------------------------------------------ *
@@ -13,17 +13,32 @@
 
 /**
  * Agent 2 selects one of these by ID. It never emits a tree — the trees live in
- * `@jit/renderer` and are static.
+ * `@jit/renderer` and are static. A model that could generate structure could
+ * generate structure we have no CSS for.
+ *
+ * The set is shaped by the phases of a task, not by any one domain:
+ * decide → review → act → recover → finish → pick → compose → answer.
  */
 export type TemplateId =
-  | 'task_focus'
-  | 'ticket_detail'
-  | 'auth_form'
-  | 'dashboard'
-  | 'reader'
-  | 'settings_panel'
-  | 'confirm_action'
-  | 'progress_task';
+  /** Choose between generated options. A slider scrubs the axis they vary on. */
+  | 'choice_cards'
+  /** The chosen thing, whole, with the quantities a slider can rescale. */
+  | 'recipe_overview'
+  /** One instruction at a time. Deliberately sparse; the encoder scrubs steps. */
+  | 'focus_step'
+  /** Something went wrong: diagnosis, recommended fix, consequence. */
+  | 'recovery'
+  /** The task is done. An open prompt, not a button row. */
+  | 'summary_done'
+  /** Pick people. */
+  | 'people_picker'
+  /** Generated drafts, one per recipient, with a tone axis. */
+  | 'message_drafts'
+  /**
+   * Anything unscripted. This is what answers a judge driving the device, so it
+   * is demo-critical rather than a safety net.
+   */
+  | 'generic_answer';
 
 /* ------------------------------------------------------------------ *
  * Style axes — agent 3 (Jev) picks one value per axis, nothing else
@@ -47,10 +62,6 @@ export type ThemeEnums = {
  * CSS custom properties — the full surface the renderer reads
  * ------------------------------------------------------------------ */
 
-/**
- * Every var the renderer's stylesheet consumes. `resolve()` in `@jit/tokens`
- * must emit all of them; agent 4 may override any subset.
- */
 export type CssVar =
   // colour
   | '--jit-bg'
@@ -102,9 +113,10 @@ export type LeafComponent =
   | 'TextField'
   | 'Toggle'
   | 'Progress'
-  | 'Alert';
+  | 'Alert'
+  | 'Slider';
 
-/** The finite set. 20 components; growing it is a design decision, not a patch. */
+/** The finite set. Growing it is a design decision, not a patch. */
 export type ComponentType = StructuralComponent | LeafComponent;
 
 /* ------------------------------------------------------------------ *
@@ -118,14 +130,31 @@ export type SlotValue =
   | { kind: 'Metric'; label: string; value: string; delta?: string }
   | { kind: 'Media'; caption?: string; src?: string }
   | { kind: 'Badge'; text: string }
-  | { kind: 'ListItem'; title: string; meta?: string }
+  /** `detail` is the secondary line; `meta` is the trailing value (a price, a time). */
+  | { kind: 'ListItem'; title: string; detail?: string; meta?: string }
   | { kind: 'Bars'; values: number[] }
   | { kind: 'Rule'; left: string; right?: string }
   | { kind: 'Button'; text: string }
   | { kind: 'TextField'; label: string; placeholder?: string; value?: string }
   | { kind: 'Toggle'; label: string; on: boolean }
   | { kind: 'Progress'; pct: number }
-  | { kind: 'Alert'; text: string };
+  | { kind: 'Alert'; text: string }
+  /**
+   * A continuous control. Its label and range are generated, which is what lets
+   * one physical fader mean recipe preference, then batch size, then message
+   * tone. `minLabel`/`maxLabel` name the poles ("Quick" / "Impressive").
+   */
+  | {
+      kind: 'Slider';
+      label: string;
+      min: number;
+      max: number;
+      step: number;
+      value: number;
+      unit?: string;
+      minLabel?: string;
+      maxLabel?: string;
+    };
 
 /**
  * Every slot in every template, bound to the one component kind that may fill
@@ -133,71 +162,79 @@ export type SlotValue =
  * single flat map is enough to make a mismatched content patch a compile error.
  */
 export interface SlotKindMap {
-  // task_focus — a single action stripped to its controls
-  'task_focus.badge': 'Badge';
-  'task_focus.title': 'Heading';
-  'task_focus.preview': 'Media';
-  'task_focus.range': 'Rule';
-  'task_focus.markIn': 'Button';
-  'task_focus.markOut': 'Button';
-  'task_focus.confirm': 'Button';
+  // choice_cards — decide between generated options
+  'choice_cards.title': 'Heading';
+  'choice_cards.subtitle': 'Text';
+  'choice_cards.axis': 'Slider';
+  'choice_cards.option1': 'ListItem';
+  'choice_cards.option2': 'ListItem';
+  'choice_cards.option3': 'ListItem';
 
-  // ticket_detail — one record, shown whole
-  'ticket_detail.operator': 'Label';
-  'ticket_detail.title': 'Heading';
-  'ticket_detail.summary': 'Text';
-  'ticket_detail.origin': 'Metric';
-  'ticket_detail.destination': 'Metric';
-  'ticket_detail.seat': 'Rule';
-  'ticket_detail.view': 'Button';
+  // recipe_overview — the chosen thing, whole
+  'recipe_overview.title': 'Heading';
+  'recipe_overview.yield': 'Text';
+  'recipe_overview.batch': 'Slider';
+  'recipe_overview.ingredientsLabel': 'Label';
+  'recipe_overview.ingredient1': 'ListItem';
+  'recipe_overview.ingredient2': 'ListItem';
+  'recipe_overview.ingredient3': 'ListItem';
+  'recipe_overview.ingredient4': 'ListItem';
+  'recipe_overview.ingredient5': 'ListItem';
+  'recipe_overview.ingredient6': 'ListItem';
+  'recipe_overview.ingredient7': 'ListItem';
+  'recipe_overview.ingredient8': 'ListItem';
+  'recipe_overview.start': 'Button';
 
-  // auth_form
-  'auth_form.title': 'Heading';
-  'auth_form.subtitle': 'Text';
-  'auth_form.email': 'TextField';
-  'auth_form.password': 'TextField';
-  'auth_form.submit': 'Button';
-  'auth_form.recover': 'Button';
+  // focus_step — one instruction at a time
+  'focus_step.progress': 'Label';
+  'focus_step.instruction': 'Heading';
+  'focus_step.detail1': 'ListItem';
+  'focus_step.detail2': 'ListItem';
+  'focus_step.detail3': 'ListItem';
+  'focus_step.prev': 'Button';
+  'focus_step.next': 'Button';
+  'focus_step.done': 'Button';
 
-  // dashboard — the densest template
-  'dashboard.title': 'Heading';
-  'dashboard.period': 'Text';
-  'dashboard.primaryMetric': 'Metric';
-  'dashboard.secondaryMetric': 'Metric';
-  'dashboard.tertiaryMetric': 'Metric';
-  'dashboard.chartLabel': 'Label';
-  'dashboard.chart': 'Bars';
-  'dashboard.listLabel': 'Label';
-  'dashboard.item1': 'ListItem';
-  'dashboard.item2': 'ListItem';
-  'dashboard.item3': 'ListItem';
+  // recovery — the reasoning moment
+  'recovery.kind': 'Label';
+  'recovery.title': 'Heading';
+  'recovery.diagnosis': 'Alert';
+  'recovery.planLabel': 'Label';
+  'recovery.plan': 'Text';
+  'recovery.outcome': 'Metric';
+  'recovery.secondary': 'Button';
+  'recovery.primary': 'Button';
 
-  // reader — the only template with no Card and no controls
-  'reader.title': 'Heading';
-  'reader.byline': 'Text';
-  'reader.para1': 'Text';
-  'reader.para2': 'Text';
-  'reader.para3': 'Text';
+  // summary_done — deliberately actionless; the device waits for you
+  'summary_done.title': 'Heading';
+  'summary_done.result': 'Metric';
+  'summary_done.prompt': 'Text';
 
-  // settings_panel — four toggles, one per physical button
-  'settings_panel.title': 'Heading';
-  'settings_panel.option1': 'Toggle';
-  'settings_panel.option2': 'Toggle';
-  'settings_panel.option3': 'Toggle';
-  'settings_panel.option4': 'Toggle';
+  // people_picker
+  'people_picker.title': 'Heading';
+  'people_picker.subtitle': 'Text';
+  'people_picker.person1': 'ListItem';
+  'people_picker.person2': 'ListItem';
+  'people_picker.person3': 'ListItem';
+  'people_picker.confirm': 'Button';
 
-  // confirm_action
-  'confirm_action.title': 'Heading';
-  'confirm_action.warning': 'Alert';
-  'confirm_action.cancel': 'Button';
-  'confirm_action.confirm': 'Button';
+  // message_drafts — crossing out of the original domain
+  'message_drafts.title': 'Heading';
+  'message_drafts.tone': 'Slider';
+  'message_drafts.name1': 'Label';
+  'message_drafts.body1': 'Text';
+  'message_drafts.name2': 'Label';
+  'message_drafts.body2': 'Text';
+  'message_drafts.edit': 'Button';
+  'message_drafts.send': 'Button';
 
-  // progress_task
-  'progress_task.status': 'Label';
-  'progress_task.title': 'Heading';
-  'progress_task.progress': 'Progress';
-  'progress_task.detail': 'Rule';
-  'progress_task.cancel': 'Button';
+  // generic_answer — the judge handoff
+  'generic_answer.title': 'Heading';
+  'generic_answer.body': 'Text';
+  'generic_answer.point1': 'ListItem';
+  'generic_answer.point2': 'ListItem';
+  'generic_answer.point3': 'ListItem';
+  'generic_answer.action': 'Button';
 }
 
 export type SlotId = keyof SlotKindMap;
@@ -220,12 +257,21 @@ export type SkeletonPatch = {
 };
 
 /**
- * Agent 1. Partial by design: slots arrive as they are extracted, and any slot
- * still unfilled renders as a shimmer at its final dimensions.
+ * Agent 1.
+ *
+ * Partial by design: slots arrive as they are produced, and any slot still
+ * unfilled renders as a shimmer at its final dimensions.
+ *
+ * An explicit `null` means **not applicable to this instance** — a recipe with
+ * six ingredients in a template that reserves eight. The renderer collapses
+ * those rather than shimmering forever on a slot that will never fill.
+ * `undefined` (absent) still means "pending". Distinguishing the two is what
+ * lets one fixed template serve variable-length content, which the judge
+ * handoff requires.
  */
 export type ContentPatch = {
   v: 1;
-  slots: Partial<{ [S in SlotId]: SlotValueFor<S> }>;
+  slots: Partial<{ [S in SlotId]: SlotValueFor<S> | null }>;
 };
 
 /** Agent 3 (Jev). Enum selections only — no value here is ever a hex code. */
@@ -251,14 +297,12 @@ export type Patch = SkeletonPatch | ContentPatch | StylePatch | PolishPatch;
  * Actions — the hardware layer's view of the surface
  * ------------------------------------------------------------------ */
 
-/** What pressing a physical button mapped to this action actually does. */
-export type ActionKind = 'press' | 'toggle' | 'text';
+export type ActionKind = 'press' | 'toggle' | 'text' | 'range';
 
-export type ActionDescriptor = {
-  /** Position in DOM order. Stable across content arrival. */
+type ActionBase = {
+  /** Position in DOM order. Stable from skeleton paint onward. */
   index: number;
   action: string;
-  kind: ActionKind;
   slot: SlotId;
   /**
    * Null until the content patch lands. The hardware needs the mapping at
@@ -266,6 +310,38 @@ export type ActionDescriptor = {
    */
   label: string | null;
 };
+
+export type PressAction = ActionBase & { kind: 'press' };
+export type TextAction = ActionBase & { kind: 'text' };
+export type ToggleAction = ActionBase & { kind: 'toggle'; on: boolean | null };
+
+/**
+ * A continuous control. `range` is null until content lands, for the same
+ * reason `label` is: the descriptor exists at skeleton paint, but nothing has
+ * told us yet what the axis means.
+ */
+export type RangeAction = ActionBase & {
+  kind: 'range';
+  range: {
+    min: number;
+    max: number;
+    step: number;
+    value: number;
+    unit: string | null;
+    minLabel: string | null;
+    maxLabel: string | null;
+  } | null;
+};
+
+export type ActionDescriptor = PressAction | TextAction | ToggleAction | RangeAction;
+
+/**
+ * The device has four buttons and one fader. A surface that exceeds either is a
+ * surface the hardware cannot express, so both are asserted in the renderer's
+ * tests rather than left to review.
+ */
+export const BUTTON_COUNT = 4;
+export const RANGE_CONTROL_COUNT = 1;
 
 /* ------------------------------------------------------------------ *
  * Contrast

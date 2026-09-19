@@ -34,6 +34,15 @@
   box-sizing: border-box;
 }
 
+/*
+ * A collapsed slot sets the `hidden` attribute, whose UA `display: none` loses
+ * to any author `display` — and every component here sets one. Without this,
+ * a slot the instance does not use goes on shimmering forever.
+ */
+.jit-root [hidden] {
+  display: none !important;
+}
+
 /* The template's outermost node carries the width the skeleton patch asked for. */
 .jit-root > * {
   position: relative;
@@ -265,8 +274,46 @@
   border-bottom: 0;
 }
 
+.c-listitem .li-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
 .c-listitem .li-title {
   font-size: calc(13px * var(--jit-scale));
+}
+
+.c-listitem .li-detail {
+  color: var(--jit-muted);
+  font-size: calc(11px * var(--jit-scale));
+  line-height: 1.45;
+}
+
+/*
+ * The detail line is a TEMPLATE reservation, not a property of the content —
+ * `data-has-detail` is written at build time. Keying off `:has(.li-detail)`
+ * would always match, because the node is always built; keying off the content
+ * would resize the row when the content landed, which is the reflow the
+ * reservation exists to prevent.
+ */
+.c-listitem[data-has-detail='true'] {
+  min-height: calc(
+    13px * var(--jit-scale) * 1.5 + 11px * var(--jit-scale) * 1.45 + 16px *
+      var(--jit-density-f) + 1px
+  );
+}
+
+.c-listitem:not([data-has-detail='true']) .li-detail {
+  display: none;
+}
+
+/* Rows that are controls read as such. */
+.c-listitem[data-action] {
+  padding-right: calc(6px * var(--jit-density-f));
+  padding-left: calc(6px * var(--jit-density-f));
+  border-radius: var(--jit-radius-sm);
+  cursor: pointer;
 }
 
 .c-listitem .li-meta {
@@ -381,6 +428,105 @@
   color: var(--jit-muted);
 }
 
+/* ------------------------------------------------------------------ *
+ * Slider
+ *
+ * The only continuous control. Its label and poles are generated, so this
+ * stylesheet must not assume what the axis means.
+ * ------------------------------------------------------------------ */
+
+.c-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /*
+   * Head + track + poles, reserved so a late label does not shift the page.
+   * The head's height comes from the VALUE line, not the label — at 15px/1.2 it
+   * is taller than the label's 10px/1.6, and sizing off the label leaves the
+   * reservation 3px short.
+   */
+  min-height: calc(
+    15px * var(--jit-scale) * 1.2 + 28px + 11px * var(--jit-scale) * 1.4 + 12px
+  );
+}
+
+.c-slider .s-head {
+  display: flex;
+  /*
+   * Centre, not baseline. Baseline alignment makes the row's height depend on
+   * the two fonts' ascent/descent, which is unpredictable across the four font
+   * pairings — and an unpredictable head height is an unpredictable
+   * reservation. Centring pins it to the taller line box exactly.
+   */
+  min-height: calc(15px * var(--jit-scale) * 1.2);
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.c-slider .s-value {
+  color: var(--jit-fg);
+  font-family: var(--jit-font-display);
+  font-size: calc(15px * var(--jit-scale));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.c-slider .s-poles {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: calc(11px * var(--jit-scale) * 1.4);
+  color: var(--jit-muted);
+  font-size: calc(11px * var(--jit-scale));
+  line-height: 1.4;
+}
+
+.c-slider[data-has-poles='false'] .s-poles {
+  visibility: hidden;
+}
+
+.c-slider .s-input {
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.c-slider .s-input::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--jit-border);
+}
+
+.c-slider .s-input::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--jit-border);
+}
+
+/* Generous thumb: this mirrors a physical fader and is also a touch target. */
+.c-slider .s-input::-webkit-slider-thumb {
+  width: 24px;
+  height: 24px;
+  margin-top: -9px;
+  appearance: none;
+  border: 3px solid var(--jit-on-accent);
+  border-radius: 50%;
+  background: var(--jit-accent);
+}
+
+.c-slider .s-input::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--jit-on-accent);
+  border-radius: 50%;
+  background: var(--jit-accent);
+}
+
 .c-toggle {
   display: flex;
   align-items: center;
@@ -434,7 +580,7 @@
  * Focus. This is an accessibility tool; an unreachable-by-keyboard control is
  * not an acceptable trade for a tidier default state.
  */
-.jit-root :is(.c-btn, .f-input, .c-toggle):focus-visible {
+.jit-root :is(.c-btn, .f-input, .c-toggle, .s-input, .c-listitem[data-action]):focus-visible {
   outline: 2px solid var(--jit-accent);
   outline-offset: 2px;
 }

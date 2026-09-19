@@ -52,7 +52,7 @@ export type RendererState = {
   templateId: SkeletonPatch['templateId'] | null;
   themeSource: 'bootstrap' | 'patch';
   theme: ThemeEnums;
-  content: Partial<Record<SlotId, SlotValue>>;
+  content: Partial<Record<SlotId, SlotValue | null>>;
   polish: PolishPatch | null;
   tokens: TokenSet | null;
 };
@@ -86,7 +86,7 @@ export function createRenderer(root: HTMLElement, options: RendererOptions = {})
    * patches are produced by four agents racing each other, so ordering is not
    * something the renderer gets to assume.
    */
-  const content: Partial<Record<SlotId, SlotValue>> = {};
+  const content: Partial<Record<SlotId, SlotValue | null>> = {};
   const slotElements = new Map<SlotId, HTMLElement>();
 
   const emit = (event: TelemetryEvent): void => options.onTelemetry?.(event);
@@ -107,7 +107,10 @@ export function createRenderer(root: HTMLElement, options: RendererOptions = {})
       if (node.lines !== undefined) {
         element.style.setProperty('--ph-lines', String(node.lines));
       }
-      spec.fill(element, content[node.slot]);
+      if (node.detail !== undefined) element.dataset['hasDetail'] = String(node.detail);
+      const known = content[node.slot];
+      spec.fill(element, known ?? undefined);
+      if (known === null) element.hidden = true;
       slotElements.set(node.slot, element);
       return element;
     }
@@ -190,9 +193,19 @@ export function createRenderer(root: HTMLElement, options: RendererOptions = {})
         const value = patch.slots[slot];
         if (value === undefined) continue;
         content[slot] = value;
+
         const element = slotElements.get(slot);
         // No element yet means no skeleton yet. Buffered above; drained on build.
-        if (element) LEAVES[value.kind].fill(element, value);
+        if (!element) continue;
+
+        if (value === null) {
+          // Not applicable to this instance — a six-ingredient recipe in a
+          // template that reserves eight. Collapse rather than shimmer forever.
+          element.hidden = true;
+          continue;
+        }
+        element.hidden = false;
+        LEAVES[value.kind].fill(element, value);
       }
       emit({ type: 'content', slots });
     },

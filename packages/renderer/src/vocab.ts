@@ -33,8 +33,16 @@ const el = (tag: string, className: string): HTMLElement => {
 type Filler = (root: HTMLElement, value: SlotValue | undefined) => void;
 
 export type LeafSpec = {
-  /** Null for non-interactive leaves. Drives the hardware mapping. */
+  /**
+   * The kind of action this component produces IF the template gives it one.
+   * Null means the component can never be a control.
+   */
   actionKind: ActionKind | null;
+  /**
+   * True when omitting an action string is a bug rather than a choice. A Button
+   * with no action is unreachable; a ListItem with no action is just a row.
+   */
+  actionRequired: boolean;
   build: (props: NodeProps) => HTMLElement;
   fill: Filler;
   /** Text shown on a physical-button label, once content exists. */
@@ -55,6 +63,7 @@ const text = (root: HTMLElement, selector: string, value: string): void => {
 export const LEAVES: Record<LeafComponent, LeafSpec> = {
   Heading: {
     actionKind: null,
+    actionRequired: false,
     build: (props) => {
       const level: HeadingLevel = props.level ?? 2;
       const node = el(`h${level}`, 'c-heading');
@@ -70,6 +79,7 @@ export const LEAVES: Record<LeafComponent, LeafSpec> = {
 
   Text: {
     actionKind: null,
+    actionRequired: false,
     build: (props) => {
       const node = el('p', 'c-text');
       node.dataset['tone'] = props.tone ?? 'default';
@@ -84,6 +94,7 @@ export const LEAVES: Record<LeafComponent, LeafSpec> = {
 
   Label: {
     actionKind: null,
+    actionRequired: false,
     build: () => el('span', 'c-label'),
     fill: (root, value) => {
       shimmer(root, value === undefined);
@@ -94,6 +105,7 @@ export const LEAVES: Record<LeafComponent, LeafSpec> = {
 
   Metric: {
     actionKind: null,
+    actionRequired: false,
     build: () => {
       const node = el('div', 'c-metric');
       node.append(el('span', 'c-label'), el('div', 'm-value'), el('div', 'm-delta'));
@@ -111,6 +123,7 @@ export const LEAVES: Record<LeafComponent, LeafSpec> = {
 
   Media: {
     actionKind: null,
+    actionRequired: false,
     build: () => {
       const node = el('div', 'c-media');
       node.append(el('span', 'm-caption'));
@@ -128,6 +141,7 @@ export const LEAVES: Record<LeafComponent, LeafSpec> = {
 
   Badge: {
     actionKind: null,
+    actionRequired: false,
     build: () => el('span', 'c-badge'),
     fill: (root, value) => {
       shimmer(root, value === undefined);
@@ -137,23 +151,32 @@ export const LEAVES: Record<LeafComponent, LeafSpec> = {
   },
 
   ListItem: {
-    actionKind: null,
+    // Selectable only when a template gives it an action — a recipe option or a
+    // person is a control; an ingredient row is not.
+    actionKind: 'press',
+    actionRequired: false,
     build: () => {
       const node = el('div', 'c-listitem');
-      node.append(el('span', 'li-title'), el('span', 'li-meta'));
+      const main = el('span', 'li-main');
+      main.append(el('span', 'li-title'), el('span', 'li-detail'));
+      node.append(main, el('span', 'li-meta'));
       return node;
     },
     fill: (root, value) => {
       shimmer(root, value === undefined);
       const v = value?.kind === 'ListItem' ? value : undefined;
       text(root, '.li-title', v?.title ?? '');
+      text(root, '.li-detail', v?.detail ?? '');
       text(root, '.li-meta', v?.meta ?? '');
+      // hasDetail is a template reservation set at build time — content fills
+      // the line, it does not get to decide whether the line exists.
     },
-    labelOf: () => null,
+    labelOf: (value) => (value.kind === 'ListItem' ? value.title : null),
   },
 
   Bars: {
     actionKind: null,
+    actionRequired: false,
     build: () => {
       const node = el('div', 'c-bars');
       for (const height of PLACEHOLDER_BAR_HEIGHTS) {
@@ -181,6 +204,7 @@ export const LEAVES: Record<LeafComponent, LeafSpec> = {
 
   Rule: {
     actionKind: null,
+    actionRequired: false,
     build: () => {
       const node = el('div', 'c-rule');
       node.append(el('span', 'r-left'), el('span', 'r-right'));
@@ -197,6 +221,7 @@ export const LEAVES: Record<LeafComponent, LeafSpec> = {
 
   Alert: {
     actionKind: null,
+    actionRequired: false,
     build: () => el('div', 'c-alert'),
     fill: (root, value) => {
       shimmer(root, value === undefined);
@@ -207,6 +232,7 @@ export const LEAVES: Record<LeafComponent, LeafSpec> = {
 
   Progress: {
     actionKind: null,
+    actionRequired: false,
     build: () => {
       const node = el('div', 'c-progress');
       node.append(el('i', 'p-fill'));
@@ -223,6 +249,7 @@ export const LEAVES: Record<LeafComponent, LeafSpec> = {
 
   Button: {
     actionKind: 'press',
+    actionRequired: true,
     build: (props) => {
       const node = el('button', 'c-btn');
       node.setAttribute('type', 'button');
@@ -238,6 +265,7 @@ export const LEAVES: Record<LeafComponent, LeafSpec> = {
 
   TextField: {
     actionKind: 'text',
+    actionRequired: true,
     build: () => {
       const node = el('div', 'c-field');
       const input = document.createElement('input');
@@ -259,8 +287,52 @@ export const LEAVES: Record<LeafComponent, LeafSpec> = {
     labelOf: (value) => (value.kind === 'TextField' ? value.label : null),
   },
 
+  /**
+   * The 21st component. Its label and range come from the patch, which is what
+   * lets one physical fader mean recipe preference, then batch size, then
+   * message tone.
+   */
+  Slider: {
+    actionKind: 'range',
+    actionRequired: true,
+    build: () => {
+      const node = el('div', 'c-slider');
+      const head = el('div', 's-head');
+      head.append(el('span', 'c-label'), el('span', 's-value'));
+      const input = document.createElement('input');
+      input.className = 's-input';
+      input.setAttribute('type', 'range');
+      const poles = el('div', 's-poles');
+      poles.append(el('span', 's-min'), el('span', 's-max'));
+      node.append(head, input, poles);
+      return node;
+    },
+    fill: (root, value) => {
+      shimmer(root, value === undefined);
+      const v = value?.kind === 'Slider' ? value : undefined;
+      text(root, '.c-label', v?.label ?? '');
+      // A number is only worth showing when it has a unit: "30 cookies" means
+      // something, "1" on a Quick-to-Impressive axis does not — the poles
+      // already say what that end is. Hidden rather than removed, so the head
+      // keeps its reserved height either way.
+      text(root, '.s-value', v?.unit ? `${v.value} ${v.unit}` : '');
+      text(root, '.s-min', v?.minLabel ?? '');
+      text(root, '.s-max', v?.maxLabel ?? '');
+      const input = root.querySelector<HTMLInputElement>('.s-input');
+      if (input && v) {
+        input.min = String(v.min);
+        input.max = String(v.max);
+        input.step = String(v.step);
+        input.value = String(v.value);
+      }
+      root.dataset['hasPoles'] = v?.minLabel || v?.maxLabel ? 'true' : 'false';
+    },
+    labelOf: (value) => (value.kind === 'Slider' ? value.label : null),
+  },
+
   Toggle: {
     actionKind: 'toggle',
+    actionRequired: true,
     build: () => {
       const node = el('div', 'c-toggle');
       node.setAttribute('role', 'switch');

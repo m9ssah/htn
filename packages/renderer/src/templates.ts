@@ -5,8 +5,11 @@ import type { NodeProps } from './vocab.js';
  * The eight skeleton templates.
  *
  * These live here and nowhere else. Agent 2 selects an ID; it never emits a
- * tree. A model that could generate structure could generate structure we have
- * no CSS for.
+ * tree. They are named for the *phase of a task* they serve, not for a domain —
+ * `choice_cards` picks a recipe today and a train tomorrow, and the renderer
+ * never learns which.
+ *
+ * Widths target the device's 4" 800x480 touchscreen, not a desktop.
  */
 
 export type StructuralNode = {
@@ -27,8 +30,17 @@ export type LeafNode = {
    * never pull the layout upward.
    */
   lines?: number;
-  /** Required on every interactive leaf. The hardware layer maps these. */
+  /**
+   * Required on Button / Toggle / TextField / Slider. Optional on ListItem,
+   * which is a control only when a template says so.
+   */
   action?: string;
+  /**
+   * ListItem only: this row carries a secondary line. Declared here rather than
+   * inferred from content for the same reason `lines` is — the box has to be
+   * reserved before the content that fills it exists.
+   */
+  detail?: boolean;
 };
 
 export type TemplateNode = StructuralNode | DividerNode | LeafNode;
@@ -38,7 +50,7 @@ export type Template = {
   maxWidth: number;
   /**
    * The grounds this template actually paints text on, which narrows the
-   * required contrast pairs. Only `reader` has no Card.
+   * required contrast pairs.
    */
   surfaces: Surface[];
   tree: TemplateNode;
@@ -51,188 +63,250 @@ const card = (...children: TemplateNode[]): StructuralNode => ({
   children: [{ type: 'Stack', children }],
 });
 
+/** A passive single-line row: a quantity, a step detail. */
+const row = (slot: SlotId): LeafNode => ({ type: 'ListItem', slot });
+
+/** A passive two-line row. */
+const row2 = (slot: SlotId): LeafNode => ({ type: 'ListItem', slot, detail: true });
+
+/** A selectable two-line row: an option, a person. */
+const pick = (slot: SlotId, action: string): LeafNode => ({
+  type: 'ListItem',
+  slot,
+  action,
+  detail: true,
+});
+
 export const TEMPLATES: Record<TemplateId, Template> = {
-  /** One action, stripped to its controls. */
-  task_focus: {
-    id: 'task_focus',
-    maxWidth: 360,
+  /**
+   * 0:00–0:30. Decide between generated options; the slider scrubs the axis
+   * they vary along. Three options, because three presses plus nothing else
+   * leaves a button spare and the fader is a separate control.
+   */
+  choice_cards: {
+    id: 'choice_cards',
+    maxWidth: 640,
     surfaces: ['surface'],
     tree: card(
-      { type: 'Badge', slot: 'task_focus.badge' },
-      { type: 'Heading', slot: 'task_focus.title', props: { level: 1 }, lines: 1 },
-      { type: 'Media', slot: 'task_focus.preview' },
-      { type: 'Rule', slot: 'task_focus.range' },
+      { type: 'Heading', slot: 'choice_cards.title', props: { level: 1 }, lines: 1 },
+      { type: 'Text', slot: 'choice_cards.subtitle', props: { tone: 'muted' }, lines: 1 },
+      { type: 'Slider', slot: 'choice_cards.axis', action: 'set_preference' },
+      { type: 'Divider' },
+      pick('choice_cards.option1', 'select_1'),
+      pick('choice_cards.option2', 'select_2'),
+      pick('choice_cards.option3', 'select_3'),
+    ),
+  },
+
+  /**
+   * 0:30–1:00. The same fader, thirty seconds later, now meaning batch size.
+   * Eight ingredient slots; a shorter recipe sends `null` for the rest and they
+   * collapse rather than shimmering forever.
+   */
+  recipe_overview: {
+    id: 'recipe_overview',
+    maxWidth: 640,
+    surfaces: ['surface'],
+    tree: card(
+      { type: 'Heading', slot: 'recipe_overview.title', props: { level: 1 }, lines: 1 },
+      { type: 'Text', slot: 'recipe_overview.yield', props: { tone: 'muted' }, lines: 1 },
+      { type: 'Slider', slot: 'recipe_overview.batch', action: 'set_batch' },
+      { type: 'Divider' },
+      { type: 'Label', slot: 'recipe_overview.ingredientsLabel' },
+      row('recipe_overview.ingredient1'),
+      row('recipe_overview.ingredient2'),
+      row('recipe_overview.ingredient3'),
+      row('recipe_overview.ingredient4'),
+      row('recipe_overview.ingredient5'),
+      row('recipe_overview.ingredient6'),
+      row('recipe_overview.ingredient7'),
+      row('recipe_overview.ingredient8'),
+      {
+        type: 'Button',
+        slot: 'recipe_overview.start',
+        props: { variant: 'primary' },
+        action: 'start_baking',
+      },
+    ),
+  },
+
+  /**
+   * 1:00–1:40. Sparse on purpose — while your hands are busy you need the
+   * current instruction and nothing else. prev/next exist as real buttons so
+   * the encoder has something to map to and touch users have a way through.
+   */
+  focus_step: {
+    id: 'focus_step',
+    maxWidth: 560,
+    surfaces: ['surface'],
+    tree: card(
+      { type: 'Label', slot: 'focus_step.progress' },
+      { type: 'Heading', slot: 'focus_step.instruction', props: { level: 1 }, lines: 2 },
+      row('focus_step.detail1'),
+      row('focus_step.detail2'),
+      row('focus_step.detail3'),
       {
         type: 'ButtonGroup',
         children: [
           {
             type: 'Button',
-            slot: 'task_focus.markIn',
-            props: { variant: 'secondary' },
-            action: 'mark_in',
+            slot: 'focus_step.prev',
+            props: { variant: 'ghost' },
+            action: 'prev_step',
           },
           {
             type: 'Button',
-            slot: 'task_focus.markOut',
-            props: { variant: 'secondary' },
-            action: 'mark_out',
+            slot: 'focus_step.next',
+            props: { variant: 'ghost' },
+            action: 'next_step',
           },
         ],
       },
       {
         type: 'Button',
-        slot: 'task_focus.confirm',
+        slot: 'focus_step.done',
         props: { variant: 'primary' },
-        action: 'confirm',
+        action: 'step_done',
       },
     ),
   },
 
-  /** One record, shown whole. */
-  ticket_detail: {
-    id: 'ticket_detail',
-    maxWidth: 380,
+  /**
+   * 1:40–2:10. The reasoning moment. Every number in `outcome` is computed in
+   * TypeScript from the task state — the model classified the deviation, it did
+   * not do the arithmetic.
+   */
+  recovery: {
+    id: 'recovery',
+    maxWidth: 560,
     surfaces: ['surface'],
     tree: card(
-      { type: 'Label', slot: 'ticket_detail.operator' },
-      { type: 'Heading', slot: 'ticket_detail.title', props: { level: 1 }, lines: 1 },
-      { type: 'Text', slot: 'ticket_detail.summary', props: { tone: 'muted' }, lines: 1 },
-      { type: 'Divider' },
+      { type: 'Label', slot: 'recovery.kind' },
+      { type: 'Heading', slot: 'recovery.title', props: { level: 1 }, lines: 1 },
+      { type: 'Alert', slot: 'recovery.diagnosis', lines: 2 },
+      { type: 'Label', slot: 'recovery.planLabel' },
+      { type: 'Text', slot: 'recovery.plan', lines: 2 },
+      { type: 'Metric', slot: 'recovery.outcome' },
       {
-        type: 'Row',
+        type: 'ButtonGroup',
         children: [
-          { type: 'Metric', slot: 'ticket_detail.origin' },
-          { type: 'Metric', slot: 'ticket_detail.destination' },
+          {
+            type: 'Button',
+            slot: 'recovery.secondary',
+            props: { variant: 'secondary' },
+            action: 'start_over',
+          },
+          {
+            type: 'Button',
+            slot: 'recovery.primary',
+            props: { variant: 'primary' },
+            action: 'apply_fix',
+          },
         ],
       },
+    ),
+  },
+
+  /**
+   * 2:10–2:20. Deliberately actionless. The script calls for an open prompt
+   * rather than a predefined button row, so the LEDs going dark here is correct
+   * and meaningful: the device is waiting for you, not offering a menu.
+   */
+  summary_done: {
+    id: 'summary_done',
+    maxWidth: 520,
+    surfaces: ['surface'],
+    tree: card(
+      { type: 'Heading', slot: 'summary_done.title', props: { level: 1 }, lines: 1 },
+      { type: 'Metric', slot: 'summary_done.result' },
+      { type: 'Text', slot: 'summary_done.prompt', props: { tone: 'muted' }, lines: 2 },
+    ),
+  },
+
+  /** 2:20–2:50. Three people plus confirm is exactly the four buttons. */
+  people_picker: {
+    id: 'people_picker',
+    maxWidth: 560,
+    surfaces: ['surface'],
+    tree: card(
+      { type: 'Heading', slot: 'people_picker.title', props: { level: 1 }, lines: 1 },
+      { type: 'Text', slot: 'people_picker.subtitle', props: { tone: 'muted' }, lines: 1 },
       { type: 'Divider' },
-      { type: 'Rule', slot: 'ticket_detail.seat' },
+      pick('people_picker.person1', 'pick_1'),
+      pick('people_picker.person2', 'pick_2'),
+      pick('people_picker.person3', 'pick_3'),
       {
         type: 'Button',
-        slot: 'ticket_detail.view',
+        slot: 'people_picker.confirm',
         props: { variant: 'primary' },
-        action: 'view_ticket',
+        action: 'write_messages',
       },
     ),
   },
 
-  auth_form: {
-    id: 'auth_form',
-    maxWidth: 360,
+  /**
+   * 2:20–2:50. The task is not baking any more, so neither is the interface.
+   * The fader's third meaning: tone. Variants are pre-generated server-side, so
+   * moving it never waits on a model.
+   */
+  message_drafts: {
+    id: 'message_drafts',
+    maxWidth: 640,
     surfaces: ['surface'],
     tree: card(
-      { type: 'Heading', slot: 'auth_form.title', props: { level: 2 }, lines: 1 },
-      { type: 'Text', slot: 'auth_form.subtitle', props: { tone: 'muted' }, lines: 1 },
-      { type: 'TextField', slot: 'auth_form.email', action: 'enter_email' },
-      { type: 'TextField', slot: 'auth_form.password', action: 'enter_password' },
-      { type: 'Button', slot: 'auth_form.submit', props: { variant: 'primary' }, action: 'submit' },
-      { type: 'Button', slot: 'auth_form.recover', props: { variant: 'ghost' }, action: 'recover' },
-    ),
-  },
-
-  /** The densest template — the one the device has to fight hardest to fit. */
-  dashboard: {
-    id: 'dashboard',
-    maxWidth: 470,
-    surfaces: ['surface'],
-    tree: card(
-      { type: 'Heading', slot: 'dashboard.title', props: { level: 2 }, lines: 1 },
-      { type: 'Text', slot: 'dashboard.period', props: { tone: 'muted' }, lines: 1 },
-      { type: 'Metric', slot: 'dashboard.primaryMetric' },
+      { type: 'Heading', slot: 'message_drafts.title', props: { level: 2 }, lines: 1 },
+      { type: 'Slider', slot: 'message_drafts.tone', action: 'set_tone' },
+      { type: 'Divider' },
+      { type: 'Label', slot: 'message_drafts.name1' },
+      { type: 'Text', slot: 'message_drafts.body1', lines: 3 },
+      { type: 'Label', slot: 'message_drafts.name2' },
+      { type: 'Text', slot: 'message_drafts.body2', lines: 3 },
       {
-        type: 'Row',
+        type: 'ButtonGroup',
         children: [
-          { type: 'Metric', slot: 'dashboard.secondaryMetric' },
-          { type: 'Metric', slot: 'dashboard.tertiaryMetric' },
+          {
+            type: 'Button',
+            slot: 'message_drafts.edit',
+            props: { variant: 'secondary' },
+            action: 'edit',
+          },
+          {
+            type: 'Button',
+            slot: 'message_drafts.send',
+            props: { variant: 'primary' },
+            action: 'send',
+          },
         ],
       },
-      { type: 'Label', slot: 'dashboard.chartLabel' },
-      { type: 'Bars', slot: 'dashboard.chart' },
-      { type: 'Label', slot: 'dashboard.listLabel' },
-      { type: 'ListItem', slot: 'dashboard.item1' },
-      { type: 'ListItem', slot: 'dashboard.item2' },
-      { type: 'ListItem', slot: 'dashboard.item3' },
     ),
   },
 
-  /** The only template with no Card and no controls — it paints straight on bg. */
-  reader: {
-    id: 'reader',
-    maxWidth: 440,
+  /**
+   * The judge handoff. Not a safety net — this is what answers a question
+   * nobody scripted, which is the only thing in the demo that proves the
+   * surfaces are generated rather than routed to. The three points collapse
+   * when unused.
+   */
+  generic_answer: {
+    id: 'generic_answer',
+    maxWidth: 600,
     surfaces: ['bg'],
     tree: {
       type: 'Stack',
       children: [
-        { type: 'Heading', slot: 'reader.title', props: { level: 1 }, lines: 2 },
-        { type: 'Text', slot: 'reader.byline', props: { tone: 'muted' }, lines: 1 },
-        { type: 'Divider' },
-        { type: 'Text', slot: 'reader.para1', lines: 3 },
-        { type: 'Text', slot: 'reader.para2', lines: 3 },
-        { type: 'Text', slot: 'reader.para3', lines: 2 },
+        { type: 'Heading', slot: 'generic_answer.title', props: { level: 1 }, lines: 2 },
+        { type: 'Text', slot: 'generic_answer.body', lines: 3 },
+        row2('generic_answer.point1'),
+        row2('generic_answer.point2'),
+        row2('generic_answer.point3'),
+        {
+          type: 'Button',
+          slot: 'generic_answer.action',
+          props: { variant: 'primary' },
+          action: 'primary_action',
+        },
       ],
     },
-  },
-
-  /** Four toggles — one per physical button. The form factor's best case. */
-  settings_panel: {
-    id: 'settings_panel',
-    maxWidth: 380,
-    surfaces: ['surface'],
-    tree: card(
-      { type: 'Heading', slot: 'settings_panel.title', props: { level: 2 }, lines: 1 },
-      { type: 'Toggle', slot: 'settings_panel.option1', action: 'toggle_1' },
-      { type: 'Divider' },
-      { type: 'Toggle', slot: 'settings_panel.option2', action: 'toggle_2' },
-      { type: 'Divider' },
-      { type: 'Toggle', slot: 'settings_panel.option3', action: 'toggle_3' },
-      { type: 'Divider' },
-      { type: 'Toggle', slot: 'settings_panel.option4', action: 'toggle_4' },
-    ),
-  },
-
-  confirm_action: {
-    id: 'confirm_action',
-    maxWidth: 340,
-    surfaces: ['surface'],
-    tree: card(
-      { type: 'Heading', slot: 'confirm_action.title', props: { level: 2 }, lines: 1 },
-      { type: 'Alert', slot: 'confirm_action.warning', lines: 3 },
-      {
-        type: 'ButtonGroup',
-        children: [
-          {
-            type: 'Button',
-            slot: 'confirm_action.cancel',
-            props: { variant: 'secondary' },
-            action: 'cancel',
-          },
-          {
-            type: 'Button',
-            slot: 'confirm_action.confirm',
-            props: { variant: 'primary' },
-            action: 'confirm',
-          },
-        ],
-      },
-    ),
-  },
-
-  progress_task: {
-    id: 'progress_task',
-    maxWidth: 360,
-    surfaces: ['surface'],
-    tree: card(
-      { type: 'Label', slot: 'progress_task.status' },
-      { type: 'Heading', slot: 'progress_task.title', props: { level: 2 }, lines: 1 },
-      { type: 'Progress', slot: 'progress_task.progress' },
-      { type: 'Rule', slot: 'progress_task.detail' },
-      {
-        type: 'Button',
-        slot: 'progress_task.cancel',
-        props: { variant: 'ghost' },
-        action: 'cancel',
-      },
-    ),
   },
 };
 
