@@ -53,3 +53,22 @@ export const CONTACTS: Contact[] = [
   { id: 'blake', name: 'Blake' },
   { id: 'cass', name: 'Cass' },
 ];
+
+/**
+ * What is already in the kitchen, by ingredient id.
+ *
+ * Seed data, exactly like `CHOICE_OPTIONS` and `CONTACTS`: in a real system a
+ * pantry comes from a tool, and there is no research or lookup step here — the
+ * demo "just grabs" it (CLAUDE.md constraint 6, said plainly). It exists so
+ * `grocery_added` is a real projection of the recipe against a real pantry
+ * rather than the ingredient list relabelled.
+ *
+ * Nothing here is a number that appears on screen: the prices come from
+ * `domain/recipes.ts` and the arithmetic from `estimateCost`.
+ */
+export const PANTRY_STOCKED: readonly string[] = ['flour', 'eggs', 'baking_soda', 'salt'];
+
+/** The list the confirmation surface says the items were added to. */
+export const GROCERY_LIST_NAME = 'Groceries';
+/** The tracker the estimated cost is filed against. */
+export const SPENDING_TRACKER_NAME = 'Food spending';

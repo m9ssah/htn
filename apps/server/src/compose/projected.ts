@@ -8,6 +8,7 @@ import {
   type StructuralComponentV2,
   type StructureUpdateV2,
   type SurfaceSpec,
+  type TemplateId,
 } from '@jit/schema';
 import {
   currentYield,
@@ -326,6 +327,7 @@ const MAX_STEP_DETAILS = 3;
  *   summary_done   share
  *   choice_cards   set_preference (range) · select_<optionId>
  *   people_picker  choose_<contactId> · write_messages
+ *   grocery_added  back_to_recipe
  *
  * `select_`/`choose_` are suffixed with the domain id rather than a row number
  * (`examples.ts` uses `select_1`), so reordering the list cannot silently
@@ -337,16 +339,34 @@ export type ProjectedInput =
   | { kind: 'recovery'; state: TaskState }
   | { kind: 'summary_done'; state: TaskState }
   | { kind: 'choice_cards'; options: readonly ChoiceOption[] }
-  | { kind: 'people_picker'; contacts: readonly Contact[] };
+  | { kind: 'people_picker'; contacts: readonly Contact[] }
+  /**
+   * The confirmation beat: what was added to a list, and what it costs.
+   * `stocked` is the seeded pantry — which ingredients do NOT need buying.
+   */
+  | { kind: 'grocery_added'; state: TaskState; stocked: readonly string[]; listName: string; trackerName: string };
 
 export type ProjectedSurfaceKind = ProjectedInput['kind'];
 
 export const PROJECTED_SURFACES: readonly ProjectedSurfaceKind[] = [
-  'item_detail', 'focus_step', 'recovery', 'summary_done', 'choice_cards', 'people_picker',
+  'item_detail', 'focus_step', 'recovery', 'summary_done', 'choice_cards', 'people_picker', 'grocery_added',
 ];
 
 export const isProjectedSurface = (kind: string): kind is ProjectedSurfaceKind =>
   (PROJECTED_SURFACES as readonly string[]).includes(kind);
+
+/**
+ * What the orchestrator may put on screen.
+ *
+ * `TemplateId` is a frozen contract in `packages/schema`, so a surface the
+ * device workstream never enumerated cannot be added to it. `grocery_added`
+ * is therefore a SERVER-side surface kind: it composes to the same
+ * `SurfaceSpec` the device already paints, and nothing in `packages/*` has to
+ * learn it exists. Jev never *selects* it either — the `templateId` question
+ * stays the tuned eight-option artefact, and the save/track beat is reached
+ * by a separate `noul` (see `harness/clients/jev-questions.ts`).
+ */
+export type SurfaceKind = TemplateId | ProjectedSurfaceKind;
 
 /**
  * Ingredient rows, honestly overflowed.
@@ -640,6 +660,98 @@ function peoplePicker(contacts: readonly Contact[], builder: SurfaceBuilder): st
   return 'card';
 }
 
+/**
+ * "Added to your grocery list" — the confirmation beat.
+ *
+ * A projection of the recipe against the seeded pantry: the rows are the
+ * ingredients NOT already stocked, at the current scale, and every dollar on
+ * screen comes from `estimateCost` (CLAUDE.md constraint 2). The subtotal is
+ * summed from the same per-line rounded costs the rows show, so the total
+ * agrees with the rows above it — the same reason `estimateCost` rounds per
+ * line.
+ *
+ * An empty shopping list is a real outcome (everything is already in the
+ * pantry) and says so rather than rendering an empty list.
+ */
+function groceryAdded(
+  input: Extract<ProjectedInput, { kind: 'grocery_added' }>,
+  builder: SurfaceBuilder,
+): string {
+  const { state, stocked, listName, trackerName } = input;
+  const stockedSet = new Set(stocked);
+  const cost = new Map(estimateCost(state).lines.map((line) => [line.id, line.cost]));
+  const toBuy = state.recipe.ingredients.filter((ingredient) => !stockedSet.has(ingredient.id));
+  const subtotal = Math.round(toBuy.reduce((sum, i) => sum + (cost.get(i.id) ?? 0), 0) * 100) / 100;
+  const alreadyHave = state.recipe.ingredients.length - toBuy.length;
+
+  builder.leaf({ key: 'title', type: 'Heading', copy: { text: `Added to ${listName}` }, fixed: { level: 1 } });
+  builder.leaf({
+    key: 'subtitle',
+    type: 'Text',
+    copy: {
+      text: toBuy.length === 0
+        ? `Nothing to buy — all ${state.recipe.ingredients.length} ingredients are already in the kitchen.`
+        : `${toBuy.length} item${toBuy.length === 1 ? '' : 's'} to buy for ${state.recipe.name}` +
+          `${alreadyHave > 0 ? `, ${alreadyHave} already in the kitchen` : ''}.`,
+    },
+    fixed: { tone: 'muted' },
+    lines: 2,
+  });
+  builder.leaf({ key: 'list_label', type: 'Label', copy: { text: 'Shopping list' } });
+
+  const shown = toBuy.slice(0, MAX_INGREDIENT_ROWS);
+  if (toBuy.length > shown.length) {
+    const rest = toBuy.slice(MAX_INGREDIENT_ROWS);
+    builder.warnings.push(
+      `grocery_added: ${rest.length} item(s) did not fit the ${MAX_INGREDIENT_ROWS} rows and are named on ` +
+        `the final row instead: ${rest.map((i) => i.name).join(', ')}`,
+    );
+  }
+  const rows = shown.map((ingredient, index) => {
+    const key = `buy_${index}`;
+    const price = cost.get(ingredient.id);
+    builder.leaf({
+      key,
+      type: 'ListItem',
+      copy: {
+        title: ingredient.name,
+        meta: describeQuantity({ amount: plannedAmount(state, ingredient.id), unit: ingredient.unit }),
+        ...(price !== undefined ? { detail: `$${price.toFixed(2)}` } : {}),
+      },
+      fixed: { hasDetail: price !== undefined },
+    });
+    return key;
+  });
+  if (toBuy.length > shown.length) {
+    const rest = toBuy.slice(MAX_INGREDIENT_ROWS);
+    const key = `buy_${MAX_INGREDIENT_ROWS}`;
+    builder.leaf({
+      key,
+      type: 'ListItem',
+      copy: { title: `+${rest.length} more items`, detail: rest.map((i) => i.name).join(', ') },
+      fixed: { hasDetail: true },
+    });
+    rows.push(key);
+  }
+
+  builder.leaf({
+    key: 'spend',
+    type: 'Metric',
+    copy: { label: trackerName, value: `$${subtotal.toFixed(2)}`, delta: `${toBuy.length} of ${state.recipe.ingredients.length} items` },
+  });
+  builder.leaf({
+    key: 'back',
+    type: 'Button',
+    copy: { text: 'Back to the recipe' },
+    fixed: { variant: 'primary' },
+    action: 'back_to_recipe',
+  });
+
+  builder.container('stack', 'Stack', ['title', 'subtitle', 'list_label', ...rows, 'spend', 'back']);
+  builder.container('card', 'Card', ['stack']);
+  return 'card';
+}
+
 /* ------------------------------------------------------------------ *
  * Entry points
  * ------------------------------------------------------------------ */
@@ -669,6 +781,7 @@ export function composeProjected(input: ProjectedInput, ids: ProjectedIds): Proj
       case 'summary_done': root = summaryDone(input.state, builder); break;
       case 'choice_cards': root = choiceCards(input.options, builder); break;
       case 'people_picker': root = peoplePicker(input.contacts, builder); break;
+      case 'grocery_added': root = groceryAdded(input, builder); break;
     }
   } catch (err) {
     return { ok: false, reason: `${input.kind}: ${String(err)}`, warnings: builder.warnings };

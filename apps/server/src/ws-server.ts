@@ -180,19 +180,19 @@ function attachDevice(
       return;
     }
 
-    if (parsed.message.type === 'action') {
-      // Reserved. Control events bypass the graph by design (plan: "a slider
-      // scrub emits a cached content patch"), and there is nothing to serve
-      // from until the concrete graph exists. Acknowledged so the device
-      // workstream sees a defined response rather than silence.
-      log('action-unhandled', { action: parsed.message.action, elementId: parsed.message.elementId });
-      send({ type: 'error', reason: `action "${parsed.message.action}" is not handled yet` });
-      return;
-    }
+    // An action enters the SAME graph, through the same runner, so it gets
+    // turn gating, the abort signal, the log and this framing for free — and
+    // so a press barges in on an utterance exactly as an utterance does. It
+    // does not reach a model: the graph routes it to a pure node, because a
+    // physical control must respond within one frame (CLAUDE.md, "Generated
+    // controls").
+    const input = parsed.message.type === 'action'
+      ? { action: parsed.message.action, elementId: parsed.message.elementId, ...(parsed.message.value !== undefined && { value: parsed.message.value }) }
+      : { utterance: parsed.message.text };
 
     // `say` aborts whatever turn is in flight — barge-in is the normal way
     // to correct yourself on a voice device, not an exception.
-    const turn = runner.say({ utterance: parsed.message.text });
+    const turn = runner.say(input);
     activeTurnId = turn.turnId;
     log('turn-start', { turnId: turn.turnId });
     void pump(turn);

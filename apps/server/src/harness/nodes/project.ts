@@ -1,7 +1,7 @@
-import type { ContentUpdateV2, StructureUpdateV2, TemplateId } from '@jit/schema';
+import type { ContentUpdateV2, StructureUpdateV2 } from '@jit/schema';
 import { applyDeviation, type TaskState } from '../../domain/recipe.js';
-import { CHOICE_OPTIONS, CONTACTS } from '../../seed.js';
-import { composeProjected, isProjectedSurface, type ProjectedInput } from '../../compose/projected.js';
+import { CHOICE_OPTIONS, CONTACTS, GROCERY_LIST_NAME, PANTRY_STOCKED, SPENDING_TRACKER_NAME } from '../../seed.js';
+import { composeProjected, isProjectedSurface, type ProjectedInput, type SurfaceKind } from '../../compose/projected.js';
 import { DEVIATION_FACTORS } from '../clients/jev-questions.js';
 import type { Node } from '../types.js';
 
@@ -17,19 +17,21 @@ import type { Node } from '../types.js';
  * into an effective `TaskState`, and staying **total** so a wrong number never
  * becomes an empty screen.
  *
- * Covers the six surfaces that project from state — `item_detail`,
- * `focus_step`, `recovery`, `summary_done`, `choice_cards`, `people_picker`.
+ * Covers the seven surfaces that project from state — `item_detail`,
+ * `focus_step`, `recovery`, `summary_done`, `choice_cards`, `people_picker`,
+ * `grocery_added`.
  * `message_drafts`/`generic_answer` are generated, not projected, and come
  * back as a warning with no surface.
  */
 export type ProjectInput = {
   state: TaskState;
   /**
-   * Which surface to project. Still typed as `TemplateId` because that is
-   * what `JevAnswer` carries (`../types.ts`); the two names outside the
-   * projected set are reported, not guessed at.
+   * Which surface to project. `SurfaceKind` rather than `TemplateId`: the
+   * server owns one surface (`grocery_added`) that the frozen `TemplateId`
+   * contract does not name. The two generated names inside `TemplateId` are
+   * reported, not guessed at.
    */
-  templateId: TemplateId;
+  templateId: SurfaceKind;
   requestId: string;
   generationId: string;
   maxWidth?: number;
@@ -66,8 +68,14 @@ const NO_SURFACE = (warnings: string[]): ProjectResult => ({ structure: null, co
  *
  * The model supplies a selection from a finite list and a factor *label*;
  * every number comes from `applyDeviation`.
+ *
+ * Exported because the orchestrator needs it twice and must get the same
+ * answer both times: once to decide whether there IS a deviation (which is
+ * what routes the turn to `recovery`), and once to persist the corrected
+ * bowl into the session — a mis-measurement is a fact about the bowl, not a
+ * proposal, and the `apply_fix` press that follows plans against it.
  */
-function withDeviation(
+export function applyJevDeviation(
   state: TaskState,
   deviation: { ingredientId: string; factor: string } | undefined,
   warnings: string[],
@@ -98,13 +106,21 @@ export const project: Node<ProjectInput, ProjectResult> = {
         return NO_SURFACE([`project: "${templateId}" is generated, not projected — no surface produced`]);
       }
 
-      const state = templateId === 'recovery' ? withDeviation(input.state, input.deviation, warnings) : input.state;
+      const state = templateId === 'recovery' ? applyJevDeviation(input.state, input.deviation, warnings) : input.state;
       const projected: ProjectedInput =
         templateId === 'choice_cards'
           ? { kind: 'choice_cards', options: CHOICE_OPTIONS }
           : templateId === 'people_picker'
             ? { kind: 'people_picker', contacts: CONTACTS }
-            : { kind: templateId, state };
+            : templateId === 'grocery_added'
+              ? {
+                  kind: 'grocery_added',
+                  state,
+                  stocked: PANTRY_STOCKED,
+                  listName: GROCERY_LIST_NAME,
+                  trackerName: SPENDING_TRACKER_NAME,
+                }
+              : { kind: templateId, state };
 
       const result = composeProjected(projected, {
         requestId: input.requestId,

@@ -311,12 +311,20 @@ describe('ws server: untrusted input', () => {
     expect(client.socket.readyState).toBe(WebSocket.OPEN);
   });
 
-  it('acknowledges a control event as not-yet-handled rather than silently ignoring it', async () => {
+  /**
+   * A control event used to be acknowledged as "not handled yet". It now runs
+   * a turn, through the same runner and the same framing as an utterance —
+   * which is what makes a press barge in on speech. What this asserts is the
+   * TRANSPORT half: the action reaches a turn and is framed as one. What the
+   * graph does with it is `graph.test.ts`'s job.
+   */
+  it('runs a control event as a turn rather than refusing it', async () => {
     const s = await boot(oneNodeGraph(emitter(1)));
     const client = connect(s.url);
     await client.open;
-    client.socket.send(JSON.stringify({ type: 'action', action: 'setBatch', elementId: 'slider1', value: 30 }));
-    const error = (await client.waitFor((f) => f.type === 'error')) as Extract<ServerMessage, { type: 'error' }>;
-    expect(error.reason).toContain('not handled yet');
+    client.socket.send(JSON.stringify({ type: 'action', action: 'begin', elementId: 'start', value: 30 }));
+    const end = (await client.waitFor((f) => f.type === 'turn-end')) as Extract<ServerMessage, { type: 'turn-end' }>;
+    expect(end.updates).toBe(1);
+    expect(client.frames.some((f) => f.type === 'error')).toBe(false);
   });
 });

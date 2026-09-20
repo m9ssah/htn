@@ -50,10 +50,11 @@ export const ROUTES: Record<Route, string> = {
   new_task:
     'The user is starting a different task, or there is no task yet. What is on screen should be replaced.',
   refine:
-    'The same task, but the user wants the CURRENT surface presented differently -- bigger, clearer, denser, a different look. Nothing about the task itself changed.',
+    'The same task, changed ON PURPOSE. The user is adjusting the plan or the presentation -- a different amount, size, count, or a different look. They are deciding what should happen next; nothing has gone wrong.',
   correct:
-    'The user is reporting that something in the task went wrong or was done differently than planned -- a wrong amount, a mistake, a correction to what already happened.',
-  select: 'The user is choosing one of the things currently on screen.',
+    'The user is reporting a MISTAKE that has ALREADY happened -- something was done wrong or differently than planned and now has to be fixed. Not a deliberate change to the plan.',
+  select:
+    'The user is picking one of the things on screen, or going back to one they were shown before.',
   query: 'The user is asking a question. They want an answer, not a change to the task or to what is on screen.',
   other: 'None of the above fits.',
 };
@@ -131,6 +132,65 @@ export const STYLE_GATE_CRITERIA = {
   false: 'The utterance is about the task, not about how the interface looks',
 };
 
+/**
+ * The save/track gate.
+ *
+ * `grocery_added` is a server-side surface, not a `TemplateId`
+ * (`packages/schema` is frozen), so Jev cannot select it through the
+ * `templateId` question — and adding a ninth option would perturb an artefact
+ * tuned to 9/9 (p18c) for a surface that is not a template. A separate `noul`
+ * keeps the tuned question untouched and still leaves the decision with the
+ * model: nothing in the graph pattern-matches the word "grocery".
+ *
+ * Criteria are supplied on both arms — p06 measured that omitting them is
+ * what produced a conservative bias (0.95 -> 1.00 accuracy, 224ms -> 193ms).
+ */
+export const SAVE_GATE_QUESTION = 'Does the utterance ask for the current thing to be saved, listed or tracked somewhere?';
+export const SAVE_GATE_CRITERIA = {
+  true: 'The utterance asks to add, save, record or track what is currently open — onto a shopping or grocery list, a budget or spending tracker, a calendar, a note',
+  false: 'The utterance asks for something else: a change to the task, a different surface, an answer to a question, or nothing to do with saving',
+};
+
+/**
+ * The batch-size question.
+ *
+ * Deliberately NOT `deviationFactor` reused. Measured: "actually make it three
+ * times the batch" does come back `deviationFactor: 3x` at 0.93 — but that
+ * question asks "roughly how much of the planned amount actually WENT IN",
+ * which is a report about a mistake, and on the same call `deviationIngredient`
+ * answered `flour`, an artefact of a forced choice over a list that does not
+ * apply. An answer that happens to be the right string for the wrong question
+ * is not a measurement, and building the demo's biggest beat on one would
+ * break the first time someone said "make it half" about a step.
+ *
+ * `unchanged` is a real option and the expected answer for most `refine`s —
+ * "make this easier to read from far away" is a refine about the look, not the
+ * amount. Without it the model must pick a multiplier for every refine, which
+ * is the same failure `wantsStyleChange` exists to prevent (p14).
+ *
+ * The model picks a bucket; `setYield` computes the numbers (constraint 2).
+ */
+export const BATCH_FACTOR_QUESTION = 'How much of the thing on screen does the user want, compared to what is planned now?';
+
+/** `null` means "no number to compute with", which is what `other` means by construction. */
+export const BATCH_FACTORS: Record<string, number | null> = {
+  unchanged: 1,
+  half: 0.5,
+  '1.5x': 1.5,
+  '2x': 2,
+  '3x': 3,
+  other: null,
+};
+
+export const BATCH_FACTOR_DESCRIPTIONS: Record<string, string> = {
+  unchanged: 'The same amount as now. The utterance is not about the amount at all.',
+  half: 'Half as much as the plan currently makes',
+  '1.5x': 'One and a half times as much as the plan currently makes',
+  '2x': 'Twice as much as the plan currently makes',
+  '3x': 'Three times as much as the plan currently makes',
+  other: 'A different amount, not covered by the choices above',
+};
+
 export const DEVIATION_INGREDIENT_QUESTION = 'Which ingredient is the utterance about?';
 
 /**
@@ -169,7 +229,7 @@ export const DEVIATION_FACTOR_DESCRIPTIONS: Record<string, string> = {
   other: 'Some other amount, not covered by the choices above',
 };
 
-/** The 10 batched questions `decide` sends in one call — free per p02 (1q 381ms, 32q 362ms). */
+/** The 12 batched questions `decide` sends in one call — free per p02 (1q 381ms, 32q 362ms). */
 export function buildQuestions(): Record<string, JevQuestion> {
   return {
     route: choice(ROUTE_QUESTION, ROUTES),
@@ -180,6 +240,8 @@ export function buildQuestions(): Record<string, JevQuestion> {
     radius: choice(AXIS_QUESTION('radius'), AXIS_DESCRIPTIONS.radius),
     motif: choice(AXIS_QUESTION('motif'), AXIS_DESCRIPTIONS.motif),
     wantsStyleChange: noul(STYLE_GATE_QUESTION, STYLE_GATE_CRITERIA),
+    wantsSaved: noul(SAVE_GATE_QUESTION, SAVE_GATE_CRITERIA),
+    batchFactor: choice(BATCH_FACTOR_QUESTION, BATCH_FACTOR_DESCRIPTIONS),
     deviationIngredient: choice(DEVIATION_INGREDIENT_QUESTION, DEVIATION_INGREDIENT_DESCRIPTIONS),
     deviationFactor: choice(DEVIATION_FACTOR_QUESTION, DEVIATION_FACTOR_DESCRIPTIONS),
   };
