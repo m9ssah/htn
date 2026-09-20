@@ -145,4 +145,43 @@ describe('generate', () => {
     expect(patches.some((p) => 'message_drafts.edit' in p.slots)).toBe(true);
     expect(patches.some((p) => 'message_drafts.send' in p.slots)).toBe(true);
   });
+
+  it('message_drafts: a full, valid run — nulls first, both Buttons before content, a well-formed Slider', async () => {
+    const store = createMemorySinkStore();
+    const ctx = createStubCtx(new AbortController().signal, store);
+    ctx.content = linesSource([
+      '["message_drafts.name2","message_drafts.body2"]',
+      '{"slot":"message_drafts.edit","value":{"text":"Edit"}}',
+      '{"slot":"message_drafts.send","value":{"text":"Send"}}',
+      '{"slot":"message_drafts.title","value":{"text":"Draft ready"}}',
+      '{"slot":"message_drafts.tone","value":{"label":"Tone","min":0,"max":10,"step":1,"value":5,"minLabel":"Casual","maxLabel":"Formal"}}',
+      '{"slot":"message_drafts.name1","value":{"text":"Alice"}}',
+      '{"slot":"message_drafts.body1","value":{"text":"Hey Alice, here is the draft."}}',
+    ]);
+
+    await generate.run({ templateId: 'message_drafts', utterance: 'draft a message to alice' }, ctx);
+
+    const patches = store.patches as ContentPatch[];
+    expect(patches).toHaveLength(8); // 2 nulls + 6 real slots — all 8 of message_drafts's slots
+    expect(patches[0]?.slots['message_drafts.name2']).toBeNull();
+    expect(patches[1]?.slots['message_drafts.body2']).toBeNull();
+
+    const order = patches.map((p) => Object.keys(p.slots)[0]);
+    expect(order.indexOf('message_drafts.edit')).toBeLessThan(order.indexOf('message_drafts.title'));
+    expect(order.indexOf('message_drafts.send')).toBeLessThan(order.indexOf('message_drafts.title'));
+
+    // Round-trips exactly, including the absence of `unit` — a stray
+    // `unit: undefined` (the exact bug `exactOptionalPropertyTypes` forced a
+    // conditional spread to avoid) would fail this `toEqual`.
+    expect(patches.find((p) => 'message_drafts.tone' in p.slots)?.slots['message_drafts.tone']).toEqual({
+      kind: 'Slider',
+      label: 'Tone',
+      min: 0,
+      max: 10,
+      step: 1,
+      value: 5,
+      minLabel: 'Casual',
+      maxLabel: 'Formal',
+    });
+  });
 });
