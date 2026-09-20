@@ -3,7 +3,7 @@ import type { SurfaceUpdate } from '@jit/schema';
 import { createRealPatchSinkStore, type DropReason, type GatedSink } from './clients/sink.js';
 import type { TurnRuntime } from './graph-runtime.js';
 import { createTurnLog, describeError, DEFAULT_TURN_LOG_PATH, type TurnLog } from './turn-log.js';
-import type { ContentSource, Ctx, Event, JevClient } from './types.js';
+import type { ContentModel, ContentSource, Ctx, Event, JevClient, ResearchClient } from './types.js';
 
 /**
  * One utterance, start to finish: an `AbortController`, a turn-gated
@@ -49,6 +49,8 @@ export type TurnDeps = {
   graph: PatchStream;
   jev: JevClient;
   content: ContentSource;
+  contentModel: ContentModel;
+  fetch: ResearchClient;
   /** `null` keeps the turn log in memory only — what unit tests want. */
   logPath?: string | null;
   now?: () => number;
@@ -135,7 +137,7 @@ export function startTurn(input: unknown, deps: TurnDeps): Turn {
     deps.telemetry?.(event);
   };
 
-  const ctx: Ctx = { jev: deps.jev, content: deps.content, sink, signal: controller.signal, now, telemetry };
+  const ctx: Ctx = { jev: deps.jev, content: deps.content, contentModel: deps.contentModel, fetch: deps.fetch, sink, signal: controller.signal, now, telemetry };
 
   const runtime: TurnRuntime = {
     turnId,

@@ -1,0 +1,1985 @@
+[
+  {
+    "value": {
+      "contract": "jit.content.request.v1",
+      "requestId": "len-edge-3u",
+      "catalogVersion": "jit-device.v2",
+      "locale": "ja-JP",
+      "intent": "Show my train ticket",
+      "context": {
+        "route": "\u6771\u4eac\u304b\u3089\u4eac\u90fd"
+      },
+      "targets": [
+        {
+          "elementId": "operator",
+          "component": "Label",
+          "purpose": "Operator and ticket type",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "title",
+          "component": "Heading",
+          "purpose": "Route, origin to destination",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 60,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "level": 1
+          }
+        },
+        {
+          "elementId": "summary",
+          "component": "Text",
+          "purpose": "Journey summary",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 220,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "tone": "muted"
+          }
+        },
+        {
+          "elementId": "origin",
+          "component": "Metric",
+          "purpose": "Departure station label",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 28,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "value": "08:30"
+          }
+        },
+        {
+          "elementId": "destination",
+          "component": "Metric",
+          "purpose": "Arrival station label",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 28,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "value": "12:52"
+          }
+        },
+        {
+          "elementId": "seat",
+          "component": "Rule",
+          "purpose": "Fare class and seat",
+          "fields": [
+            {
+              "name": "left",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 40,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "right": "K9QP2"
+          }
+        },
+        {
+          "elementId": "view",
+          "component": "Button",
+          "purpose": "Open the full ticket",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "variant": "primary"
+          }
+        }
+      ]
+    },
+    "expected": "{\"contract\": \"jit.content.request.v1\", \"requestId\": \"len-edge-3u\", \"catalogVersion\": \"jit-device.v2\", \"locale\": \"ja-JP\", \"intent\": \"Show my train ticket\", \"context\": {\"route\": \"\\u6771\\u4eac\\u304b\\u3089\\u4eac\\u90fd\"}, \"targets\": [{\"elementId\": \"operator\", \"component\": \"Label\", \"purpose\": \"Operator and ticket type\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"title\", \"component\": \"Heading\", \"purpose\": \"Route, origin to destination\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 60, \"format\": \"plain-text\"}}], \"fixed\": {\"level\": 1}}, {\"elementId\": \"summary\", \"component\": \"Text\", \"purpose\": \"Journey summary\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 220, \"format\": \"plain-text\"}}], \"fixed\": {\"tone\": \"muted\"}}, {\"elementId\": \"origin\", \"component\": \"Metric\", \"purpose\": \"Departure station label\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 28, \"format\": \"plain-text\"}}], \"fixed\": {\"value\": \"08:30\"}}, {\"elementId\": \"destination\", \"component\": \"Metric\", \"purpose\": \"Arrival station label\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 28, \"format\": \"plain-text\"}}], \"fixed\": {\"value\": \"12:52\"}}, {\"elementId\": \"seat\", \"component\": \"Rule\", \"purpose\": \"Fare class and seat\", \"fields\": [{\"name\": \"left\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 40, \"format\": \"plain-text\"}}], \"fixed\": {\"right\": \"K9QP2\"}}, {\"elementId\": \"view\", \"component\": \"Button\", \"purpose\": \"Open the full ticket\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {\"variant\": \"primary\"}}]}"
+  },
+  {
+    "value": {
+      "contract": "jit.content.request.v1",
+      "requestId": "len-edge-62",
+      "catalogVersion": "jit-device.v2",
+      "locale": "ja-JP",
+      "intent": "Urgent: need to travel for a conference tomorrow",
+      "context": {
+        "city": "Chicago"
+      },
+      "targets": [
+        {
+          "elementId": "title",
+          "component": "Heading",
+          "purpose": "What changed and why it matters",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 60,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "level": 1
+          }
+        },
+        {
+          "elementId": "diagnosis",
+          "component": "Alert",
+          "purpose": "Explain the new constraint",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 140,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "outcome",
+          "component": "Metric",
+          "purpose": "Framing for the recommended option",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 28,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "value": "7:00 AM"
+          }
+        },
+        {
+          "elementId": "opt-1",
+          "component": "ListItem",
+          "purpose": "Recommended travel option",
+          "fields": [
+            {
+              "name": "title",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 40,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "meta": "$210"
+          }
+        },
+        {
+          "elementId": "opt-2",
+          "component": "ListItem",
+          "purpose": "Alternative travel option",
+          "fields": [
+            {
+              "name": "title",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 40,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "meta": "$95"
+          }
+        },
+        {
+          "elementId": "primary",
+          "component": "Button",
+          "purpose": "Confirm the recommended option",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "variant": "primary"
+          }
+        },
+        {
+          "elementId": "secondary",
+          "component": "Button",
+          "purpose": "See alternatives",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "variant": "ghost"
+          }
+        }
+      ]
+    },
+    "expected": "{\"contract\": \"jit.content.request.v1\", \"requestId\": \"len-edge-62\", \"catalogVersion\": \"jit-device.v2\", \"locale\": \"ja-JP\", \"intent\": \"Urgent: need to travel for a conference tomorrow\", \"context\": {\"city\": \"Chicago\"}, \"targets\": [{\"elementId\": \"title\", \"component\": \"Heading\", \"purpose\": \"What changed and why it matters\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 60, \"format\": \"plain-text\"}}], \"fixed\": {\"level\": 1}}, {\"elementId\": \"diagnosis\", \"component\": \"Alert\", \"purpose\": \"Explain the new constraint\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 140, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"outcome\", \"component\": \"Metric\", \"purpose\": \"Framing for the recommended option\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 28, \"format\": \"plain-text\"}}], \"fixed\": {\"value\": \"7:00 AM\"}}, {\"elementId\": \"opt-1\", \"component\": \"ListItem\", \"purpose\": \"Recommended travel option\", \"fields\": [{\"name\": \"title\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 40, \"format\": \"plain-text\"}}], \"fixed\": {\"meta\": \"$210\"}}, {\"elementId\": \"opt-2\", \"component\": \"ListItem\", \"purpose\": \"Alternative travel option\", \"fields\": [{\"name\": \"title\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 40, \"format\": \"plain-text\"}}], \"fixed\": {\"meta\": \"$95\"}}, {\"elementId\": \"primary\", \"component\": \"Button\", \"purpose\": \"Confirm the recommended option\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {\"variant\": \"primary\"}}, {\"elementId\": \"secondary\", \"component\": \"Button\", \"purpose\": \"See alternatives\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {\"variant\": \"ghost\"}}]}"
+  },
+  {
+    "value": {
+      "contract": "jit.content.request.v1",
+      "requestId": "req-f",
+      "catalogVersion": "jit-device.v2",
+      "locale": "fr-FR",
+      "intent": "Start a focused study session",
+      "context": {
+        "subject": "Chimie Organique"
+      },
+      "targets": [
+        {
+          "elementId": "title",
+          "component": "Heading",
+          "purpose": "Screen title",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 60,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "level": 1
+          }
+        },
+        {
+          "elementId": "subject",
+          "component": "Badge",
+          "purpose": "Subject tag",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 16,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "goal",
+          "component": "TextField",
+          "purpose": "Today's study focus",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            },
+            {
+              "name": "placeholder",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 40,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "reminder",
+          "component": "Toggle",
+          "purpose": "Stretch break reminder",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 32,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "on": true
+          }
+        },
+        {
+          "elementId": "duration",
+          "component": "Slider",
+          "purpose": "Session length control",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            },
+            {
+              "name": "minLabel",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 16,
+                "format": "plain-text"
+              }
+            },
+            {
+              "name": "maxLabel",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 16,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "min": 15,
+            "max": 90,
+            "step": 15,
+            "value": 45,
+            "unit": "min"
+          }
+        },
+        {
+          "elementId": "start",
+          "component": "Button",
+          "purpose": "Begin the session",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "variant": "primary"
+          }
+        }
+      ]
+    },
+    "expected": "{\"contract\": \"jit.content.request.v1\", \"requestId\": \"req-f\", \"catalogVersion\": \"jit-device.v2\", \"locale\": \"fr-FR\", \"intent\": \"Start a focused study session\", \"context\": {\"subject\": \"Chimie Organique\"}, \"targets\": [{\"elementId\": \"title\", \"component\": \"Heading\", \"purpose\": \"Screen title\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 60, \"format\": \"plain-text\"}}], \"fixed\": {\"level\": 1}}, {\"elementId\": \"subject\", \"component\": \"Badge\", \"purpose\": \"Subject tag\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 16, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"goal\", \"component\": \"TextField\", \"purpose\": \"Today's study focus\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}, {\"name\": \"placeholder\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 40, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"reminder\", \"component\": \"Toggle\", \"purpose\": \"Stretch break reminder\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 32, \"format\": \"plain-text\"}}], \"fixed\": {\"on\": true}}, {\"elementId\": \"duration\", \"component\": \"Slider\", \"purpose\": \"Session length control\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}, {\"name\": \"minLabel\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 16, \"format\": \"plain-text\"}}, {\"name\": \"maxLabel\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 16, \"format\": \"plain-text\"}}], \"fixed\": {\"min\": 15, \"max\": 90, \"step\": 15, \"value\": 45, \"unit\": \"min\"}}, {\"elementId\": \"start\", \"component\": \"Button\", \"purpose\": \"Begin the session\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {\"variant\": \"primary\"}}]}"
+  },
+  {
+    "value": {
+      "contract": "jit.content.request.v1",
+      "requestId": "len-edge-4r",
+      "catalogVersion": "jit-device.v2",
+      "locale": "de-DE",
+      "intent": "Start a focused study session",
+      "context": {
+        "subject": "Org. Chemie"
+      },
+      "targets": [
+        {
+          "elementId": "title",
+          "component": "Heading",
+          "purpose": "Screen title",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 60,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "level": 1
+          }
+        },
+        {
+          "elementId": "subject",
+          "component": "Badge",
+          "purpose": "Subject tag",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 16,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "goal",
+          "component": "TextField",
+          "purpose": "Today's study focus",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            },
+            {
+              "name": "placeholder",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 40,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "reminder",
+          "component": "Toggle",
+          "purpose": "Stretch break reminder",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 32,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "on": true
+          }
+        },
+        {
+          "elementId": "duration",
+          "component": "Slider",
+          "purpose": "Session length control",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            },
+            {
+              "name": "minLabel",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 16,
+                "format": "plain-text"
+              }
+            },
+            {
+              "name": "maxLabel",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 16,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "min": 15,
+            "max": 90,
+            "step": 15,
+            "value": 45,
+            "unit": "min"
+          }
+        },
+        {
+          "elementId": "start",
+          "component": "Button",
+          "purpose": "Begin the session",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "variant": "primary"
+          }
+        }
+      ]
+    },
+    "expected": "{\"contract\": \"jit.content.request.v1\", \"requestId\": \"len-edge-4r\", \"catalogVersion\": \"jit-device.v2\", \"locale\": \"de-DE\", \"intent\": \"Start a focused study session\", \"context\": {\"subject\": \"Org. Chemie\"}, \"targets\": [{\"elementId\": \"title\", \"component\": \"Heading\", \"purpose\": \"Screen title\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 60, \"format\": \"plain-text\"}}], \"fixed\": {\"level\": 1}}, {\"elementId\": \"subject\", \"component\": \"Badge\", \"purpose\": \"Subject tag\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 16, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"goal\", \"component\": \"TextField\", \"purpose\": \"Today's study focus\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}, {\"name\": \"placeholder\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 40, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"reminder\", \"component\": \"Toggle\", \"purpose\": \"Stretch break reminder\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 32, \"format\": \"plain-text\"}}], \"fixed\": {\"on\": true}}, {\"elementId\": \"duration\", \"component\": \"Slider\", \"purpose\": \"Session length control\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}, {\"name\": \"minLabel\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 16, \"format\": \"plain-text\"}}, {\"name\": \"maxLabel\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 16, \"format\": \"plain-text\"}}], \"fixed\": {\"min\": 15, \"max\": 90, \"step\": 15, \"value\": 45, \"unit\": \"min\"}}, {\"elementId\": \"start\", \"component\": \"Button\", \"purpose\": \"Begin the session\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {\"variant\": \"primary\"}}]}"
+  },
+  {
+    "value": {
+      "contract": "jit.content.request.v1",
+      "requestId": "len-edge-1z",
+      "catalogVersion": "jit-device.v2",
+      "locale": "es-ES",
+      "intent": "Show the selected cookie recipe",
+      "context": {
+        "recipeName": "Galletas Cl\u00e1sicas de Chocolate"
+      },
+      "targets": [
+        {
+          "elementId": "title",
+          "component": "Heading",
+          "purpose": "Recipe name",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 60,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "level": 1
+          }
+        },
+        {
+          "elementId": "subtitle",
+          "component": "Text",
+          "purpose": "One-line pitch for the recipe",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 220,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "tone": "muted"
+          }
+        },
+        {
+          "elementId": "axis",
+          "component": "Slider",
+          "purpose": "Batch-size control label",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "min": 12,
+            "max": 30,
+            "step": 6,
+            "value": 30,
+            "unit": "cookies"
+          }
+        },
+        {
+          "elementId": "preview",
+          "component": "Media",
+          "purpose": "Alt text for the recipe preview image",
+          "fields": [
+            {
+              "name": "caption",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 40,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "src": "https://example.com/preview.jpg"
+          }
+        },
+        {
+          "elementId": "ing-label",
+          "component": "Label",
+          "purpose": "Ingredients section heading",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "ing-1",
+          "component": "ListItem",
+          "purpose": "First ingredient row",
+          "fields": [
+            {
+              "name": "title",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 40,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "meta": "3\u2153 cups"
+          }
+        },
+        {
+          "elementId": "ing-2",
+          "component": "ListItem",
+          "purpose": "Second ingredient row",
+          "fields": [
+            {
+              "name": "title",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 40,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "meta": "1\u2154 cups"
+          }
+        },
+        {
+          "elementId": "begin",
+          "component": "Button",
+          "purpose": "Primary action: start the recipe",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "variant": "primary"
+          }
+        }
+      ]
+    },
+    "expected": "{\"contract\": \"jit.content.request.v1\", \"requestId\": \"len-edge-1z\", \"catalogVersion\": \"jit-device.v2\", \"locale\": \"es-ES\", \"intent\": \"Show the selected cookie recipe\", \"context\": {\"recipeName\": \"Galletas Cl\\u00e1sicas de Chocolate\"}, \"targets\": [{\"elementId\": \"title\", \"component\": \"Heading\", \"purpose\": \"Recipe name\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 60, \"format\": \"plain-text\"}}], \"fixed\": {\"level\": 1}}, {\"elementId\": \"subtitle\", \"component\": \"Text\", \"purpose\": \"One-line pitch for the recipe\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 220, \"format\": \"plain-text\"}}], \"fixed\": {\"tone\": \"muted\"}}, {\"elementId\": \"axis\", \"component\": \"Slider\", \"purpose\": \"Batch-size control label\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {\"min\": 12, \"max\": 30, \"step\": 6, \"value\": 30, \"unit\": \"cookies\"}}, {\"elementId\": \"preview\", \"component\": \"Media\", \"purpose\": \"Alt text for the recipe preview image\", \"fields\": [{\"name\": \"caption\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 40, \"format\": \"plain-text\"}}], \"fixed\": {\"src\": \"https://example.com/preview.jpg\"}}, {\"elementId\": \"ing-label\", \"component\": \"Label\", \"purpose\": \"Ingredients section heading\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"ing-1\", \"component\": \"ListItem\", \"purpose\": \"First ingredient row\", \"fields\": [{\"name\": \"title\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 40, \"format\": \"plain-text\"}}], \"fixed\": {\"meta\": \"3\\u2153 cups\"}}, {\"elementId\": \"ing-2\", \"component\": \"ListItem\", \"purpose\": \"Second ingredient row\", \"fields\": [{\"name\": \"title\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 40, \"format\": \"plain-text\"}}], \"fixed\": {\"meta\": \"1\\u2154 cups\"}}, {\"elementId\": \"begin\", \"component\": \"Button\", \"purpose\": \"Primary action: start the recipe\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {\"variant\": \"primary\"}}]}"
+  },
+  {
+    "value": {
+      "contract": "jit.content.request.v1",
+      "requestId": "req-l",
+      "catalogVersion": "jit-device.v2",
+      "locale": "fr-FR",
+      "intent": "Urgent: need to travel for a conference tomorrow",
+      "context": {
+        "city": "Chicago"
+      },
+      "targets": [
+        {
+          "elementId": "title",
+          "component": "Heading",
+          "purpose": "What changed and why it matters",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 60,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "level": 1
+          }
+        },
+        {
+          "elementId": "diagnosis",
+          "component": "Alert",
+          "purpose": "Explain the new constraint",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 140,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "outcome",
+          "component": "Metric",
+          "purpose": "Framing for the recommended option",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 28,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "value": "7:00 AM"
+          }
+        },
+        {
+          "elementId": "opt-1",
+          "component": "ListItem",
+          "purpose": "Recommended travel option",
+          "fields": [
+            {
+              "name": "title",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 40,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "meta": "$210"
+          }
+        },
+        {
+          "elementId": "opt-2",
+          "component": "ListItem",
+          "purpose": "Alternative travel option",
+          "fields": [
+            {
+              "name": "title",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 40,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "meta": "$95"
+          }
+        },
+        {
+          "elementId": "primary",
+          "component": "Button",
+          "purpose": "Confirm the recommended option",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "variant": "primary"
+          }
+        },
+        {
+          "elementId": "secondary",
+          "component": "Button",
+          "purpose": "See alternatives",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "variant": "ghost"
+          }
+        }
+      ]
+    },
+    "expected": "{\"contract\": \"jit.content.request.v1\", \"requestId\": \"req-l\", \"catalogVersion\": \"jit-device.v2\", \"locale\": \"fr-FR\", \"intent\": \"Urgent: need to travel for a conference tomorrow\", \"context\": {\"city\": \"Chicago\"}, \"targets\": [{\"elementId\": \"title\", \"component\": \"Heading\", \"purpose\": \"What changed and why it matters\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 60, \"format\": \"plain-text\"}}], \"fixed\": {\"level\": 1}}, {\"elementId\": \"diagnosis\", \"component\": \"Alert\", \"purpose\": \"Explain the new constraint\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 140, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"outcome\", \"component\": \"Metric\", \"purpose\": \"Framing for the recommended option\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 28, \"format\": \"plain-text\"}}], \"fixed\": {\"value\": \"7:00 AM\"}}, {\"elementId\": \"opt-1\", \"component\": \"ListItem\", \"purpose\": \"Recommended travel option\", \"fields\": [{\"name\": \"title\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 40, \"format\": \"plain-text\"}}], \"fixed\": {\"meta\": \"$210\"}}, {\"elementId\": \"opt-2\", \"component\": \"ListItem\", \"purpose\": \"Alternative travel option\", \"fields\": [{\"name\": \"title\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 40, \"format\": \"plain-text\"}}], \"fixed\": {\"meta\": \"$95\"}}, {\"elementId\": \"primary\", \"component\": \"Button\", \"purpose\": \"Confirm the recommended option\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {\"variant\": \"primary\"}}, {\"elementId\": \"secondary\", \"component\": \"Button\", \"purpose\": \"See alternatives\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {\"variant\": \"ghost\"}}]}"
+  },
+  {
+    "value": {
+      "contract": "jit.content.request.v1",
+      "requestId": "len-edge-8b",
+      "catalogVersion": "jit-device.v2",
+      "locale": "ar-SA",
+      "intent": "Write messages to share extra cookies",
+      "context": {},
+      "targets": [
+        {
+          "elementId": "title",
+          "component": "Heading",
+          "purpose": "Screen title",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 60,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "level": 2
+          }
+        },
+        {
+          "elementId": "tone",
+          "component": "Slider",
+          "purpose": "Message tone control",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            },
+            {
+              "name": "minLabel",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 16,
+                "format": "plain-text"
+              }
+            },
+            {
+              "name": "maxLabel",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 16,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "min": 0,
+            "max": 4,
+            "step": 1,
+            "value": 1
+          }
+        },
+        {
+          "elementId": "name-1",
+          "component": "Label",
+          "purpose": "First recipient",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "body-1",
+          "component": "Text",
+          "purpose": "Message to the first recipient",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 220,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "name-2",
+          "component": "Label",
+          "purpose": "Second recipient",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "body-2",
+          "component": "Text",
+          "purpose": "Message to the second recipient",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 220,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "send",
+          "component": "Button",
+          "purpose": "Send both messages",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "variant": "primary"
+          }
+        }
+      ]
+    },
+    "expected": "{\"contract\": \"jit.content.request.v1\", \"requestId\": \"len-edge-8b\", \"catalogVersion\": \"jit-device.v2\", \"locale\": \"ar-SA\", \"intent\": \"Write messages to share extra cookies\", \"context\": {}, \"targets\": [{\"elementId\": \"title\", \"component\": \"Heading\", \"purpose\": \"Screen title\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 60, \"format\": \"plain-text\"}}], \"fixed\": {\"level\": 2}}, {\"elementId\": \"tone\", \"component\": \"Slider\", \"purpose\": \"Message tone control\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}, {\"name\": \"minLabel\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 16, \"format\": \"plain-text\"}}, {\"name\": \"maxLabel\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 16, \"format\": \"plain-text\"}}], \"fixed\": {\"min\": 0, \"max\": 4, \"step\": 1, \"value\": 1}}, {\"elementId\": \"name-1\", \"component\": \"Label\", \"purpose\": \"First recipient\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"body-1\", \"component\": \"Text\", \"purpose\": \"Message to the first recipient\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 220, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"name-2\", \"component\": \"Label\", \"purpose\": \"Second recipient\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"body-2\", \"component\": \"Text\", \"purpose\": \"Message to the second recipient\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 220, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"send\", \"component\": \"Button\", \"purpose\": \"Send both messages\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {\"variant\": \"primary\"}}]}"
+  },
+  {
+    "value": {
+      "contract": "jit.content.request.v1",
+      "requestId": "len-edge-2d",
+      "catalogVersion": "jit-device.v2",
+      "locale": "de-DE",
+      "intent": "Show the selected cookie recipe",
+      "context": {
+        "recipeName": "Klassische Schokoladenkekse"
+      },
+      "targets": [
+        {
+          "elementId": "title",
+          "component": "Heading",
+          "purpose": "Recipe name",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 60,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "level": 1
+          }
+        },
+        {
+          "elementId": "subtitle",
+          "component": "Text",
+          "purpose": "One-line pitch for the recipe",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 220,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "tone": "muted"
+          }
+        },
+        {
+          "elementId": "axis",
+          "component": "Slider",
+          "purpose": "Batch-size control label",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "min": 12,
+            "max": 30,
+            "step": 6,
+            "value": 30,
+            "unit": "cookies"
+          }
+        },
+        {
+          "elementId": "preview",
+          "component": "Media",
+          "purpose": "Alt text for the recipe preview image",
+          "fields": [
+            {
+              "name": "caption",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 40,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "src": "https://example.com/preview.jpg"
+          }
+        },
+        {
+          "elementId": "ing-label",
+          "component": "Label",
+          "purpose": "Ingredients section heading",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "ing-1",
+          "component": "ListItem",
+          "purpose": "First ingredient row",
+          "fields": [
+            {
+              "name": "title",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 40,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "meta": "3\u2153 cups"
+          }
+        },
+        {
+          "elementId": "ing-2",
+          "component": "ListItem",
+          "purpose": "Second ingredient row",
+          "fields": [
+            {
+              "name": "title",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 40,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "meta": "1\u2154 cups"
+          }
+        },
+        {
+          "elementId": "begin",
+          "component": "Button",
+          "purpose": "Primary action: start the recipe",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "variant": "primary"
+          }
+        }
+      ]
+    },
+    "expected": "{\"contract\": \"jit.content.request.v1\", \"requestId\": \"len-edge-2d\", \"catalogVersion\": \"jit-device.v2\", \"locale\": \"de-DE\", \"intent\": \"Show the selected cookie recipe\", \"context\": {\"recipeName\": \"Klassische Schokoladenkekse\"}, \"targets\": [{\"elementId\": \"title\", \"component\": \"Heading\", \"purpose\": \"Recipe name\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 60, \"format\": \"plain-text\"}}], \"fixed\": {\"level\": 1}}, {\"elementId\": \"subtitle\", \"component\": \"Text\", \"purpose\": \"One-line pitch for the recipe\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 220, \"format\": \"plain-text\"}}], \"fixed\": {\"tone\": \"muted\"}}, {\"elementId\": \"axis\", \"component\": \"Slider\", \"purpose\": \"Batch-size control label\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {\"min\": 12, \"max\": 30, \"step\": 6, \"value\": 30, \"unit\": \"cookies\"}}, {\"elementId\": \"preview\", \"component\": \"Media\", \"purpose\": \"Alt text for the recipe preview image\", \"fields\": [{\"name\": \"caption\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 40, \"format\": \"plain-text\"}}], \"fixed\": {\"src\": \"https://example.com/preview.jpg\"}}, {\"elementId\": \"ing-label\", \"component\": \"Label\", \"purpose\": \"Ingredients section heading\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"ing-1\", \"component\": \"ListItem\", \"purpose\": \"First ingredient row\", \"fields\": [{\"name\": \"title\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 40, \"format\": \"plain-text\"}}], \"fixed\": {\"meta\": \"3\\u2153 cups\"}}, {\"elementId\": \"ing-2\", \"component\": \"ListItem\", \"purpose\": \"Second ingredient row\", \"fields\": [{\"name\": \"title\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 40, \"format\": \"plain-text\"}}], \"fixed\": {\"meta\": \"1\\u2154 cups\"}}, {\"elementId\": \"begin\", \"component\": \"Button\", \"purpose\": \"Primary action: start the recipe\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {\"variant\": \"primary\"}}]}"
+  },
+  {
+    "value": {
+      "contract": "jit.content.request.v1",
+      "requestId": "len-edge-4t",
+      "catalogVersion": "jit-device.v2",
+      "locale": "de-DE",
+      "intent": "Start a focused study session",
+      "context": {
+        "subject": "Org. Chemie"
+      },
+      "targets": [
+        {
+          "elementId": "title",
+          "component": "Heading",
+          "purpose": "Screen title",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 60,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "level": 1
+          }
+        },
+        {
+          "elementId": "subject",
+          "component": "Badge",
+          "purpose": "Subject tag",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 16,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "goal",
+          "component": "TextField",
+          "purpose": "Today's study focus",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            },
+            {
+              "name": "placeholder",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 40,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "reminder",
+          "component": "Toggle",
+          "purpose": "Stretch break reminder",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 32,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "on": true
+          }
+        },
+        {
+          "elementId": "duration",
+          "component": "Slider",
+          "purpose": "Session length control",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            },
+            {
+              "name": "minLabel",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 16,
+                "format": "plain-text"
+              }
+            },
+            {
+              "name": "maxLabel",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 16,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "min": 15,
+            "max": 90,
+            "step": 15,
+            "value": 45,
+            "unit": "min"
+          }
+        },
+        {
+          "elementId": "start",
+          "component": "Button",
+          "purpose": "Begin the session",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "variant": "primary"
+          }
+        }
+      ]
+    },
+    "expected": "{\"contract\": \"jit.content.request.v1\", \"requestId\": \"len-edge-4t\", \"catalogVersion\": \"jit-device.v2\", \"locale\": \"de-DE\", \"intent\": \"Start a focused study session\", \"context\": {\"subject\": \"Org. Chemie\"}, \"targets\": [{\"elementId\": \"title\", \"component\": \"Heading\", \"purpose\": \"Screen title\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 60, \"format\": \"plain-text\"}}], \"fixed\": {\"level\": 1}}, {\"elementId\": \"subject\", \"component\": \"Badge\", \"purpose\": \"Subject tag\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 16, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"goal\", \"component\": \"TextField\", \"purpose\": \"Today's study focus\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}, {\"name\": \"placeholder\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 40, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"reminder\", \"component\": \"Toggle\", \"purpose\": \"Stretch break reminder\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 32, \"format\": \"plain-text\"}}], \"fixed\": {\"on\": true}}, {\"elementId\": \"duration\", \"component\": \"Slider\", \"purpose\": \"Session length control\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}, {\"name\": \"minLabel\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 16, \"format\": \"plain-text\"}}, {\"name\": \"maxLabel\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 16, \"format\": \"plain-text\"}}], \"fixed\": {\"min\": 15, \"max\": 90, \"step\": 15, \"value\": 45, \"unit\": \"min\"}}, {\"elementId\": \"start\", \"component\": \"Button\", \"purpose\": \"Begin the session\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {\"variant\": \"primary\"}}]}"
+  },
+  {
+    "value": {
+      "contract": "jit.content.request.v1",
+      "requestId": "len-edge-6m",
+      "catalogVersion": "jit-device.v2",
+      "locale": "es-ES",
+      "intent": "Make it softer and calmer",
+      "context": {},
+      "targets": [
+        {
+          "elementId": "title",
+          "component": "Heading",
+          "purpose": "Panel title",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 60,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "level": 2
+          }
+        },
+        {
+          "elementId": "toggle-1",
+          "component": "Toggle",
+          "purpose": "Reduce motion setting",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 32,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "on": true
+          }
+        },
+        {
+          "elementId": "toggle-2",
+          "component": "Toggle",
+          "purpose": "Hide numeric metrics",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 32,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "on": true
+          }
+        },
+        {
+          "elementId": "toggle-3",
+          "component": "Toggle",
+          "purpose": "Increase text size",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 32,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "on": true
+          }
+        },
+        {
+          "elementId": "toggle-4",
+          "component": "Toggle",
+          "purpose": "Mute notifications",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 32,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "on": false
+          }
+        }
+      ]
+    },
+    "expected": "{\"contract\": \"jit.content.request.v1\", \"requestId\": \"len-edge-6m\", \"catalogVersion\": \"jit-device.v2\", \"locale\": \"es-ES\", \"intent\": \"Make it softer and calmer\", \"context\": {}, \"targets\": [{\"elementId\": \"title\", \"component\": \"Heading\", \"purpose\": \"Panel title\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 60, \"format\": \"plain-text\"}}], \"fixed\": {\"level\": 2}}, {\"elementId\": \"toggle-1\", \"component\": \"Toggle\", \"purpose\": \"Reduce motion setting\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 32, \"format\": \"plain-text\"}}], \"fixed\": {\"on\": true}}, {\"elementId\": \"toggle-2\", \"component\": \"Toggle\", \"purpose\": \"Hide numeric metrics\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 32, \"format\": \"plain-text\"}}], \"fixed\": {\"on\": true}}, {\"elementId\": \"toggle-3\", \"component\": \"Toggle\", \"purpose\": \"Increase text size\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 32, \"format\": \"plain-text\"}}], \"fixed\": {\"on\": true}}, {\"elementId\": \"toggle-4\", \"component\": \"Toggle\", \"purpose\": \"Mute notifications\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 32, \"format\": \"plain-text\"}}], \"fixed\": {\"on\": false}}]}"
+  },
+  {
+    "value": {
+      "contract": "jit.content.request.v1",
+      "requestId": "req-x",
+      "catalogVersion": "jit-device.v2",
+      "locale": "fr-FR",
+      "intent": "Write messages to share extra cookies",
+      "context": {},
+      "targets": [
+        {
+          "elementId": "title",
+          "component": "Heading",
+          "purpose": "Screen title",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 60,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "level": 2
+          }
+        },
+        {
+          "elementId": "tone",
+          "component": "Slider",
+          "purpose": "Message tone control",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            },
+            {
+              "name": "minLabel",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 16,
+                "format": "plain-text"
+              }
+            },
+            {
+              "name": "maxLabel",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 16,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "min": 0,
+            "max": 4,
+            "step": 1,
+            "value": 1
+          }
+        },
+        {
+          "elementId": "name-1",
+          "component": "Label",
+          "purpose": "First recipient",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "body-1",
+          "component": "Text",
+          "purpose": "Message to the first recipient",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 220,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "name-2",
+          "component": "Label",
+          "purpose": "Second recipient",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "body-2",
+          "component": "Text",
+          "purpose": "Message to the second recipient",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 220,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "send",
+          "component": "Button",
+          "purpose": "Send both messages",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "variant": "primary"
+          }
+        }
+      ]
+    },
+    "expected": "{\"contract\": \"jit.content.request.v1\", \"requestId\": \"req-x\", \"catalogVersion\": \"jit-device.v2\", \"locale\": \"fr-FR\", \"intent\": \"Write messages to share extra cookies\", \"context\": {}, \"targets\": [{\"elementId\": \"title\", \"component\": \"Heading\", \"purpose\": \"Screen title\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 60, \"format\": \"plain-text\"}}], \"fixed\": {\"level\": 2}}, {\"elementId\": \"tone\", \"component\": \"Slider\", \"purpose\": \"Message tone control\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}, {\"name\": \"minLabel\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 16, \"format\": \"plain-text\"}}, {\"name\": \"maxLabel\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 16, \"format\": \"plain-text\"}}], \"fixed\": {\"min\": 0, \"max\": 4, \"step\": 1, \"value\": 1}}, {\"elementId\": \"name-1\", \"component\": \"Label\", \"purpose\": \"First recipient\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"body-1\", \"component\": \"Text\", \"purpose\": \"Message to the first recipient\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 220, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"name-2\", \"component\": \"Label\", \"purpose\": \"Second recipient\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"body-2\", \"component\": \"Text\", \"purpose\": \"Message to the second recipient\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 220, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"send\", \"component\": \"Button\", \"purpose\": \"Send both messages\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {\"variant\": \"primary\"}}]}"
+  },
+  {
+    "value": {
+      "contract": "jit.content.request.v1",
+      "requestId": "req-v",
+      "catalogVersion": "jit-device.v2",
+      "locale": "en-US",
+      "intent": "Write messages to share extra cookies",
+      "context": {},
+      "targets": [
+        {
+          "elementId": "title",
+          "component": "Heading",
+          "purpose": "Screen title",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 60,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "level": 2
+          }
+        },
+        {
+          "elementId": "tone",
+          "component": "Slider",
+          "purpose": "Message tone control",
+          "fields": [
+            {
+              "name": "label",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            },
+            {
+              "name": "minLabel",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 16,
+                "format": "plain-text"
+              }
+            },
+            {
+              "name": "maxLabel",
+              "type": "string",
+              "required": false,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 16,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "min": 0,
+            "max": 4,
+            "step": 1,
+            "value": 1
+          }
+        },
+        {
+          "elementId": "name-1",
+          "component": "Label",
+          "purpose": "First recipient",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "body-1",
+          "component": "Text",
+          "purpose": "Message to the first recipient",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 220,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "name-2",
+          "component": "Label",
+          "purpose": "Second recipient",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "body-2",
+          "component": "Text",
+          "purpose": "Message to the second recipient",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 220,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {}
+        },
+        {
+          "elementId": "send",
+          "component": "Button",
+          "purpose": "Send both messages",
+          "fields": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 24,
+                "format": "plain-text"
+              }
+            }
+          ],
+          "fixed": {
+            "variant": "primary"
+          }
+        }
+      ]
+    },
+    "expected": "{\"contract\": \"jit.content.request.v1\", \"requestId\": \"req-v\", \"catalogVersion\": \"jit-device.v2\", \"locale\": \"en-US\", \"intent\": \"Write messages to share extra cookies\", \"context\": {}, \"targets\": [{\"elementId\": \"title\", \"component\": \"Heading\", \"purpose\": \"Screen title\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 60, \"format\": \"plain-text\"}}], \"fixed\": {\"level\": 2}}, {\"elementId\": \"tone\", \"component\": \"Slider\", \"purpose\": \"Message tone control\", \"fields\": [{\"name\": \"label\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}, {\"name\": \"minLabel\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 16, \"format\": \"plain-text\"}}, {\"name\": \"maxLabel\", \"type\": \"string\", \"required\": false, \"constraints\": {\"minLength\": 1, \"maxLength\": 16, \"format\": \"plain-text\"}}], \"fixed\": {\"min\": 0, \"max\": 4, \"step\": 1, \"value\": 1}}, {\"elementId\": \"name-1\", \"component\": \"Label\", \"purpose\": \"First recipient\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"body-1\", \"component\": \"Text\", \"purpose\": \"Message to the first recipient\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 220, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"name-2\", \"component\": \"Label\", \"purpose\": \"Second recipient\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"body-2\", \"component\": \"Text\", \"purpose\": \"Message to the second recipient\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 220, \"format\": \"plain-text\"}}], \"fixed\": {}}, {\"elementId\": \"send\", \"component\": \"Button\", \"purpose\": \"Send both messages\", \"fields\": [{\"name\": \"text\", \"type\": \"string\", \"required\": true, \"constraints\": {\"minLength\": 1, \"maxLength\": 24, \"format\": \"plain-text\"}}], \"fixed\": {\"variant\": \"primary\"}}]}"
+  },
+  {
+    "value": {
+      "a": 1,
+      "b": [
+        1,
+        2
+      ],
+      "c": "x"
+    },
+    "expected": "{\"a\": 1, \"b\": [1, 2], \"c\": \"x\"}"
+  },
+  {
+    "value": {
+      "del": "\u007f",
+      "ja": "\u307b\u306e\u307c\u306e",
+      "ar": "\u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645",
+      "emoji": "\ud83d\ude00"
+    },
+    "expected": "{\"del\": \"\\u007f\", \"ja\": \"\\u307b\\u306e\\u307c\\u306e\", \"ar\": \"\\u0645\\u0631\\u062d\\u0628\\u0627 \\u0628\\u0627\\u0644\\u0639\\u0627\\u0644\\u0645\", \"emoji\": \"\\ud83d\\ude00\"}"
+  },
+  {
+    "value": {
+      "ctrl": "line\nbreak\ttab\"quote\\slash"
+    },
+    "expected": "{\"ctrl\": \"line\\nbreak\\ttab\\\"quote\\\\slash\"}"
+  },
+  {
+    "value": {
+      "empty": {},
+      "emptyarr": [],
+      "nil": null,
+      "yes": true,
+      "no": false
+    },
+    "expected": "{\"empty\": {}, \"emptyarr\": [], \"nil\": null, \"yes\": true, \"no\": false}"
+  },
+  {
+    "value": {
+      "nested": {
+        "x": {
+          "y": [
+            {
+              "z": null
+            }
+          ]
+        }
+      }
+    },
+    "expected": "{\"nested\": {\"x\": {\"y\": [{\"z\": null}]}}}"
+  },
+  {
+    "value": {
+      "neg": -3,
+      "big": 1234567,
+      "zero": 0
+    },
+    "expected": "{\"neg\": -3, \"big\": 1234567, \"zero\": 0}"
+  }
+]

@@ -263,16 +263,33 @@ describe('ws server: disconnect', () => {
     expect(end.type).toBe('turn-end');
   });
 
-  it('refuses a second device rather than fanning out', async () => {
+  /**
+   * Still exactly one live device — but the NEWEST connection is it.
+   *
+   * Refusing the second connection instead made a device reload lock itself
+   * out: for a moment the reloading page's old socket is still open, so its
+   * own replacement was rejected and the retry loop hammered a server that
+   * would keep saying no.
+   */
+  it('hands the session to a newer connection instead of fanning out', async () => {
     const s = await boot(oneNodeGraph(emitter(1)));
     const first = connect(s.url);
     await first.open;
     await first.waitFor((f) => f.type === 'hello');
 
     const second = connect(s.url);
-    const { code, reason } = await second.closed;
-    expect(code).toBe(1013);
-    expect(reason).toContain('already connected');
+    await second.open;
+    await second.waitFor((f) => f.type === 'hello');
+
+    // The displaced socket is told why, rather than dropped silently.
+    const { code, reason } = await first.closed;
+    expect(code).toBe(1012);
+    expect(reason).toContain('replaced');
+
+    // And the newcomer owns the session: still one device, and it works.
+    second.socket.send(JSON.stringify({ type: 'utterance', text: 'mine now' }));
+    const end = await second.waitFor((f) => f.type === 'turn-end');
+    expect(end.type).toBe('turn-end');
     expect(s.connections).toBe(1);
   });
 });

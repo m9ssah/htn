@@ -2,6 +2,8 @@ import { createInterface } from 'node:readline';
 import type { ContentUpdateV2, StructureUpdateV2, SurfaceUpdate } from '@jit/schema';
 import { buildGraph, liveComposer, type TurnInput } from './graph.js';
 import { realContentSource } from './harness/clients/content.js';
+import { stubContentModel } from './harness/clients/content-model.js';
+import { realResearchClient } from './harness/clients/research.js';
 import { getRealJevClient } from './harness/clients/jev.js';
 import { createTurnRunner } from './harness/turn.js';
 import { createSession, describeTask } from './session.js';
@@ -34,7 +36,12 @@ import { createSession, describeTask } from './session.js';
 const jev = getRealJevClient();
 const session = createSession();
 const graph = buildGraph({ session, composer: liveComposer(jev) });
-const runner = createTurnRunner({ graph, jev, content: realContentSource, logPath: 'turns.jsonl' });
+// `contentModel`/`fetch` belong to the `generate`/`research` nodes that came
+// back in the main merge. This graph wires neither, so they are supplied to
+// satisfy `TurnDeps` and are never called on this path.
+const runner = createTurnRunner({
+  graph, jev, content: realContentSource, contentModel: stubContentModel, fetch: realResearchClient, logPath: 'turns.jsonl',
+});
 
 let last: { structure: StructureUpdateV2 | null; content: ContentUpdateV2 | null } = { structure: null, content: null };
 

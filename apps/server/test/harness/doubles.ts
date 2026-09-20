@@ -3,6 +3,8 @@ import type { ContentUpdateV2, SurfaceUpdate } from '@jit/schema';
 import { runGuarded, runtimeOf, type TurnRuntime } from '../../src/harness/graph-runtime.js';
 import type { PatchStream, TurnDeps } from '../../src/harness/turn.js';
 import { stubContentSource } from '../../src/harness/clients/content.js';
+import { stubContentModel } from '../../src/harness/clients/content-model.js';
+import { stubResearchClient } from '../../src/harness/clients/research.js';
 import { stubJevClient } from '../../src/harness/clients/jev.js';
 import type { Ctx, Node } from '../../src/harness/types.js';
 
@@ -130,7 +132,7 @@ export function emitter(count: number, gapMs = 0, name = 'emitter'): Node<void, 
  * always supplied per test; `extra` overrides anything else.
  */
 export function deps(graph: PatchStream, extra: Partial<TurnDeps> = {}): TurnDeps {
-  return { graph, jev: stubJevClient, content: stubContentSource, logPath: null, ...extra };
+  return { graph, jev: stubJevClient, content: stubContentSource, contentModel: stubContentModel, fetch: stubResearchClient, logPath: null, ...extra };
 }
 
 export type { TurnRuntime };

@@ -17,9 +17,16 @@
         <section class="surface" id="surface"></section>
       </div>
 
+      <!-- The mic stand-in until apps/bridge + STT exist. Same wire frame. -->
+      <input class="utterance" id="utterance" type="text" autocomplete="off"
+             placeholder="say something…" aria-label="Utterance" />
+      <p class="status" id="status" hidden></p>
+
       <footer class="rail" id="rail"></footer>
       <div class="fader" id="fader" hidden></div>
       <div class="listening" id="listening" hidden><i></i><i></i><i></i><span>Listening</span></div>
+      <!-- What the device is hearing, while it is still being said. -->
+      <p class="heard" id="heard" hidden></p>
     </div>
     <script type="module" src="./src/main.ts"></script>
   </body>

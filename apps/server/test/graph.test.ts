@@ -13,6 +13,12 @@ import { buildGraph } from '../src/graph.js';
 import { createSession, type Session } from '../src/session.js';
 import { createReplayJevClient, parseJevResponse, type JevWireResponse } from '../src/harness/clients/jev.js';
 import { stubContentSource } from '../src/harness/clients/content.js';
+// `generate`/`research` came back with the main merge and `TurnDeps` requires
+// their collaborators. This graph wires neither node, so these are supplied to
+// satisfy the type and are never called.
+import { stubContentModel } from '../src/harness/clients/content-model.js';
+import { realResearchClient } from '../src/harness/clients/research.js';
+const unusedNodeDeps = { contentModel: stubContentModel, fetch: realResearchClient };
 import { createTurnRunner, startTurn, type Turn } from '../src/harness/turn.js';
 import type { ContentSource, Event, JevClient } from '../src/harness/types.js';
 import { sleep } from '../src/harness/signal.js';
@@ -54,6 +60,8 @@ function harness(options: { jev?: JevClient; content?: ContentSource; session?: 
         jev: options.jev ?? createReplayJevClient(NEW_TASK),
         content: options.content ?? stubContentSource,
         logPath: null,
+      ...unusedNodeDeps,
+        ...unusedNodeDeps,
         telemetry: (event) => events.push(event),
       });
     },
@@ -243,7 +251,7 @@ describe('graph: barge-in', () => {
   it('a second utterance aborts the first, which paints nothing and stops spending', async () => {
     const jev = slowJev(createReplayJevClient(NEW_TASK), 200);
     const session = createSession();
-    const runner = createTurnRunner({ graph: buildGraph({ session }), jev, content: stubContentSource, logPath: null });
+    const runner = createTurnRunner({ graph: buildGraph({ session }), jev, content: stubContentSource, logPath: null, ...unusedNodeDeps });
 
     const first = runner.say({ utterance: 'what should I make tonight' });
     const firstUpdates: SurfaceUpdate[] = [];
@@ -310,6 +318,7 @@ const offline = (session: Session, jev: JevClient): Parameters<typeof startTurn>
   jev,
   content: stubContentSource,
   logPath: null,
+  ...unusedNodeDeps,
 });
 
 describe('graph: the recovery beat', () => {
@@ -461,6 +470,7 @@ describe('graph: an open-ended surface', () => {
       jev: generic(),
       content: stubContentSource,
       logPath: null,
+      ...unusedNodeDeps,
       telemetry: (e) => events.push(e),
     });
 

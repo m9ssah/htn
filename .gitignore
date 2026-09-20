@@ -13,3 +13,6 @@ __pycache__/
 
 # Turn logs written by the orchestrator (DEFAULT_TURN_LOG_PATH)
 turns.jsonl
+
+training/data-train/checkpoints/
+training/data-train/__pycache__/

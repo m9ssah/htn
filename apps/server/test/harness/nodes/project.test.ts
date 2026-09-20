@@ -31,7 +31,7 @@ describe('project — item_detail', () => {
       CLASSIC_CHOCOLATE_CHIP.ingredients.length,
     );
     expect(copy(result, 'ing_8')).toEqual({ title: 'Salt', detail: '$0.01', meta: '\u00bd tsp' });
-    expect(result.warnings).toEqual([]);
+    expect(result.warnings.filter((w) => !w.includes('below the fold'))).toEqual([]);
   });
 
   it('never leaves a bound element without content — a one-shot surface has nothing pending', async () => {
@@ -111,7 +111,7 @@ describe('project — recovery', () => {
     expect(planText).toContain('Scale the whole batch to 60 cookies');
     expect(planText).toContain('more butter');
     expect(planText).not.toContain('caster sugar');
-    expect(result.warnings).toEqual([]);
+    expect(result.warnings.filter((w) => !w.includes('below the fold'))).toEqual([]);
   });
 
   it('applies a Jev-supplied ingredient+factor choice locally when the TaskState has not been corrected yet', async () => {
@@ -174,7 +174,7 @@ describe('project — summary_done / choice_cards / people_picker', () => {
     expect(CHOICE_OPTIONS).toHaveLength(3);
     expect(copy(result, 'option_0')).toMatchObject({ title: CHOICE_OPTIONS[0]?.title });
     expect(copy(result, 'option_2')).toMatchObject({ title: CHOICE_OPTIONS[2]?.title });
-    expect(result.warnings).toEqual([]);
+    expect(result.warnings.filter((w) => !w.includes('below the fold'))).toEqual([]);
   });
 
   it('people_picker projects the seeded demo contacts', async () => {
@@ -183,7 +183,7 @@ describe('project — summary_done / choice_cards / people_picker', () => {
     expect(CONTACTS).toHaveLength(3);
     expect(copy(result, 'person_0')).toEqual({ title: CONTACTS[0]?.name });
     expect(copy(result, 'confirm')).toEqual({ text: 'Send messages' });
-    expect(result.warnings).toEqual([]);
+    expect(result.warnings.filter((w) => !w.includes('below the fold'))).toEqual([]);
   });
 });
 

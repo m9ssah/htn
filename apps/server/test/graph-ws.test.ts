@@ -7,6 +7,10 @@ import { buildGraph } from '../src/graph.js';
 import { createSession } from '../src/session.js';
 import { createReplayJevClient } from '../src/harness/clients/jev.js';
 import { stubContentSource } from '../src/harness/clients/content.js';
+// See graph.test.ts: `TurnDeps` requires the generate/research collaborators,
+// which this graph does not wire.
+import { stubContentModel } from '../src/harness/clients/content-model.js';
+import { realResearchClient } from '../src/harness/clients/research.js';
 import { createSurfaceServer, type SurfaceServer } from '../src/ws-server.js';
 import type { ServerMessage } from '../src/wire.js';
 import type { JevClient } from '../src/harness/types.js';
@@ -45,7 +49,7 @@ afterEach(async () => {
 async function boot(jev: JevClient): Promise<SurfaceServer> {
   const session = createSession();
   server = await createSurfaceServer({
-    deps: { graph: buildGraph({ session }), jev, content: stubContentSource, logPath: null },
+    deps: { graph: buildGraph({ session }), jev, content: stubContentSource, logPath: null, contentModel: stubContentModel, fetch: realResearchClient },
     log: () => {},
   });
   return server;

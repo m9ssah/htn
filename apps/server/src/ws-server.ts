@@ -52,19 +52,39 @@ export async function createSurfaceServer(options: SurfaceServerOptions): Promis
   });
 
   let connections = 0;
+  let current: WebSocket | null = null;
 
+  /**
+   * One device, and the NEWEST connection is it.
+   *
+   * This used to refuse a second connection outright. The reasoning was
+   * sound — two devices sharing one session would race for the same task
+   * state — but the common case is not two devices, it is ONE device
+   * reloading: for a moment the old page's socket is still open while the
+   * new page's socket arrives, so every reload was refused and the device
+   * locked itself out until the stale socket died. Measured, not theorised:
+   * a single `Page.reload` produced `device-connected` immediately followed
+   * by `connection-refused`.
+   *
+   * Taking over preserves the invariant that matters (exactly one live
+   * device, so nothing races for task state) and makes a reload always
+   * work. The displaced socket is closed with 1012 "Service Restart" and
+   * logged, so a genuine second device still finds out it was replaced
+   * rather than silently sharing the session.
+   */
   wss.on('connection', (ws: WebSocket) => {
-    if (connections > 0) {
-      // 1013 "Try Again Later" — the honest code for "not now", rather than
-      // pretending a fanout server that does not exist is merely busy.
-      log('connection-refused', { reason: 'device already connected' });
-      ws.close(1013, 'device already connected');
-      return;
+    if (current) {
+      log('device-replaced', { reason: 'a newer connection took over' });
+      const stale = current;
+      current = null;
+      stale.close(1012, 'replaced by a newer connection');
     }
     connections += 1;
+    current = ws;
     log('device-connected', {});
     attachDevice(ws, options.deps, log, () => {
       connections -= 1;
+      if (current === ws) current = null;
     });
   });
 
