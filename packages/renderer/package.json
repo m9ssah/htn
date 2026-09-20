@@ -18,7 +18,12 @@
     "harness": "vite --config harness/vite.config.ts"
   },
   "dependencies": {
+    "@json-render/core": "file:../../vendor/json-render-core-0.21.0-3ad3818-preview3.tgz",
+    "@json-render/react": "0.21.0",
     "@jit/schema": "*",
-    "@jit/tokens": "*"
+    "@jit/tokens": "*",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "zod": "4.3.6"
   }
 }

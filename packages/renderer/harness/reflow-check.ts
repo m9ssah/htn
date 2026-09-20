@@ -1,7 +1,6 @@
 import '@jit/renderer/renderer.css';
 import type { FontPairing, ThemeEnums } from '@jit/schema';
-import { BOOTSTRAP_THEME, TEMPLATES, TEMPLATE_IDS, createRenderer } from '@jit/renderer';
-import { SCENARIOS } from './scenarios.js';
+import { EXAMPLES, JSON_BOOTSTRAP_THEME, createJsonRenderer } from '@jit/renderer';
 
 /**
  * All four, not just the bootstrap default. The Slider head avoids `baseline`
@@ -67,37 +66,32 @@ const TOLERANCE = 0.5;
 const LAYOUT_VARS = ['--jit-scale', '--jit-gap', '--jit-pad', '--jit-density-f'];
 
 for (const fontPairing of FONT_PAIRINGS) {
-  const theme: ThemeEnums = { ...BOOTSTRAP_THEME, fontPairing };
+  const theme: ThemeEnums = { ...JSON_BOOTSTRAP_THEME, fontPairing };
 
-  for (const templateId of TEMPLATE_IDS) {
-    const scenario = SCENARIOS.find((s) => s.templateId === templateId);
-    if (!scenario) continue;
+  for (const scenario of EXAMPLES) {
 
     const host = document.createElement('div');
     host.style.width = '520px';
     probe.replaceChildren(host);
-    const renderer = createRenderer(host);
+    const renderer = createJsonRenderer(host);
 
     // Set the font pairing before anything paints, so every measurement below
     // — skeleton, content, polish — happens under this font, not the bootstrap
     // default.
-    renderer.applyStyle({ v: 1, theme });
+    renderer.apply({ v: 1, theme });
 
-    renderer.applySkeleton({ v: 1, templateId, maxWidth: TEMPLATES[templateId].maxWidth });
+    renderer.apply(scenario.structure);
     const atSkeleton = positions(host);
 
     // A slot explicitly set to null collapses, which IS a reflow — a deliberate
     // exception, because the alternative is shimmering forever on a row that will
     // never fill. Strip those so this measures the reservation guarantee itself:
     // every slot that does receive content must not move.
-    const filled = Object.fromEntries(
-      Object.entries(scenario.content.slots).filter(([, v]) => v !== null),
-    ) as typeof scenario.content.slots;
-    renderer.applyContent({ v: 1, slots: filled });
+    renderer.apply(scenario.content);
     const atContent = positions(host);
     const [contentDelta, contentSlot] = worstDelta(atSkeleton, atContent);
     rows.push({
-      template: templateId,
+      template: scenario.id,
       fontPairing,
       stage: 'content lands',
       worst: contentDelta,
@@ -105,13 +99,14 @@ for (const fontPairing of FONT_PAIRINGS) {
       strict: true,
     });
 
-    if (scenario.polish) {
-      const reflows = LAYOUT_VARS.some((v) => v in scenario.polish!.tokens);
-      renderer.applyPolish(scenario.polish);
+    const polish = scenario.polish;
+    if (polish) {
+      const reflows = LAYOUT_VARS.some((v) => v in polish.tokens);
+      renderer.apply(polish);
       const atPolish = positions(host);
       const [polishDelta, polishSlot] = worstDelta(atContent, atPolish);
       rows.push({
-        template: templateId,
+        template: scenario.id,
         fontPairing,
         stage: reflows ? 'polish (resizes by request)' : 'polish (colour only)',
         worst: polishDelta,
@@ -154,7 +149,7 @@ banner.className = failures === 0 ? 'pass' : 'fail';
 banner.id = 'verdict';
 banner.textContent =
   failures === 0
-    ? `REFLOW-CHECK PASS — ${rows.filter((r) => r.strict).length} strict stages held position across ${TEMPLATE_IDS.length} templates × ${FONT_PAIRINGS.length} font pairings`
+    ? `REFLOW-CHECK PASS — ${rows.filter((r) => r.strict).length} strict stages held position across ${EXAMPLES.length} examples × ${FONT_PAIRINGS.length} font pairings`
     : `REFLOW-CHECK FAIL — ${failures} stage(s) moved the layout`;
 
 document.getElementById('out')!.append(banner, table);

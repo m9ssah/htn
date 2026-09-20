@@ -13,11 +13,23 @@
  * ---------------------------------------------------------------------------
  * The look: Metro's bones, a modern skin.
  *
- * Metro supplies the structure — a tile grid, type doing the hierarchy, colour
- * as a field rather than an outline, and no chrome, borders or shadows drawing
- * boxes around things. What is modern is the surface treatment: a small uniform
- * radius, accent fields that are lit by a gradient instead of printed flat, and
- * depth expressed as a lighter fill rather than a stroke.
+ * Metro supplies the structure — a tile mosaic, type doing the hierarchy,
+ * colour as a field rather than an outline, and no chrome, borders or shadows
+ * drawing boxes around things. What is modern is the surface treatment: a small
+ * uniform radius, and depth expressed as a lighter fill rather than a stroke.
+ *
+ * Colour follows Metro properly: the tiles carry FOUR saturated accents on a
+ * plum ground, and a tile is distinguished by which one it wears. That only
+ * holds together because the four are one harmonised set and the chrome never
+ * joins in — the rail, fader, face and focus rings use a single accent, always
+ * the same one. A second colour in the chrome is what makes a multi-accent
+ * palette read as inconsistent rather than as a system.
+ *
+ * There are no gradients. Anywhere. Not on a tile, a button, a progress fill or
+ * the face. Every accent is a flat field, which is what Metro actually does and
+ * what keeps the four tile colours reading as a set rather than as four
+ * separate lighting effects. The palettes carry a single accent each so the
+ * rule has no second colour to be broken with — see tokens/palettes.ts.
  *
  * ---------------------------------------------------------------------------
  * The motion budget.
@@ -34,27 +46,43 @@
  */
 
 :root {
-  /* Near-black with a blue cast: black enough to read as Metro, warm enough
-     under the panel's backlight not to look like a dead pixel field. */
-  --sh-bg: #05070b;
-  --sh-surface: #10141c;
-  --sh-surface-hi: #182030;
-  --sh-fg: #f2f4f8;
-  --sh-dim: #78829a;
-  --sh-line: #1b2130;
+  /* Deep plum-black. Dark enough to read as Metro, and the chroma in it is
+     what keeps the four tile accents looking like one family rather than four
+     stickers on a black sheet. */
+  --sh-bg: #150a11;
+  --sh-surface: #24121d;
+  --sh-surface-hi: #331a29;
+  --sh-fg: #f7eef3;
+  --sh-dim: #a4879a;
+  --sh-line: #331826;
 
-  --sh-accent: #6d5cf6;
-  --sh-accent-2: #3ba8ff;
-  --sh-accent-deep: #221d52;
-  --sh-warn: #f2a33c;
+  /*
+   * The tile set. Four accents that coexist because they sit far apart in hue
+   * at matched chroma and value — swapping any one for a brighter or duller
+   * version is what breaks the set, not the number of colours in it.
+   */
+  --sh-lime: #c2d500;
+  --sh-magenta: #ff3d75;
+  --sh-teal: #2fa8a0;
+  --sh-gold: #e0b93c;
 
-  /* One lit field, defined once, used by every accent surface. Static paint. */
-  --sh-accent-field: linear-gradient(135deg, var(--sh-accent), var(--sh-accent-2));
+  /* The chrome's single accent. Nothing else in the shell may take a colour. */
+  --sh-accent: #ff3d75;
+  --sh-accent-deep: #58152f;
+
 
   /* Modern, not round: Metro's zero radius reads as dated, a pill reads as a
      phone app. 10px is the Fluent answer and the right one here. */
   --sh-radius: 10px;
   --sh-radius-sm: 6px;
+
+  /*
+   * The display face. `OffBit` is named first and is NOT bundled — it is a
+   * commercial face (Power Type Foundry) that cannot be committed here, and the
+   * free build is personal-use only. Pixelify Sans stands in behind it, so
+   * adding licensed OffBit files to tokens/assets is the entire switch.
+   */
+  --sh-display: 'OffBit', 'OffBit 101', 'Pixelify Sans', ui-monospace, monospace;
 
   --sh-rail-h: 72px;
   --sh-pad: 22px;
@@ -194,13 +222,9 @@ body {
 
 .face-frame {
   grid-area: face;
-  background: var(--sh-accent-field);
-  /* The face is the one place the accent field is worn as the mark itself
-     rather than behind one. Clipping the gradient to the glyphs costs the same
-     as painting it to a box: one static gradient, rasterised once. */
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  /* Flat. The face is the device's identity, and a gradient on it reads as a
+     styling flourish applied to the one thing that is supposed to be constant. */
+  color: var(--sh-accent);
   animation: face-rest var(--face-beat) var(--sh-ease) infinite;
   will-change: opacity;
 }
@@ -293,7 +317,6 @@ body {
   /* The one mood that drops the accent: it is not a confident state. */
   background: none;
   color: var(--sh-dim);
-  -webkit-text-fill-color: var(--sh-dim);
 }
 
 /* Pleased: a held squint-smile rather than a wink. */
@@ -303,9 +326,10 @@ body {
 
 .greeting-word {
   color: var(--sh-dim);
-  font-size: 18px;
-  font-weight: 300;
-  letter-spacing: 0.18em;
+  font-family: var(--sh-display);
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   animation: rise 520ms 420ms var(--sh-ease) backwards;
 }
@@ -324,60 +348,112 @@ body {
 /* ------------------------------------------------------------------ *
  * Home — the resting state
  *
- * Metro proper: colour fields on black, no cards and no outlines, type doing
- * the structural work. Modern only in the radius and in the accent tile being
- * lit rather than flat.
+ * A Metro mosaic: tiles of three different sizes packed edge to edge across the
+ * whole panel, distinguished by colour rather than by any outline or card.
+ *
+ * The grid is 6 x 3 on a 800x480 panel, which after the rail and the padding
+ * leaves cells of roughly 120x115. Those numbers are why the mosaic is built
+ * with explicit spans rather than auto-placement: at this size a tile that
+ * reflows into a different shape is a different tile, and auto-placement would
+ * let one do that whenever a label changed length.
+ *
+ * There is no headline. The device's voice belongs on the greeting, where the
+ * face is; here the tiles are the content, and a 50px question competing with
+ * them was the thing making this screen read as a web page rather than a home.
  * ------------------------------------------------------------------ */
 
 .home {
-  display: flex;
-  flex-direction: column;
-  padding: var(--sh-pad) var(--sh-pad) 0;
-  gap: 14px;
+  display: grid;
+  padding: 14px var(--sh-pad) 16px;
+  gap: 10px;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .home-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
   color: var(--sh-dim);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.24em;
+  font-family: var(--sh-display);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
-.home-ask {
-  margin: 0;
-  font-size: 50px;
-  font-weight: 200;
-  line-height: 1.02;
-  /* Metro tracks its display type in, but 200 has almost no sidebearing left to
-     give: below about -0.03em the round letters start touching their neighbours. */
-  letter-spacing: -0.025em;
-  text-wrap: balance;
-  white-space: pre-line;
+.home-head b {
+  color: var(--sh-accent);
+  font-weight: 700;
+  letter-spacing: 0.16em;
 }
 
 .tiles {
   display: grid;
-  margin-top: auto;
-  padding-bottom: 18px;
+  min-height: 0;
   gap: 10px;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
 }
 
 .tile {
   display: flex;
-  min-height: 104px;
+  min-width: 0;
+  min-height: 0;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 13px;
+  overflow: hidden;
+  padding: 12px;
   border-radius: var(--sh-radius);
-  background: var(--sh-surface);
+  /*
+   * Two materials, on purpose. A tile that carries one of the four accents is a
+   * flat colour field — that is what Metro is, and a colour block wants to be
+   * solid. A tile with no accent is glass instead: translucent, with a bright
+   * hairline where light would catch the top edge and a dark one where it falls
+   * away at the bottom. That reads as a pane above the ground rather than as
+   * the lighter-grey box it used to be, and it keeps the neutral tiles from
+   * competing with the coloured ones.
+   */
+  background: color-mix(in srgb, var(--sh-surface) 72%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--sh-fg) 12%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #000000 38%, transparent);
+  color: var(--sh-fg);
+  grid-column: span var(--w, 1);
+  grid-row: span var(--h, 1);
   animation: tile-in 380ms var(--sh-ease) backwards;
-  animation-delay: calc(var(--i, 0) * 55ms);
+  animation-delay: calc(var(--i, 0) * 45ms);
 }
 
-.tile[data-accent='true'] {
-  background: var(--sh-accent-field);
+/*
+ * The four accents. A tile names one; anything unnamed stays on the plum
+ * surface, which is what keeps the coloured ones reading as emphasis.
+ *
+ * Each sets its own foreground rather than inheriting: lime and gold are light
+ * enough that the shell's near-white text drops below AA on them, so those two
+ * take the plum ground as their text colour instead.
+ */
+.tile[data-tone] {
+  box-shadow: none;
+}
+
+.tile[data-tone='magenta'] {
+  background: var(--sh-magenta);
+  color: #2a0512;
+}
+
+.tile[data-tone='teal'] {
+  background: var(--sh-teal);
+  color: #04201e;
+}
+
+.tile[data-tone='lime'] {
+  background: var(--sh-lime);
+  color: #1e2200;
+}
+
+.tile[data-tone='gold'] {
+  background: var(--sh-gold);
+  color: #2b2000;
 }
 
 .tile b {
@@ -386,15 +462,32 @@ body {
   letter-spacing: -0.012em;
 }
 
+/*
+ * A 2x2 tile is the mosaic's focal point and is set large — but in Manrope, not
+ * the bitmap face. The tiles are a field of short labels at small sizes, and a
+ * bitmap face there reads as texture rather than as a set of names; the display
+ * face is reserved for the eyebrow labels and for generated surfaces' headings.
+ */
+.tile[data-size='2x2'] b {
+  font-size: 27px;
+  font-weight: 200;
+  letter-spacing: -0.02em;
+}
+
 .tile span {
-  color: var(--sh-dim);
+  overflow: hidden;
   font-size: 11px;
   font-weight: 300;
   letter-spacing: 0.04em;
+  opacity: 0.72;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.tile[data-accent='true'] span {
-  color: #d9d5ff;
+/* Unaccented tiles need the dim grey; the coloured ones dim their own text. */
+.tile:not([data-tone]) span {
+  color: var(--sh-dim);
+  opacity: 1;
 }
 
 /*
@@ -416,6 +509,19 @@ body {
 .tile:active {
   transform: scale(0.97);
   transition: transform 120ms var(--sh-ease);
+}
+
+/*
+ * The blur is additive and quarantined. `backdrop-filter` re-samples everything
+ * behind the pane, and again on every frame an ancestor moves — and these tiles
+ * sit inside a layer that pans. The ground is a flat colour with nothing behind
+ * it, so switching this off costs almost nothing visually. Deleting this block
+ * is the whole of the fallback if the panel cannot hold frames.
+ */
+@supports (backdrop-filter: blur(1px)) {
+  .tile:not([data-tone]) {
+    backdrop-filter: blur(8px);
+  }
 }
 
 /* ------------------------------------------------------------------ *
@@ -509,7 +615,7 @@ body {
 }
 
 .key[data-state='live'] .key-pip {
-  background: var(--sh-accent-field);
+  background: var(--sh-accent);
 }
 
 .key[data-state='pending'] .key-pip {
@@ -549,7 +655,7 @@ body {
 }
 
 .key:active .key-label {
-  color: var(--sh-accent-2);
+  color: var(--sh-accent);
 }
 
 /* ------------------------------------------------------------------ *
@@ -568,7 +674,7 @@ body {
 }
 
 .fader-label {
-  color: var(--sh-accent-2);
+  color: var(--sh-accent);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.17em;
@@ -586,7 +692,7 @@ body {
 .fader-track i {
   display: block;
   height: 100%;
-  background: var(--sh-accent-field);
+  background: var(--sh-accent);
   transition: width 120ms linear;
 }
 
@@ -612,8 +718,8 @@ body {
   gap: 4px;
   padding: 7px 13px;
   border-radius: 999px;
-  background: var(--sh-accent-field);
-  color: #ffffff;
+  background: var(--sh-accent);
+  color: #23070f;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.14em;

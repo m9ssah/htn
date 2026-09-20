@@ -1,32 +1,12 @@
-export {
-  BOOTSTRAP_THEME,
-  EXIT_DURATION_MS,
-  POLISH_REJECTED_EVENT,
-  createRenderer,
-  type PolishRejection,
-  type Renderer,
-  type RendererOptions,
-  type RendererState,
-  type TelemetryEvent,
-} from './renderer.js';
-export {
-  TEMPLATES,
-  TEMPLATE_IDS,
-  isLeaf,
-  type DividerNode,
-  type LeafNode,
-  type StructuralNode,
-  type Template,
-  type TemplateNode,
-} from './templates.js';
-export { collectActions } from './actions.js';
-export {
-  LEAVES,
-  STRUCTURAL_CLASS,
-  type ButtonVariant,
-  type HeadingLevel,
-  type LeafSpec,
-  type NodeProps,
-  type TextTone,
-} from './vocab.js';
 export { RENDERER_CSS_VARS } from './css-vars.js';
+export { EXAMPLES, PRIMITIVE_GALLERY_EXAMPLE, STUDY_SESSION_EXAMPLE, type SurfaceExample } from './examples.js';
+export { JIT_CATALOG, JIT_CATALOG_VERSION, JIT_REGISTRY } from './catalog.js';
+export {
+  BOOTSTRAP_THEME as JSON_BOOTSTRAP_THEME,
+  createJsonRenderer,
+  toLegacyActions,
+  type ApplyResult,
+  type JsonRendererOptions,
+  type JsonRendererState,
+  type JsonSurfaceRenderer,
+} from './json-renderer.js';

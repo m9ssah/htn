@@ -2,6 +2,7 @@ import type { PolishPatch, ThemeEnums, TokenSet } from '@jit/schema';
 import { PALETTES } from './palettes.js';
 import { FONTS } from './fonts.js';
 import { DENSITIES, MOTIFS, RADII } from './scale.js';
+import { COLOR_VARS, isLightGround } from './dark.js';
 
 /**
  * The width the surface falls back to before a skeleton patch supplies its own.
@@ -30,7 +31,6 @@ export function resolve(theme: ThemeEnums): TokenSet {
     '--jit-fg': palette.fg,
     '--jit-muted': palette.muted,
     '--jit-accent': palette.accent,
-    '--jit-accent-2': palette.accent2,
     '--jit-on-accent': palette.onAccent,
     '--jit-accent-soft': palette.accentSoft,
     '--jit-input': palette.input,
@@ -57,7 +57,17 @@ export function resolve(theme: ThemeEnums): TokenSet {
  * Agent 4's raw tokens override every enum-derived value. The enum base is only
  * a latency cover; once the generative pass lands, it wins on the axes it spoke
  * to and leaves the rest alone.
+ *
+ * With one floor: the ground stays dark. If the merged result would paint a
+ * light background, the COLOUR half of the patch is dropped and the enum
+ * palette's colours stand — see `dark.ts` for why. Shape, type and density
+ * still land, so a rejected patch is not a rejected generation; the surface
+ * still restyles, it just does not take the device's ground with it.
  */
 export function applyPolish(base: TokenSet, polish: PolishPatch): TokenSet {
-  return { ...base, ...polish.tokens };
+  const merged = { ...base, ...polish.tokens };
+  if (!isLightGround(merged['--jit-bg'])) return merged;
+
+  for (const name of COLOR_VARS) merged[name] = base[name];
+  return merged;
 }
