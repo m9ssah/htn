@@ -7,14 +7,19 @@
   "scripts": {
     "build": "tsc -b",
     "node": "tsc -b && node dist/cli.js",
+    "serve": "tsc -b && node dist/server.js",
     "live-jev": "tsc -b && node dist/live-jev.js",
     "record-jev-fixtures": "tsc -b && node dist/record-fixtures.js"
   },
   "dependencies": {
-    "@json-render/core": "file:../../vendor/json-render-core-0.21.0-3ad3818-preview3.tgz",
     "@jit/renderer": "*",
     "@jit/schema": "*",
     "@jit/tokens": "*",
-    "@langchain/langgraph": "^1.4.16"
+    "@json-render/core": "file:../../vendor/json-render-core-0.21.0-3ad3818-preview3.tgz",
+    "@langchain/langgraph": "^1.4.16",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1"
   }
 }

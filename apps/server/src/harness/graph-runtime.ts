@@ -63,6 +63,27 @@ export type Guarded<Out> = { ok: true; out: Out } | { ok: false; aborted: boolea
  *
  * An abort is reported as a distinct fault reason, not as a crash: the turn
  * is over, and nothing is lost by stopping.
+ *
+ * ---
+ *
+ * **READ THIS BEFORE WIRING THE CONCRETE GRAPH.**
+ *
+ * `runGuarded` returning `{ ok: false }` does NOT stop the graph. It converts
+ * a failure into a value precisely so the stream controller never sees an
+ * exception — which means the node after the failed one runs anyway, on state
+ * the failed node never produced. A `decide` that times out therefore lets
+ * `policy`, `style` and the composer all run and each file its own fault, and
+ * the turn log fills with four faults describing one failure.
+ *
+ * The concrete graph must route on it: carry a `halted` flag in the graph
+ * state, set it wherever `!result.ok`, and add a conditional edge to `END`
+ * after every node that can halt. That is not automatic and nothing here can
+ * make it automatic.
+ *
+ * Reproduction, already in the tree: `test/harness/doubles.ts`'s
+ * `twoNodeGraph` has no halt routing — abort or crash `first` and `second`
+ * still runs. That is the behaviour to design around, not a bug in the
+ * double.
  */
 export async function runGuarded<In, Out>(
   node: Node<In, Out>,

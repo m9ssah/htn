@@ -182,12 +182,18 @@ export function startTurn(input: unknown, deps: TurnDeps): Turn {
       });
       for await (const chunk of stream) {
         const [, payload] = chunk as [string, SurfaceUpdate];
-        // The fourth place a stale patch can hide. The sink's gate closes on
-        // abort, but a patch written BEFORE the abort and read after it is
-        // already past the sink and sitting in LangGraph's queue — handing it
-        // on would paint after a barge-in. Breaking here also releases the
-        // consumer instead of making it wait out a node that ignores the
-        // signal (p19b) to the end.
+        // The one case the sink's gate structurally cannot catch: a patch
+        // emitted microseconds BEFORE the abort passes the gate legitimately,
+        // then sits in LangGraph's queue and is read after it. Handing that
+        // on is a paint after barge-in.
+        //
+        // Not the primary defence, and measured as such — the sink's signal
+        // gate alone keeps the socket-level barge-in test green with this
+        // break disabled, because a node emitting on a 15ms cadence rarely
+        // straddles the abort. A node emitting a burst with no awaits
+        // between (the p19e shape) straddles it routinely, which is why this
+        // stays. Breaking also releases the consumer instead of making it
+        // wait out a node that ignores the signal (p19b).
         if (aborted) {
           log.record('patch-dropped', { reason: 'aborted', patch: payload, stage: 'stream-queue' });
           break;
