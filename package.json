@@ -14,7 +14,9 @@
     "test:watch": "vitest",
     "harness": "npm run harness -w @jit/renderer",
     "clean": "rm -rf packages/*/dist apps/*/dist && find . -name '*.tsbuildinfo' -not -path '*/node_modules/*' -delete",
-    "dev": "npm run dev -w @jit/device"
+    "dev": "npm run dev -w @jit/device",
+    "dataset:generate": "npm run dataset:generate -w @jit/server",
+    "dataset:validate": "npm run dataset:validate -w @jit/server"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

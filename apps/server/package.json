@@ -5,10 +5,17 @@
   "type": "module",
   "main": "./dist/index.js",
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "dataset:generate": "tsx src/content-gen/cli-generate.ts",
+    "dataset:validate": "tsx src/content-gen/cli-validate.ts"
   },
   "dependencies": {
     "@jit/schema": "*",
-    "@jit/tokens": "*"
+    "@jit/tokens": "*",
+    "zod": "^4.6.5",
+    "zod-to-json-schema": "^3.25.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.13"
   }
 }
