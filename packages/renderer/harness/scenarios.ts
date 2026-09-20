@@ -185,8 +185,6 @@ export const SCENARIOS: Scenario[] = [
         '--jit-surface': '#2a1419',
         '--jit-border': '#44242b',
         '--jit-accent': '#ff8f6b',
-        '--jit-accent-2': '#f2724f',
-        '--jit-accent-3': '#e09a3c',
         '--jit-on-accent': '#1f0d12',
         '--jit-fg': '#fbeef0',
         '--jit-muted': '#c9a0a6',

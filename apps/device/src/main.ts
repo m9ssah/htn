@@ -80,10 +80,15 @@ function paintHome(): void {
     const el = document.createElement('div');
     el.className = 'tile';
     el.style.setProperty('--i', String(i));
-    // Spans are written even when they are 1, because the CSS keys the focal
-    // tile's display type off the literal `--w: 2`/`--h: 2` pair.
-    el.style.setProperty('--w', String(tile.w ?? 1));
-    el.style.setProperty('--h', String(tile.h ?? 1));
+    const w = tile.w ?? 1;
+    const h = tile.h ?? 1;
+    el.style.setProperty('--w', String(w));
+    el.style.setProperty('--h', String(h));
+    // An explicit size attribute rather than matching on the inline style
+    // string: the CSS keys the focal tile's display face off this, and a
+    // substring match on `style` would break silently if the spans were ever
+    // written differently.
+    el.dataset['size'] = `${w}x${h}`;
     if (tile.tone) el.dataset['tone'] = tile.tone;
     const b = document.createElement('b');
     b.textContent = tile.title;

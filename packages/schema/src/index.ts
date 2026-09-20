@@ -70,10 +70,6 @@ export type CssVar =
   | '--jit-fg'
   | '--jit-muted'
   | '--jit-accent'
-  /** Gradient partner for `--jit-accent`; a neighbour in hue, not a second brand. */
-  | '--jit-accent-2'
-  /** End stop of the ramp. Gradients only; never a flat fill. */
-  | '--jit-accent-3'
   | '--jit-on-accent'
   | '--jit-accent-soft'
   | '--jit-input'
