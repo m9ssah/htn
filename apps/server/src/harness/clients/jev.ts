@@ -27,6 +27,13 @@ export const stubJevClient: JevClient = {
  * Still threads `signal` through — an already-aborted turn must not return an
  * answer just because reading a fixture is fast. Replay is meant to stand in
  * for the real client in a cancellation test, not to short-circuit it.
+ *
+ * `sleep(0, signal)`, not `signal.throwIfAborted()` — see `content.ts`'s
+ * matching comment. `throwIfAborted()` returns synchronously without ever
+ * yielding, so a timer-scheduled abort (the normal case) would never get a
+ * chance to land before this already returned. `sleep(0, ...)` still checks
+ * synchronously if `signal` is already aborted, but otherwise yields once,
+ * which is what lets a pending abort actually win the race.
  */
 export function createReplayJevClient(fixturePath: string): JevClient {
   return {

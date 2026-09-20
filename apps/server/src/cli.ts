@@ -24,8 +24,12 @@ const events: Event[] = [];
 const ctx = createStubCtx(controller.signal);
 ctx.telemetry = (e) => events.push(e);
 
-const output = await timed(node).run(input, ctx);
-
-console.log(JSON.stringify(output, null, 2));
-const timing = events.at(-1);
-console.log(`${timing?.ms.toFixed(1) ?? '?'}ms`);
+try {
+  const output = await timed(node).run(input, ctx);
+  console.log(JSON.stringify(output, null, 2));
+} finally {
+  // `timed` reports on the throw path too — print the ms here as well, or a
+  // failing run tells you nothing about how long it took to fail.
+  const timing = events.at(-1);
+  console.log(`${timing?.ms.toFixed(1) ?? '?'}ms`);
+}

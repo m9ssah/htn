@@ -60,6 +60,17 @@ export type JevAnswer = {
   confidence: number;
 };
 
+/**
+ * `ask`'s single-string input is a P1 placeholder, not a settled shape.
+ * p18/p18b/p18c measured that route is unanswerable from the utterance
+ * alone — "refine"/"correct"/"select" and "the second one" are only
+ * classifiable with something already on screen — so P3's real batched call
+ * will need `currentTemplate` and `taskState` alongside the utterance. That
+ * is a breaking change to `ask`'s INPUT, not an additive widen like `Event`'s
+ * `kind` discriminator above: there is no way to add required context to an
+ * existing single-string parameter without changing every call site. P3
+ * should plan for that rather than be surprised by it.
+ */
 export interface JevClient {
   ask(utterance: string, signal: AbortSignal): Promise<JevAnswer>;
 }
@@ -94,13 +105,17 @@ export interface PatchSink {
 /**
  * Where the turn id actually lives — not on `Patch` (`packages/schema` is a
  * frozen contract, see CLAUDE.md "Do not touch"), and not smuggled into
- * `Ctx` either. `forTurn` advances the store's notion of "current turn" and
- * hands back a `PatchSink` closed over the turn it was made for; once a later
- * `forTurn` call moves "current" on, that sink's `emit` becomes a silent
- * no-op. Probe 17 measured 5s and 21s tails, so a late patch from a previous
- * utterance can otherwise land in the current surface. P4 calls `forTurn`
- * once per turn and puts the result on that turn's `Ctx.sink`.
+ * `Ctx` either. `beginTurn` advances the store on (implementations gate on a
+ * monotonic counter, not on `turnId` equality — re-entering the same turn id
+ * later must NOT resurrect the sink from its first use; see `sink.ts`) and
+ * hands back a `PatchSink` closed over that moment. Once a later
+ * `beginTurn` call moves the store on, the earlier sink's `emit` becomes a
+ * silent no-op forever, even if a later call reuses its `turnId`. Probe 17
+ * measured 5s and 21s tails, so a late patch from a previous utterance can
+ * otherwise land in the current surface. P4 calls `beginTurn` once per turn
+ * and puts the result on that turn's `Ctx.sink` — never twice for the same
+ * turn, which is why this is named as an action, not a lookup.
  */
 export interface PatchSinkStore {
-  forTurn(turnId: string): PatchSink;
+  beginTurn(turnId: string): PatchSink;
 }

@@ -33,6 +33,17 @@ export const stubContentSource: ContentSource = {
  * ignored it would be the exact failure mode this file's `signal` doc warns
  * about (p19b: a node that never checks keeps running after everyone has
  * stopped listening), just with a fixture standing in for the network call.
+ *
+ * `sleep(0, signal)`, not `signal.throwIfAborted()`. The check has to be a
+ * macrotask yield: `throwIfAborted()` returns synchronously and never yields
+ * control, so an abort scheduled on a timer (as every real cancellation is —
+ * `p19b`'s "user speaks again" case) would never get a turn to land before
+ * all three chunks had already been read and yielded. `sleep(0, ...)` still
+ * checks synchronously if `signal` is already aborted (see `signal.ts`), but
+ * otherwise waits one tick, which is what actually gives a pending abort the
+ * chance to fire between chunks. Replacing this with `throwIfAborted()` would
+ * pass every test in this file and still leak the whole read on a real abort
+ * — the same "green test proves nothing" trap the replay tier was just in.
  */
 export function createReplayContentSource(fixturePath: string): ContentSource {
   return {

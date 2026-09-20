@@ -16,7 +16,7 @@ export function createStubCtx(signal: AbortSignal, store: PatchSinkStore = creat
   return {
     jev: stubJevClient,
     content: stubContentSource,
-    sink: store.forTurn('stub-turn'),
+    sink: store.beginTurn('stub-turn'),
     signal,
     now: () => performance.now(),
     telemetry: () => {},

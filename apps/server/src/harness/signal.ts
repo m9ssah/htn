@@ -9,13 +9,16 @@
  */
 export function sleep(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
+    // `signal.reason` is always populated once `aborted` is true — the
+    // platform defaults it to an AbortError DOMException — so there is no
+    // "aborted with no reason" case to fall back from.
     if (signal.aborted) {
-      reject(signal.reason ?? new Error('aborted'));
+      reject(signal.reason);
       return;
     }
     const onAbort = (): void => {
       clearTimeout(id);
-      reject(signal.reason ?? new Error('aborted'));
+      reject(signal.reason);
     };
     // Removed on normal resolution too, not just on abort (`{ once: true }`
     // only covers the latter) — otherwise a turn with many chunks leaves one
