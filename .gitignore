@@ -5,3 +5,4 @@ dist/
 *.tsbuildinfo
 training/data-train/dataset.jsonl
 training/data-train/checkpoints/
+training/data-train/__pycache__/
