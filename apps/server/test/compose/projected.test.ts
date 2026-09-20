@@ -296,7 +296,8 @@ describe('projected composer — overflow is visible, never silent', () => {
     expect(rows).toHaveLength(MAX_INGREDIENT_ROWS);
 
     const last = result.content.values[`ing_${MAX_INGREDIENT_ROWS - 1}`]!;
-    expect(last.title).toBe('+5 more ingredients');
+    const folded = BIG.ingredients.length - (MAX_INGREDIENT_ROWS - 1);
+    expect(last.title).toBe(`+${folded} more ingredients`);
     for (const name of ['Cinnamon', 'Raisins', 'Honey', 'Pumpkin seeds', 'Nutmeg']) {
       expect(String(last.detail)).toContain(name);
     }

@@ -96,6 +96,11 @@ export const project: Node<ProjectInput, ProjectResult> = {
     const warnings: string[] = [];
     try {
       const { templateId } = input;
+      // `show_me` projects from a MEDIA lookup rather than from task state,
+      // so it is composed where that lookup happens — not here.
+      if (templateId === 'show_me') {
+        return NO_SURFACE(['project: "show_me" is composed with its media, not projected from task state']);
+      }
       if (!isProjectedSurface(templateId)) {
         return NO_SURFACE([`project: "${templateId}" is generated, not projected — no surface produced`]);
       }

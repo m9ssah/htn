@@ -68,15 +68,33 @@ describe('timerFor', () => {
 });
 
 describe('focus_step timer', () => {
-  it('shows a timer on the bake step', () => {
+  /**
+   * Arriving at "bake for 11 minutes" is not the same as having put it in the
+   * oven, so the step offers to START a timer rather than counting on its own.
+   */
+  it('offers to start the timer on a step that has one', () => {
     const bakeIndex = CLASSIC_CHOCOLATE_CHIP.steps.findIndex((s) => s.id === 's7');
 
     const result = composeProjected({ kind: 'focus_step', state: state(bakeIndex) }, { ...ids, now: T0 });
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.structure.spec.elements.timer_bar).toMatchObject({ type: 'Progress', props: { pct: 0 } });
+    expect(result.content.values.timer_start?.text).toBe('Start 11:00 timer');
+    expect(result.structure.spec.elements.timer_start?.on?.press?.action).toBe('start_timer');
+    // Nothing is counting yet.
+    expect(result.structure.spec.elements.timer_bar).toBeUndefined();
+  });
+
+  it('counts once the timer has been started', () => {
+    const bakeIndex = CLASSIC_CHOCOLATE_CHIP.steps.findIndex((s) => s.id === 's7');
+    const started: TaskState = { ...state(bakeIndex), timerStartedAt: T0 };
+
+    const result = composeProjected({ kind: 'focus_step', state: started }, { ...ids, now: T0 });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
     expect(result.content.values.timer_remaining).toMatchObject({ value: '11:00', label: 'Time left' });
+    expect(result.structure.spec.elements.timer_start).toBeUndefined();
   });
 
   it('shows no timer on a step that declares no duration', () => {
@@ -97,14 +115,15 @@ describe('focus_step timer', () => {
    */
   it('advances with the clock rather than repainting the same number', () => {
     const bakeIndex = CLASSIC_CHOCOLATE_CHIP.steps.findIndex((s) => s.id === 's7');
-    const baking: TaskState = { ...state(bakeIndex), stepStartedAt: T0 };
+    const baking: TaskState = { ...state(bakeIndex), timerStartedAt: T0 };
 
     const later = composeProjected({ kind: 'focus_step', state: baking }, { ...ids, now: T0 + 60_000 });
 
     expect(later.ok).toBe(true);
     if (!later.ok) return;
     expect(later.content.values.timer_remaining).toMatchObject({ value: '10:00' });
-    expect(later.structure.spec.elements.timer_bar?.props.pct).toBeCloseTo(100 / 11, 5);
+    // Bound to content, not fixed, so a tick can move it.
+    expect(later.content.values.timer_bar?.pct).toBe(9);
   });
 });
 

@@ -5,7 +5,9 @@ import { stubContentSource } from './harness/clients/content.js';
 import { OpenAiContentModel, stubContentModel } from './harness/clients/content-model.js';
 import { getRealJevClient, stubJevClient } from './harness/clients/jev.js';
 import { realResearchClient } from './harness/clients/research.js';
+import { createMediaFinder } from './harness/clients/media.js';
 import { createGraph, createSession } from './graph.js';
+import { tickTimer } from './session.js';
 import { createSurfaceServer } from './ws-server.js';
 
 /**
@@ -79,7 +81,17 @@ const session = createSession();
 const server = await createSurfaceServer({
   port,
   host,
-  deps: { graph: createGraph(session), jev, content: stubContentSource, contentModel, fetch: realResearchClient },
+  deps: {
+    graph: createGraph(session, { media: createMediaFinder(realResearchClient) }),
+    jev,
+    content: stubContentSource,
+    contentModel,
+    fetch: realResearchClient,
+    onViewport: (width, height) => {
+      session.panel = { width, height };
+    },
+    tick: () => tickTimer(session),
+  },
 });
 
 process.stderr.write(

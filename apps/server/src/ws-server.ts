@@ -122,6 +122,7 @@ function attachDevice(
   const runner = createTurnRunner(deps);
   let activeTurnId: string | null = null;
   let closed = false;
+  let ticking = 0;
 
   /**
    * Fire and forget. `ws.send` is non-blocking and takes no callback here on
@@ -145,6 +146,25 @@ function attachDevice(
   // First frame on the connection, so a device fails loudly on a version
   // skew instead of silently misreading frames.
   send({ type: 'hello', protocol: WIRE_PROTOCOL_VERSION });
+
+  /**
+   * A running timer ticks outside the turn that started it.
+   *
+   * A turn ends when the graph runs out of patches, but a 20-minute chill
+   * does not — so the countdown is sent from here, once a second, as a
+   * content patch naming only the timer's own slots. Every value is computed
+   * server-side; no model and no graph run on a tick, which is what keeps a
+   * clock off the latency budget entirely.
+   *
+   * It carries no `turnId` of its own: it belongs to whatever surface is up,
+   * and the device applies content patches without caring which turn they
+   * came from.
+   */
+  ticking = setInterval(() => {
+    const update = deps.tick?.();
+    if (!update || closed) return;
+    send({ type: 'update', turnId: activeTurnId ?? 'timer', seq: 0, update });
+  }, 1000) as unknown as number;
 
   const pump = async (turn: Turn): Promise<void> => {
     let seq = 0;
@@ -200,6 +220,14 @@ function attachDevice(
       return;
     }
 
+    if (parsed.message.type === 'viewport') {
+      // Not a turn: it changes what the NEXT surface is budgeted against,
+      // and repainting on every resize tick would fight the user.
+      deps.onViewport?.(parsed.message.width, parsed.message.height);
+      log('viewport', { width: parsed.message.width, height: parsed.message.height });
+      return;
+    }
+
     if (parsed.message.type === 'action') {
       // A control event names the action the SURFACE declared, so it needs no
       // routing — it goes straight to the command layer that speech resolves
@@ -226,6 +254,7 @@ function attachDevice(
   const teardown = (why: string): void => {
     if (closed) return;
     closed = true;
+    clearInterval(ticking);
     // A turn in flight when the socket drops must abort rather than keep
     // paying a model to render into a dead socket.
     runner.abort(new Error(`socket ${why}`));

@@ -4,6 +4,7 @@ import { applyDeviation, findDeviations, type TaskState } from './domain/recipe.
 import { applyCommand, resolveCommand } from './domain/commands.js';
 import { DEVIATION_FACTORS } from './harness/clients/jev-questions.js';
 import { CONTACTS } from './seed.js';
+import { stubMediaFinder, type MediaFinder } from './harness/clients/media.js';
 import { contextFor, createSession, describeTask, remember, type Session } from './session.js';
 
 export { createSession, type Session } from './session.js';
@@ -19,9 +20,20 @@ export function runCommand(session: Session, action: string, value?: string | nu
   session.task = outcome.task;
   session.chosen = outcome.chosen;
   if (outcome.template) session.currentTemplate = outcome.template;
-  return { template: outcome.template ?? session.currentTemplate, note: outcome.note };
+  /**
+   * `null` means KEEP, and it is passed through rather than collapsed to the
+   * current template.
+   *
+   * Collapsing it made every keep-command repaint the surface it was keeping.
+   * On a generated surface that was fatal: the repaint emits a skeleton whose
+   * slots are all pending, and an action turn carries no utterance — so the
+   * content model was asked to fill it with an empty intent, produced nothing
+   * usable, and the surface shimmered for ever. Pressing the button on an
+   * answer was a one-way trip into a loading screen.
+   */
+  return { template: outcome.template, note: outcome.note };
 }
-import { composeGenerated, isGeneratedSurface, isProjectedSurface } from './compose/projected.js';
+import { composeGenerated, composeProjected, isGeneratedSurface, isProjectedSurface } from './compose/projected.js';
 import { runGuarded, runtimeOf, type TurnRuntime } from './harness/graph-runtime.js';
 import { decide } from './harness/nodes.js';
 import { generate } from './harness/nodes/generate.js';
@@ -55,6 +67,24 @@ import type { JevAnswer } from './harness/types.js';
  * soda, because the only other thing in the prompt was the recipe step. The
  * surface's PURPOSE is the intent; the utterance is just what triggered it.
  */
+/**
+ * The surface budget, from what the device reported.
+ *
+ * `enforceHeight` is on whenever the device has told us its size: the budget
+ * is measured against something real at that point, and two-column layouts
+ * gave it enough room to fold gracefully rather than gut a surface.
+ */
+function panelOf(session: Session): { maxWidth?: number; maxHeight?: number; enforceHeight?: boolean } {
+  const panel = session.panel;
+  if (!panel) return {};
+  return {
+    maxWidth: Math.max(320, panel.width - 40),
+    // What the stage keeps once the rail has taken its row.
+    maxHeight: Math.max(160, panel.height - 72),
+    enforceHeight: true,
+  };
+}
+
 /** Fills in what the last remembered exchange actually put on screen. */
 function noteShown(session: Session, templateId: TemplateId): void {
   const last = session.history.at(-1);
@@ -62,6 +92,17 @@ function noteShown(session: Session, templateId: TemplateId): void {
     session.history = [...session.history.slice(0, -1), { ...last, showed: templateId }];
   }
 }
+
+/**
+ * Asking to SEE something, as opposed to asking about it.
+ *
+ * Needs a visual word: "show me the ingredients" wants the list, not a
+ * photograph of it.
+ */
+const WANTS_MEDIA = /\b(look(s)? like|picture|photo|image|video|clip|footage|show me how|see it|watch)\b/i;
+
+/** Whether "show me" means this step, or the dish as a whole. */
+const wantsStepMedia = (said: string): boolean => /\b(this|that|step|doing|now)\b/i.test(said);
 
 const SOCIAL = /^\s*(hi|hey|hello|yo|good (morning|afternoon|evening)|how are you|what'?s up|nice to meet you|my name is|i'?m |im |call me |this is |thanks|thank you|bye|goodbye)/i;
 
@@ -111,7 +152,9 @@ const GraphState = Annotation.Root({
 
 type State = typeof GraphState.State;
 
-export function createGraph(session: Session): PatchStream {
+export type GraphDeps = { media: MediaFinder };
+
+export function createGraph(session: Session, deps: GraphDeps = { media: stubMediaFinder }): PatchStream {
   const graph = new StateGraph(GraphState)
     /**
      * One batched Jev call: route, template, the five style axes and the
@@ -137,7 +180,27 @@ export function createGraph(session: Session): PatchStream {
       if (state.action) {
         const { template, note } = runCommand(session, state.action, state.value ?? undefined);
         turn.note('command', { action: state.action, note, template, source: 'control' });
+        // A command that keeps the surface has nothing to paint. Repainting
+        // anyway is how a press became an endless shimmer.
+        if (!template) return { halted: true };
         return { templateId: template, commanded: true };
+      }
+
+      /**
+       * "Show me" is a request to SEE, and it resolves here.
+       *
+       * Routed through the model it came back `refine`, and `refine_keep`
+       * discarded the template — correctly, by p18's rule that a refine must
+       * never swap the surface. But asking for a picture is not refining the
+       * one you are on. It is a finite, visual intent, so it is matched in
+       * TypeScript and skips the round trip entirely.
+       *
+       * Deliberately narrow: "show me the ingredients" is a request for the
+       * ingredients, not for a photograph of them.
+       */
+      if (WANTS_MEDIA.test(state.utterance ?? '')) {
+        turn.note('command', { utterance: state.utterance, action: 'show_me', source: 'spoken' });
+        return { templateId: 'show_me' as TemplateId, commanded: true };
       }
 
       /**
@@ -152,6 +215,7 @@ export function createGraph(session: Session): PatchStream {
       if (command) {
         const { template, note } = runCommand(session, command);
         turn.note('command', { utterance: state.utterance, action: command, note, template });
+        if (!template) return { halted: true };
         return { templateId: template, commanded: true };
       }
 
@@ -270,10 +334,51 @@ export function createGraph(session: Session): PatchStream {
        * respond to something nobody scripted — a projected cookie screen is
        * the wrong answer to "what's the most expensive ingredient".
        */
+      /**
+       * "Show me what that looks like" — a real lookup, not a stub.
+       *
+       * Deterministic routing, because the subject is already known: the step
+       * being followed, or the recipe. Asking the router first would cost a
+       * round trip to reach a surface whose content comes from somewhere else
+       * entirely.
+       */
+      if (templateId === 'show_me') {
+        const step = session.task.recipe.steps[session.task.stepIndex];
+        const subject = wantsStepMedia(state.utterance ?? '') && step
+          ? step.instruction
+          : session.task.recipe.name;
+        const requestId = `${turn.turnId}-surface`;
+        const cached = session.media?.subject === subject ? session.media : null;
+        const found = cached ? cached.hit : await deps.media.find(subject, turn.ctx.signal).catch(() => null);
+        if (!cached) session.media = { subject, hit: found };
+        turn.note('media', { subject, cached: Boolean(cached), found: found ? `${found.kind}: ${found.url}` : 'nothing' });
+
+        const composed = composeProjected(
+          {
+            kind: 'show_me',
+            subject,
+            media: found,
+            caption: found
+              ? `From Wikimedia Commons — ${found.kind === 'video' ? 'a clip' : 'a picture'} of ${subject.toLowerCase()}.`
+              : 'Nothing matched that on Wikimedia Commons.',
+          },
+          { requestId, generationId: `${turn.turnId}-gen`, ...panelOf(session) },
+        );
+        if (!composed.ok) {
+          turn.note('paint-failed', { templateId, reason: composed.reason });
+          return { halted: true };
+        }
+        turn.ctx.sink.emit(composed.structure);
+        turn.ctx.sink.emit(composed.content);
+        session.currentTemplate = 'show_me';
+        noteShown(session, 'show_me');
+        return {};
+      }
+
       if (isGeneratedSurface(templateId)) {
         const requestId = `${turn.turnId}-surface`;
         const generationId = `${turn.turnId}-gen`;
-        const composed = composeGenerated(templateId, { requestId, generationId });
+        const composed = composeGenerated(templateId, { requestId, generationId, ...panelOf(session) });
         if (!composed.ok) {
           turn.note('paint-failed', { templateId, reason: composed.reason });
           return { halted: true };
@@ -324,6 +429,7 @@ export function createGraph(session: Session): PatchStream {
           chosen: session.chosen,
           requestId: `${turn.turnId}-surface`,
           generationId: `${turn.turnId}-gen`,
+          ...panelOf(session),
         },
         turn,
         'node-crashed',

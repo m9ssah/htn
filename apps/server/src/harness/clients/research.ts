@@ -74,7 +74,18 @@ export const realResearchClient: ResearchClient = {
     const combined = AbortSignal.any([signal, AbortSignal.timeout(FETCH_TIMEOUT_MS)]);
 
     return new Promise<FetchOutcome>((resolve) => {
-      const req = https.request(target.url, { method: 'GET', signal: combined }, (res) => {
+      /**
+       * A real User-Agent, because polite APIs require one.
+       *
+       * Wikimedia answers an anonymous request with `403 Please set a
+       * user-agent`, which arrives as a perfectly successful HTTP exchange —
+       * so the fetch "worked" and every media lookup came back empty.
+       */
+      const req = https.request(target.url, {
+        method: 'GET',
+        signal: combined,
+        headers: { 'User-Agent': 'jit-ui-device/0.1 (https://github.com/m9ssah/htn) node' },
+      }, (res) => {
         const chunks: Buffer[] = [];
         let size = 0;
         res.on('data', (chunk: Buffer) => {

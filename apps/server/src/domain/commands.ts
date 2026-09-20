@@ -43,6 +43,7 @@ const DONE = 'summary_done';
 const PICK = 'people_picker';
 const DRAFTS = 'message_drafts';
 const RECOVERY = 'recovery';
+const SHOW_ME = 'show_me';
 
 /**
  * Applies one action. Total: an action nobody defined returns `template: null`
@@ -110,6 +111,14 @@ export function applyCommand(input: CommandInput): CommandOutcome {
       return { task: { ...input.task, stepIndex, stepStartedAt: now }, template: STEP, chosen, note: `back to step ${stepIndex + 1}` };
     }
 
+    case 'start_timer':
+      return { task: { ...input.task, timerStartedAt: now }, template: STEP, chosen, note: 'timer started' };
+
+    case 'stop_timer': {
+      const { timerStartedAt: _stopped, ...rest } = input.task;
+      return { task: rest, template: STEP, chosen, note: 'timer stopped' };
+    }
+
     case 'step_done':
       return { task: input.task, template: DONE, chosen, note: 'marked done' };
 
@@ -144,11 +153,37 @@ export function applyCommand(input: CommandInput): CommandOutcome {
       if (chosen.length === 0) return { ...keep('nobody chosen yet'), template: PICK };
       return { task: input.task, template: DRAFTS, chosen, note: `drafting for ${chosen.length}` };
 
+    case 'back_to_task':
+      /**
+       * Leaving a picture returns you to what you were doing.
+       *
+       * `acknowledge` keeps the surface, which is right for dismissing an
+       * answer and wrong for a button labelled "Back to the recipe" — it
+       * left the media surface up, which then re-ran its lookup and fetched
+       * a second picture.
+       */
+      return {
+        task: input.task,
+        template: input.task.timerStartedAt !== undefined || input.task.stepIndex > 0 ? STEP : ITEM,
+        chosen,
+        note: 'back to the task',
+      };
+
     case 'acknowledge':
-      return { task: input.task, template: input.task.stepIndex > 0 ? STEP : ITEM, chosen, note: 'acknowledged' };
+      /**
+       * Dismissing an answer is not a request to start cooking.
+       *
+       * This used to return to `focus_step`/`item_detail`, so clicking "Got
+       * it" on an answer to "how many calories" dropped you into the recipe
+       * — a frame change nobody asked for, which reads as the device doing
+       * its own thing. Acknowledging leaves the surface where it is; the
+       * user says what they want next.
+       */
+      return keep('acknowledged');
 
     default:
-      if (action.startsWith('pick_draft_')) return { task: input.task, template: DONE, chosen, note: 'picked a draft' };
+      // Picking a draft confirms THAT draft. It does not end the task.
+      if (action.startsWith('pick_draft_')) return keep('picked a draft');
       if (action === 'set_preference') return keep('preference is a display axis, not a state change');
       return keep(`no command named "${action}"`);
   }
@@ -202,6 +237,8 @@ export function resolveCommand(template: TemplateId | null, utterance: string): 
   if (template === STEP) {
     // Backwards is checked first: "go back" contains "go", which forwards
     // would otherwise claim.
+    // Checked before movement: "start the timer" contains "start".
+    if (has('timer', 'countdown')) return said.includes('stop') || said.includes('cancel') ? 'stop_timer' : 'start_timer';
     if (has('back', 'previous', 'undo', 'return')) return 'prev_step';
     if (has('done', 'finished', 'complete', 'thats it')) return 'step_done';
     if (forward(said)) return 'next_step';
@@ -210,6 +247,12 @@ export function resolveCommand(template: TemplateId | null, utterance: string): 
   if (template === ITEM) {
     if (has('start', 'begin', 'cook', 'bake', 'make it')) return 'begin';
     if (forward(said)) return 'begin';
+  }
+
+  if (template === SHOW_ME) {
+    // Moving on from a picture means moving on with the recipe.
+    if (forward(said)) return 'next_step';
+    if (has('back', 'done', 'close', 'recipe', 'return')) return 'back_to_task';
   }
 
   if (template === RECOVERY) {

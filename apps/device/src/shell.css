@@ -368,7 +368,16 @@ body {
   display: grid;
   padding: 14px var(--sh-pad) 16px;
   gap: 10px;
-  grid-template-rows: auto minmax(0, 1fr);
+  /*
+   * Three rows, because `paintHome` appends three children: the status line,
+   * the question, and the mosaic. Declaring only two left the tiles in an
+   * implicit `auto` row that could not shrink — so on any panel shorter than
+   * 480 they grew past the section and printed over the question.
+   *
+   * The mosaic takes what is left and is the only row allowed to shrink;
+   * the two lines above it are sized by their text.
+   */
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .home-head {
@@ -955,3 +964,36 @@ body {
 
 .talk-vu i:nth-child(2) { animation-delay: 140ms; }
 .talk-vu i:nth-child(3) { animation-delay: 280ms; }
+
+/* ------------------------------------------------------------------ *
+ * The surface fills the panel
+ *
+ * The renderer top-aligns a surface, which is right when it does not know
+ * what it is being painted into. On a fixed 800x480 panel it left a short
+ * card floating in the top half with dead space under it — the surface IS
+ * the screen here, so it takes the screen.
+ *
+ * Device-level, not a renderer change: the renderer still knows nothing
+ * about the panel it happens to be painting on.
+ * ------------------------------------------------------------------ */
+
+/* `#surface` IS the renderer's root — one element carrying both classes, so
+   this is `.surface.jit-root`, not a descendant selector. */
+.surface.jit-root {
+  align-items: stretch;
+  /* Clear of the talk button, which floats over this corner. */
+  padding-top: calc(var(--jit-pad) + 30px);
+}
+
+.surface.jit-root > * {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+/* A two-column surface splits the height between its columns rather than
+   letting the taller one define the card and the shorter one trail off. */
+.surface .c-row {
+  flex: 1 1 auto;
+  align-items: stretch;
+}

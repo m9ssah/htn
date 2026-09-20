@@ -48,8 +48,20 @@ describe('buildQuestions', () => {
     expect(Object.keys(ROUTES).sort()).toEqual(['correct', 'new_task', 'other', 'query', 'refine', 'select'].sort());
   });
 
-  it('templateId covers all 8 templates', () => {
-    expect(Object.keys(TEMPLATE_DESCRIPTIONS)).toHaveLength(8);
+  /**
+   * Completeness is already compile-enforced: `TEMPLATE_DESCRIPTIONS` is a
+   * `Record<TemplateId, string>`, so adding a template without describing it
+   * fails the build. Counting them here only meant editing a number every
+   * time the set grew. What is worth asserting is that each description says
+   * something — Jev picks from these strings, and an empty one is a template
+   * it can never choose on purpose.
+   */
+  it('every template Jev can pick is actually described to it', () => {
+    const entries = Object.entries(TEMPLATE_DESCRIPTIONS);
+    expect(entries.length).toBeGreaterThanOrEqual(8);
+    for (const [id, description] of entries) {
+      expect(description.length, `${id} has no description`).toBeGreaterThan(20);
+    }
   });
 
   it('DEVIATION_FACTORS and its question descriptions cannot drift apart', () => {

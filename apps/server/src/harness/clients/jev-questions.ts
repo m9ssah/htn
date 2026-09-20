@@ -36,8 +36,15 @@ export const TEMPLATE_DESCRIPTIONS: Record<TemplateId, string> = {
   focus_step: 'One instruction at a time; sparse; encoder scrubs steps',
   recovery: 'Something went wrong: diagnosis, recommended fix, consequence',
   summary_done: 'The task is done; an open prompt, not a button row',
-  people_picker: 'Pick people',
+  people_picker:
+    'Choosing WHO, from a short list of contacts — "text my friends", "send it '
+    + 'to Ari", "share this with someone". Picking this shows the contacts to '
+    + 'choose between, before anything is written or sent.',
   message_drafts: 'Generated drafts, one per recipient, with a tone axis',
+  show_me:
+    'The user wants to SEE the thing rather than read about it — "show me", '
+    + '"what does that look like", "is there a video". Picking this fetches a '
+    + 'picture or a clip of what they are doing and puts it beside the words.',
   generic_answer:
     'A question that wants a factual ANSWER and no change to the task. Not for choosing, not for starting something.',
 };

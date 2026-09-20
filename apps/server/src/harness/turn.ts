@@ -56,6 +56,13 @@ export type TurnDeps = {
   now?: () => number;
   /** Extra telemetry consumer. The turn log always gets everything regardless. */
   telemetry?: (event: Event) => void;
+  /** The device told us how much room it has. Not a turn — see `ws-server`. */
+  onViewport?: (width: number, height: number) => void;
+  /**
+   * One second of clock, as a patch — or `null` when nothing is counting.
+   * Called outside any turn, so it must not touch graph state.
+   */
+  tick?: () => SurfaceUpdate | null;
   /**
    * Boundary shape check. Returns a one-line reason, or `null` when the
    * patch is well formed. A rejected patch is dropped and logged — never

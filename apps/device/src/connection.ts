@@ -38,6 +38,8 @@ export type Connection = {
   /** Where this device is trying to reach the server. Shown when it cannot. */
   readonly url: string;
   say(text: string): boolean;
+  /** Tell the server how much room a surface actually has. */
+  viewport(width: number, height: number): boolean;
   act(action: string, elementId: string, value?: string | number | boolean): boolean;
   readonly status: ConnectionStatus;
 };
@@ -169,6 +171,7 @@ export function connect(handlers: ConnectionHandlers): Connection {
   return {
     url: serverUrl(),
     say: (text) => send({ type: 'utterance', text }),
+    viewport: (width, height) => send({ type: 'viewport', width, height }),
     act: (action, elementId, value) => send({ type: 'action', action, elementId, ...(value !== undefined ? { value } : {}) }),
     get status(): ConnectionStatus {
       return status;

@@ -175,8 +175,29 @@ function reset(): void {
   });
 }
 
+/** The space a surface actually has: the stage, less nothing — the rail is its own row. */
+function reportViewport(): void {
+  const stage = document.querySelector('.stage');
+  if (!stage) return;
+  const box = stage.getBoundingClientRect();
+  connection.viewport(Math.round(box.width), Math.round(window.innerHeight));
+}
+
+let resizeTimer = 0;
+window.addEventListener('resize', () => {
+  // Debounced: a drag fires this continuously, and each one would change what
+  // the next surface is budgeted against mid-gesture.
+  window.clearTimeout(resizeTimer);
+  resizeTimer = window.setTimeout(reportViewport, 200);
+});
+
 const connection: Connection = connect({
   onStatus(next: ConnectionStatus, detail) {
+    // Reported the moment the socket is live, and again on resize: the
+    // composer budgets the next surface against this, and a stage it has to
+    // guess at is a stage it gets wrong. `.stage` clips rather than scrolls,
+    // so guessing high loses the bottom of every surface silently.
+    if (next === 'live') reportViewport();
     if (next === 'live') showStatus(null);
     else if (next === 'connecting') showStatus('connecting…');
     else showStatus(`no server at ${connection.url} — ${detail ?? 'retrying'}`);

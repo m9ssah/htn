@@ -266,7 +266,20 @@
   line-height: 1.5;
 }
 
+/* A clip fills the same box a still would, so swapping one for the other
+   cannot change the surface's height. */
+.c-media > .m-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
 .c-media {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;

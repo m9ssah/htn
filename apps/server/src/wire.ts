@@ -50,6 +50,16 @@ export type ClientMessage =
   /** Speech (or typed text). Arriving mid-turn is a barge-in and aborts the turn in flight. */
   | { type: 'utterance'; text: string }
   /**
+   * How much room the device actually has for a surface, sent on connect and
+   * whenever it changes.
+   *
+   * The composer used to assume an 800x480 panel and a 364px stage. A Pi
+   * running the browser windowed has ~87px less than that, and `.stage`
+   * clips rather than scrolls — so the bottom of every surface silently
+   * vanished. A surface can only be budgeted against the space that exists.
+   */
+  | { type: 'viewport'; width: number; height: number }
+  /**
    * A touch, button, encoder or slider event, named by the action the
    * surface's own spec declared (`SurfaceActionDescriptor.action`).
    *
@@ -94,6 +104,16 @@ export function parseClientMessage(raw: string): ParseResult {
         return { ok: false, reason: `utterance.text exceeds ${MAX_UTTERANCE_CHARS} characters` };
       }
       return { ok: true, message: { type: 'utterance', text } };
+    }
+    case 'viewport': {
+      const width = Number(m.width);
+      const height = Number(m.height);
+      // A zero or absurd size would budget every surface to nothing, so it is
+      // refused rather than believed.
+      if (!Number.isFinite(width) || !Number.isFinite(height) || width < 200 || height < 120) {
+        return { ok: false, reason: 'viewport must be a sane width and height' };
+      }
+      return { ok: true, message: { type: 'viewport', width: Math.round(width), height: Math.round(height) } };
     }
     case 'action': {
       if (typeof m.action !== 'string' || !m.action) return { ok: false, reason: 'action.action must be a non-empty string' };

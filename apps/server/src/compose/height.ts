@@ -80,7 +80,8 @@ export function leafHeight(type: LeafComponentV2, options: { lines?: number; has
 export function estimateSpecHeight(spec: SurfaceSpec): number {
   const heightOf = (key: string): number => {
     const element = spec.elements[key];
-    if (!element || !(element.type in NOMINAL)) return 0;
+    if (!element) return 0;
+    if (!(element.type in NOMINAL)) return columnHeight(key);
     const reserve = element.props['reserveLines'];
     const lines = typeof reserve === 'number' ? reserve : 1;
     return leafHeight(element.type as LeafComponentV2, {
@@ -89,23 +90,26 @@ export function estimateSpecHeight(spec: SurfaceSpec): number {
     });
   };
 
-  // Children of a ButtonGroup share one row, so they are costed once at the
-  // tallest rather than stacked.
-  const grouped = new Set<string>();
-  const rows: number[] = [];
-  for (const element of Object.values(spec.elements)) {
-    if (element.type !== 'ButtonGroup') continue;
-    const children = element.children ?? [];
-    for (const key of children) grouped.add(key);
-    if (children.length > 0) rows.push(Math.max(...children.map(heightOf)));
-  }
+  /**
+   * A container's height.
+   *
+   * `Row` and `Grid` put their children SIDE BY SIDE, so they are as tall as
+   * their tallest column rather than the sum — summing them is what made a
+   * two-column surface look like it overflowed when it comfortably fits, and
+   * the whole point of the columns is that they halve the height.
+   */
+  const columnHeight = (key: string): number => {
+    const element = spec.elements[key];
+    const children = element?.children ?? [];
+    if (children.length === 0) return 0;
+    const heights = children.map(heightOf);
+    if (element?.type === 'Row' || element?.type === 'Grid' || element?.type === 'ButtonGroup') {
+      return Math.max(...heights);
+    }
+    return heights.reduce((sum, h) => sum + h, 0) + GAP * Math.max(0, heights.length - 1);
+  };
 
-  for (const [key, element] of Object.entries(spec.elements)) {
-    if (grouped.has(key) || !(element.type in NOMINAL)) continue;
-    rows.push(heightOf(key));
-  }
-
-  return rows.reduce((sum, h) => sum + h, 0) + GAP * Math.max(0, rows.length - 1) + CHROME;
+  return columnHeight(spec.root) + CHROME;
 }
 
 export type HeightBudget = {

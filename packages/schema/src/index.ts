@@ -35,6 +35,13 @@ export type TemplateId =
   /** Generated drafts, one per recipient, with a tone axis. */
   | 'message_drafts'
   /**
+   * Show the thing rather than describe it: a picture or a clip beside the
+   * words. Its own template because the layout is the point — a photo
+   * squeezed into the same single column as body text is not showing anyone
+   * anything, and the media is pulled from a real source per surface.
+   */
+  | 'show_me'
+  /**
    * Anything unscripted. This is what answers a judge driving the device, so it
    * is demo-critical rather than a safety net.
    */

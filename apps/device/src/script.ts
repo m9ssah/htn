@@ -1,29 +1,15 @@
-import type { ContentUpdateV2, PolishPatch, StructureUpdateV2, StylePatch } from '@jit/schema';
-import { EXAMPLES } from '@jit/renderer';
-
 /**
- * The scripted demo, and the home tiles.
+ * The home tiles.
  *
- * A stand-in for the orchestrator so the shell is walkable before the server
- * exists. It reuses the harness scenarios rather than duplicating them, so
- * there is exactly one place the demo content lives.
+ * This file used to hold the scripted demo too — a stand-in for the
+ * orchestrator, built from the renderer's example scenarios. The server
+ * drives the device now, so the beats are gone and with them the import of
+ * `EXAMPLES`: the home screen had no reason to depend on the whole example
+ * corpus loading, and anything that stopped that module evaluating took the
+ * tiles down with it.
  *
- * Nothing about the FLOW is scripted in the real system — this file is the
- * first thing deleted once `apps/server` is talking.
+ * What is left is seed data for the resting state, and says so.
  */
-export type Beat = {
-  structure: StructureUpdateV2;
-  content: ContentUpdateV2;
-  style: StylePatch;
-  polish: PolishPatch | null;
-};
-
-export const DEMO: Beat[] = EXAMPLES.map((s) => ({
-  structure: s.structure,
-  content: s.content,
-  style: s.style,
-  polish: s.polish,
-}));
 
 /**
  * The resting state's mosaic.

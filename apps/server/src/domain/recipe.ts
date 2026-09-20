@@ -71,6 +71,15 @@ export type TaskState = {
    * duration rather than a wrong elapsed.
    */
   stepStartedAt?: number;
+  /**
+   * When the step's timer was STARTED, if it has been.
+   *
+   * Separate from `stepStartedAt` because arriving at "chill the dough for 20
+   * minutes" is not the same as putting it in the fridge — a timer that began
+   * counting the moment the step appeared was already wrong by the time
+   * anyone acted on it, and could not be started at all.
+   */
+  timerStartedAt?: number;
 };
 
 /* ------------------------------------------------------------------ *

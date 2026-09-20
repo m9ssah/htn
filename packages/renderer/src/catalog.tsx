@@ -76,11 +76,33 @@ const Metric = ({ element }: RenderProps) => {
   const props = element.props;
   return <div className="c-metric" {...leafProps(props)}><span className="c-label">{string(props.label)}</span><div className="m-value">{string(props.value)}</div><div className="m-delta">{string(props.delta)}</div></div>;
 };
+/**
+ * A still or a clip, decided by the source rather than by a second component.
+ *
+ * `src` used to be painted only as a background image, so a video URL showed
+ * a blank box. Playing it inline keeps the vocabulary at the same size — one
+ * `Media`, same props — while letting "show me how" actually move.
+ *
+ * Muted, looping and `playsInline` because it is decoration on a kiosk, not
+ * something anyone presses play on: autoplay is only permitted while muted,
+ * and a clip that needed a tap would need a control the rail has no room for.
+ */
+const VIDEO = /\.(mp4|webm|ogv|ogg|mov)(\?|$)/i;
+
 const Media = ({ element }: RenderProps) => {
   const props = element.props;
   const src = string(props.src);
   const leaf = leafProps(props);
-  return <div className="c-media" {...leaf} style={{ ...leaf.style, backgroundImage: src ? `url("${src}")` : undefined }}><span className="m-caption">{string(props.caption)}</span></div>;
+  const caption = <span className="m-caption">{string(props.caption)}</span>;
+  if (src && VIDEO.test(src)) {
+    return (
+      <div className="c-media" {...leaf}>
+        <video className="m-video" src={src} autoPlay muted loop playsInline />
+        {caption}
+      </div>
+    );
+  }
+  return <div className="c-media" {...leaf} style={{ ...leaf.style, backgroundImage: src ? `url("${src}")` : undefined }}>{caption}</div>;
 };
 const Badge = ({ element }: RenderProps) => <span className="c-badge" {...leafProps(element.props)}>{string(element.props.text)}</span>;
 const ListItem = (renderProps: RenderProps) => {

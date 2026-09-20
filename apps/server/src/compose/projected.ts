@@ -187,6 +187,20 @@ class SurfaceBuilder {
     return this.budget.fits(leafHeight(type, options));
   }
 
+  /**
+   * Writes a content value the COMPOSER computed, for a prop bound to
+   * `/content/...` that is not a generated field.
+   *
+   * `leaf`'s `copy` is for model-fillable strings; this is for a number the
+   * server owns but still wants to be able to update later — the timer's
+   * progress, which has to be re-sent every second to move.
+   */
+  seedContent(key: string, values: Record<string, JsonValue>): this {
+    this.values[key] = { ...(this.values[key] ?? {}), ...values };
+    this.seed[key] = { ...(this.seed[key] ?? {}), ...values };
+    return this;
+  }
+
   container(key: string, type: StructuralComponentV2, children?: string[]): this {
     this.elements[key] = { type, props: {}, ...(children ? { children } : {}) };
     return this;
@@ -331,8 +345,17 @@ export function validateProjectedSpec(spec: SurfaceSpec, values: ContentUpdateV2
       const [, element_, field] = match as unknown as [string, string, string];
       if (element_ !== id) return `element "${id}" prop "${prop}" points at "${element_}"`;
       if (field !== prop) return `element "${id}" prop "${prop}" points at field "${field}"`;
-      if (field !== 'pending' && !bindable.includes(field)) {
-        return `element "${id}" binds "${field}", which is not a generated field of ${element.type}`;
+      /**
+       * A binding must have something behind it. Usually that means a
+       * generated field, but the composer may also bind a prop it computes
+       * ITSELF and intends to re-send — the timer's `pct`, which has to move
+       * once a second. The invariant that matters is the next line: never a
+       * binding with no content, i.e. never a permanent shimmer. Being a
+       * generated field is one way to satisfy it, not the only way.
+       */
+      const seeded = values[id]?.[field] !== undefined;
+      if (field !== 'pending' && !bindable.includes(field) && !seeded) {
+        return `element "${id}" binds "${field}", which is neither a generated field of ${element.type} nor seeded by the composer`;
       }
       // ADR 0001's added invariant: never a permanent shimmer.
       if (!(id in values)) return `element "${id}" binds content but no content value was produced`;
@@ -368,9 +391,13 @@ export function validateProjectedSpec(spec: SurfaceSpec, values: ContentUpdateV2
  * `ITEM_DETAIL_FIXED_ELEMENTS` on everything that is not a row; the rest of
  * the 24 is available, and this leaves headroom inside it.
  */
-export const MAX_INGREDIENT_ROWS = 12;
-/** card, stack, title, subtitle, batch, ingredients_label, start. */
-export const ITEM_DETAIL_FIXED_ELEMENTS = 7;
+export const MAX_INGREDIENT_ROWS = 10;
+/**
+ * card, row, left, right, title, subtitle, batch, ingredients_label, start,
+ * and the four of the cost breakdown. Two columns cost two more containers
+ * than the single stack did, which is why the row cap came down with it.
+ */
+export const ITEM_DETAIL_FIXED_ELEMENTS = 13;
 /** Exported so a test can hold `MAX_INGREDIENT_ROWS` to the real device cap. */
 export const MAX_SURFACE_ELEMENTS = MAX_ELEMENTS;
 /** How many of a step's additions get their own row. */
@@ -412,12 +439,13 @@ export type ProjectedInput =
   | { kind: 'recovery'; state: TaskState }
   | { kind: 'summary_done'; state: TaskState }
   | { kind: 'choice_cards'; options: readonly ChoiceOption[] }
-  | { kind: 'people_picker'; contacts: readonly Contact[]; chosen?: readonly string[] };
+  | { kind: 'people_picker'; contacts: readonly Contact[]; chosen?: readonly string[] }
+  | { kind: 'show_me'; subject: string; media: { url: string; kind: 'video' | 'image' } | null; caption: string };
 
 export type ProjectedSurfaceKind = ProjectedInput['kind'];
 
 export const PROJECTED_SURFACES: readonly ProjectedSurfaceKind[] = [
-  'item_detail', 'focus_step', 'recovery', 'summary_done', 'choice_cards', 'people_picker',
+  'item_detail', 'focus_step', 'recovery', 'summary_done', 'choice_cards', 'people_picker', 'show_me',
 ];
 
 export const isProjectedSurface = (kind: string): kind is ProjectedSurfaceKind =>
@@ -576,8 +604,11 @@ function itemDetail(state: TaskState, builder: SurfaceBuilder): string {
   if (costKeys.length === 0) builder.warnings.push('item_detail: no room for the cost breakdown on this panel');
   builder.leaf({ key: 'start', type: 'Button', copy: { text: 'Start cooking' }, fixed: { variant: 'primary' }, action: 'begin' });
 
-  builder.container('stack', 'Stack', ['title', 'subtitle', 'batch', 'ingredients_label', ...rows, ...costKeys, 'start']);
-  builder.container('card', 'Card', ['stack']);
+  // What you decide on the left, what it is made of on the right.
+  builder.container('left', 'Stack', ['title', 'subtitle', 'batch', ...costKeys, 'start']);
+  builder.container('right', 'Stack', ['ingredients_label', ...rows]);
+  builder.container('row', 'Row', ['left', 'right']);
+  builder.container('card', 'Card', ['row']);
   return 'card';
 }
 
@@ -678,20 +709,44 @@ function focusStep(state: TaskState, builder: SurfaceBuilder): string {
     }
   }
 
-  // A timer only where the step declares a real duration. Both numbers are
-  // computed (domain/timer.ts), and the reading is taken at paint time —
-  // see `timerKeys`' note on what makes it tick.
+  /**
+   * A timer only where the step declares a real duration, and only counting
+   * once someone has started it — arriving at "chill the dough for 20
+   * minutes" is not the same as having put it in the fridge.
+   *
+   * `pct` is bound to content rather than fixed so the bar can be ticked by a
+   * later content patch. That is not a model writing a number: the server
+   * computes every value here (constraint 2), and `Progress` still declares
+   * no generated field, so `deriveContentRequest` never offers it to one.
+   */
   const timerKeys: string[] = [];
-  const timer = step ? timerFor(step, state.stepStartedAt ?? builder.now) : null;
-  if (timer) {
-    const reading = readTimer(timer, builder.now);
-    builder.leaf({
-      key: 'timer_remaining',
-      type: 'Metric',
-      copy: { label: reading.done ? 'Done' : 'Time left', value: formatDuration(reading.remainingMs) },
-    });
-    builder.leaf({ key: 'timer_bar', type: 'Progress', fixed: { pct: reading.pct } });
-    timerKeys.push('timer_remaining', 'timer_bar');
+  const seconds = step?.seconds;
+  if (seconds !== undefined) {
+    if (state.timerStartedAt === undefined) {
+      builder.leaf({
+        key: 'timer_start',
+        type: 'Button',
+        copy: { text: `Start ${formatDuration(seconds * 1000)} timer` },
+        fixed: { variant: 'secondary' },
+        action: 'start_timer',
+      });
+      timerKeys.push('timer_start');
+    } else {
+      const timer = { startedAt: state.timerStartedAt, durationMs: seconds * 1000 };
+      const reading = readTimer(timer, builder.now);
+      builder.leaf({
+        key: 'timer_remaining',
+        type: 'Metric',
+        copy: { label: reading.done ? 'Timer done' : 'Time left', value: formatDuration(reading.remainingMs) },
+      });
+      builder.leaf({
+        key: 'timer_bar',
+        type: 'Progress',
+        fixed: { pct: { $state: '/content/timer_bar/pct' } as unknown as JsonValue },
+      });
+      builder.seedContent('timer_bar', { pct: Math.round(reading.pct) });
+      timerKeys.push('timer_remaining', 'timer_bar');
+    }
   }
 
   builder.leaf({ key: 'bowl', type: 'Text', copy: { text: bowlSummary(state) }, fixed: { tone: 'muted' }, lines: 2 });
@@ -711,9 +766,64 @@ function focusStep(state: TaskState, builder: SurfaceBuilder): string {
     });
     buttons.push('next');
   }
-  builder.container('buttons', 'ButtonGroup', buttons);
-  builder.container('stack', 'Stack', ['progress', 'instruction', ...detailKeys, ...timerKeys, 'bowl', 'buttons']);
-  builder.container('card', 'Card', ['stack']);
+
+  /**
+   * Two columns, because the task has two halves and the panel is landscape.
+   *
+   * Every surface used to be one `Card > Stack` column, so following a recipe
+   * looked exactly like picking a contact — the layout carried no information
+   * about what you were doing. Here the left column is the step you are on
+   * and the controls to move through it; the right is what goes in the bowl
+   * for THIS step. Side by side they are also half the height, which is what
+   * gets this surface inside the 480px panel.
+   *
+   * `Card > Row > Stack > leaf` is exactly the device's depth limit of 4, so
+   * the buttons sit directly in the left column rather than in a
+   * `ButtonGroup` — one more level would be rejected at compose time.
+   */
+  builder.container('left', 'Stack', ['progress', 'instruction', ...timerKeys, ...buttons]);
+  builder.container('right', 'Stack', [...(detailKeys.length > 0 ? ['adds_label'] : []), ...detailKeys, 'bowl']);
+  if (detailKeys.length > 0) {
+    builder.leaf({ key: 'adds_label', type: 'Label', copy: { text: 'Into the bowl' } });
+  }
+  builder.container('row', 'Row', ['left', 'right']);
+  builder.container('card', 'Card', ['row']);
+  return 'card';
+}
+
+/**
+ * "Show me what that looks like."
+ *
+ * The media fills the right half at its own aspect ratio and the words sit
+ * beside it — a layout that exists for exactly one purpose, which is the
+ * point: a picture squeezed into the same column as everything else is not
+ * showing you anything.
+ *
+ * When nothing was found it says so instead of painting an empty grey box,
+ * because a blank frame reads as a broken device rather than as an empty
+ * search (constraint 5).
+ */
+function showMe(
+  input: { subject: string; media: { url: string; kind: 'video' | 'image' } | null; caption: string },
+  builder: SurfaceBuilder,
+): string {
+  builder.leaf({ key: 'kind', type: 'Label', copy: { text: input.media?.kind === 'video' ? 'Clip' : 'Picture' } });
+  builder.leaf({ key: 'subject', type: 'Heading', copy: { text: input.subject }, fixed: { level: 1 }, lines: 2 });
+  builder.leaf({ key: 'note', type: 'Text', copy: { text: input.caption }, fixed: { tone: 'muted' }, lines: 2 });
+  builder.leaf({ key: 'back', type: 'Button', copy: { text: 'Back to the recipe' }, fixed: { variant: 'secondary' }, action: 'back_to_task' });
+  builder.container('left', 'Stack', ['kind', 'subject', 'note', 'back']);
+
+  if (input.media) {
+    builder.leaf({ key: 'shot', type: 'Media', copy: { caption: '' }, fixed: { src: input.media.url } });
+    builder.container('right', 'Stack', ['shot']);
+  } else {
+    builder.leaf({ key: 'nothing', type: 'Alert', copy: { text: `Nothing found for "${input.subject}".` } });
+    builder.container('right', 'Stack', ['nothing']);
+    builder.warnings.push(`show_me: no media found for "${input.subject}"`);
+  }
+
+  builder.container('row', 'Row', ['left', 'right']);
+  builder.container('card', 'Card', ['row']);
   return 'card';
 }
 
@@ -818,8 +928,11 @@ function choiceCards(options: readonly ChoiceOption[], builder: SurfaceBuilder):
     });
     return key;
   });
-  builder.container('stack', 'Stack', ['title', 'subtitle', 'effort', ...keys]);
-  builder.container('card', 'Card', ['stack']);
+  // The question on the left, the things you can pick on the right.
+  builder.container('left', 'Stack', ['title', 'subtitle', 'effort']);
+  builder.container('right', 'Stack', keys);
+  builder.container('row', 'Row', ['left', 'right']);
+  builder.container('card', 'Card', ['row']);
   return 'card';
 }
 
@@ -856,8 +969,12 @@ function peoplePicker(contacts: readonly Contact[], chosen: readonly string[], b
     fixed: { variant: 'primary' },
     action: 'write_messages',
   });
-  builder.container('stack', 'Stack', ['title', 'subtitle', ...keys, 'confirm']);
-  builder.container('card', 'Card', ['stack']);
+  builder.container('left', 'Stack', ['title', 'subtitle']);
+  // Confirm sits under the names it confirms — it is also what the rail maps
+  // to, and a "Send" button ahead of the people is the wrong reading order.
+  builder.container('right', 'Stack', [...keys, 'confirm']);
+  builder.container('row', 'Row', ['left', 'right']);
+  builder.container('card', 'Card', ['row']);
   return 'card';
 }
 
@@ -884,7 +1001,11 @@ export type ProjectedResult =
   | { ok: true; structure: StructureUpdateV2; content: ContentUpdateV2; warnings: string[] }
   | { ok: false; reason: string; warnings: string[] };
 
-const DEFAULT_MAX_WIDTH = 640;
+/**
+ * The panel is 800px wide. 640 left a narrow column with dead space either
+ * side of it, which is also why every surface read as the same shape.
+ */
+const DEFAULT_MAX_WIDTH = 760;
 /**
  * The stage a 800x480 panel actually leaves a surface, once the shell's rail
  * and utterance bar have taken their rows. Measured on the device rather than
@@ -987,6 +1108,7 @@ export function composeProjected(input: ProjectedInput, ids: ProjectedIds): Proj
       case 'summary_done': root = summaryDone(input.state, builder); break;
       case 'choice_cards': root = choiceCards(input.options, builder); break;
       case 'people_picker': root = peoplePicker(input.contacts, input.chosen ?? [], builder); break;
+      case 'show_me': root = showMe(input, builder); break;
     }
   } catch (err) {
     return { ok: false, reason: `${input.kind}: ${String(err)}`, warnings: builder.warnings };

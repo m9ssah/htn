@@ -1,4 +1,5 @@
-import type { JsonObject, TemplateId } from '@jit/schema';
+import type { ContentUpdateV2, JsonObject, TemplateId } from '@jit/schema';
+import { formatDuration, readTimer } from './domain/timer.js';
 import { findDeviations, type TaskState } from './domain/recipe.js';
 import { CLASSIC_CHOCOLATE_CHIP } from './domain/recipes.js';
 import { CONTACTS } from './seed.js';
@@ -31,6 +32,26 @@ export type Session = {
   name?: string;
   /** The conversation so far, oldest first. */
   history: readonly Exchange[];
+  /**
+   * What the DEVICE says it has room for, once it has told us.
+   *
+   * Assuming an 800x480 panel was wrong on any Pi running the browser
+   * windowed: `.stage` clips rather than scrolls, so 44px of every surface
+   * vanished with nothing to indicate it. A surface is budgeted against the
+   * space that exists, not the space we hoped for.
+   */
+  panel?: { width: number; height: number };
+  /** Set once a running timer has hit zero, so it stops being re-sent. */
+  timerFinishedAt?: number;
+  /**
+   * The last picture fetched, kept so a repaint does not re-query.
+   *
+   * Any turn that leaves the media surface up re-composes it, and without
+   * this each one was another round trip to Commons for a picture already on
+   * screen — and often a DIFFERENT one, so the image changed under someone
+   * who had not asked for a new one.
+   */
+  media?: { subject: string; hit: { url: string; kind: 'video' | 'image' } | null };
 };
 
 /**
@@ -85,6 +106,41 @@ export function describeTask(session: Session): string {
     `step=${task.stepIndex + 1}/${task.recipe.steps.length}${step ? ` (${step.instruction})` : ''}`,
     deviations.length > 0 ? `offPlan=${deviations.map((d) => `${d.name}x${d.factor}`).join(',')}` : 'onPlan',
   ].join(' ');
+}
+
+/**
+ * One second of a running timer, as a content patch — or `null` when nothing
+ * is counting.
+ *
+ * Only the timer's own two slots are named, so a tick cannot disturb anything
+ * else on the surface, and it stops once the clock hits zero: a finished
+ * timer does not need re-sending every second for the rest of the session.
+ *
+ * Every value is computed here (constraint 2). No model and no graph run on a
+ * tick, which is what keeps a clock off the latency budget entirely.
+ */
+export function tickTimer(session: Session, now = Date.now()): ContentUpdateV2 | null {
+  const { task } = session;
+  const step = task.recipe.steps[task.stepIndex];
+  if (session.currentTemplate !== 'focus_step' || step?.seconds === undefined || task.timerStartedAt === undefined) {
+    return null;
+  }
+
+  const reading = readTimer({ startedAt: task.timerStartedAt, durationMs: step.seconds * 1000 }, now);
+  if (reading.done && session.timerFinishedAt !== undefined) return null;
+  if (reading.done) session.timerFinishedAt = now;
+
+  return {
+    v: 2,
+    stage: 'content',
+    requestId: `timer-${task.timerStartedAt}`,
+    generationId: `timer-${task.timerStartedAt}`,
+    complete: false,
+    values: {
+      timer_remaining: { label: reading.done ? 'Timer done' : 'Time left', value: formatDuration(reading.remainingMs) },
+      timer_bar: { pct: Math.round(reading.pct) },
+    },
+  };
 }
 
 /**
