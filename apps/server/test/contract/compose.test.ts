@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { flushSync } from 'react-dom';
 import { experimental_composeSpec, type Experimental_ChoiceQuestion, type Experimental_CompositionCandidate, type Experimental_CompositionEvaluator } from '@json-render/core';
-import { JIT_CATALOG } from '@jit/renderer';
+import { JIT_CATALOG, createJsonRenderer } from '@jit/renderer';
 import type { SurfaceSpec } from '@jit/schema';
 import { COMPOSE_DEADLINE_MS, fixtureComposer, jevStructureComposer, rebindComposedSpec, type ComposeEvent, type JevCandidate } from '../../src/contract/compose.js';
-import { deriveContentRequest } from '../../src/contract/content.js';
+import { contentUpdateFrom, deriveContentRequest, validateContentResult } from '../../src/contract/content.js';
 
 const bind = (id: string, field: string) => ({ $state: `/content/${id}/${field}` });
 
@@ -109,6 +110,36 @@ describe('structure composition', () => {
       expect((spec.state!.content as Record<string, Record<string, unknown>>)[target.elementId]).toEqual({ pending: true, text: '' });
     }
     expect(Object.keys(spec.state!.content as object).sort()).toEqual(request.targets.map((target) => target.elementId).sort());
+  });
+
+  it('paints generated content into a composed surface and clears every shimmer', async () => {
+    // The whole path, offline: compose -> rebind -> derive -> validate ->
+    // emit -> the real renderer. Nothing here shares an id with a candidate,
+    // so it fails outright if the rebinding is wrong.
+    const composer = jevStructureComposer({ evaluate: scripted(chooseAll), candidates: CANDIDATES, initialState: INITIAL_STATE });
+    const events = await drain(composer.compose(INPUT, live()));
+    const last = events.at(-1)!;
+    if (last.kind !== 'structure') throw new Error('expected a structure event');
+
+    const { request } = deriveContentRequest({ requestId: INPUT.requestId, locale: 'en-CA', intent: INPUT.intent, context: {}, spec: last.update.spec });
+    const values = Object.fromEntries(request.targets.map((target) => [target.elementId, { [target.fields[0]!.name]: `copy for ${target.elementId}` }]));
+    const validation = validateContentResult(request, { contract: 'jit.content.result.v1', requestId: request.requestId, catalogVersion: request.catalogVersion, values });
+    expect(validation.rejected).toEqual([]);
+
+    const host = document.createElement('div');
+    const renderer = createJsonRenderer(host);
+    flushSync(() => {
+      expect(renderer.apply(last.update)).toEqual({ ok: true });
+      expect(renderer.apply(contentUpdateFrom(request, validation, { generationId: INPUT.generationId }))).toEqual({ ok: true });
+    });
+
+    expect(request.targets).toHaveLength(2);
+    for (const target of request.targets) {
+      expect(target.elementId).toMatch(/^node_\d+$/);
+      expect(host.querySelector(`[data-slot="${target.elementId}"]`)?.textContent).toBe(`copy for ${target.elementId}`);
+    }
+    expect(host.querySelectorAll('[data-shimmer]')).toHaveLength(0);
+    renderer.destroy();
   });
 
   it('copies a shared content segment per element rather than moving it', () => {
