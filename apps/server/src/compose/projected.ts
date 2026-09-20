@@ -22,6 +22,7 @@ import {
   type TaskState,
 } from '../domain/recipe.js';
 import type { ChoiceOption, Contact } from '../seed.js';
+import type { StructureComposer } from '../contract/compose.js';
 
 /**
  * The deterministic surface composer. **Zero model calls.**
@@ -45,20 +46,13 @@ import type { ChoiceOption, Contact } from '../seed.js';
  * ------------------------------------------------------------------ */
 
 /**
- * Declared structurally rather than imported from `../orchestration.js`:
- * that module is being moved to `src/contract/` by another workstream, and an
- * import of a moving file is a build break waiting to happen. TypeScript
- * matches these structurally, so `projectedComposer()` is assignable to the
- * real `StructureComposer` without either side importing the other.
+ * The seam is imported directly now. It was originally mirrored structurally
+ * because `orchestration.ts` was mid-move and an import of a moving file is a
+ * build break waiting to happen; that move has landed, and a real import is
+ * what keeps the two shapes from drifting — a structural mirror silently
+ * stopped matching the moment `ComposeEvent` gained its `unavailable` arm.
  */
-export type StructureComposerLike = {
-  compose: (input: {
-    intent: string;
-    requestId: string;
-    generationId: string;
-    signal?: AbortSignal;
-  }) => AsyncIterable<StructureUpdateV2>;
-};
+export type StructureComposerLike = StructureComposer;
 
 /* ------------------------------------------------------------------ *
  * What the renderer actually accepts
@@ -712,22 +706,41 @@ export function composeProjected(input: ProjectedInput, ids: ProjectedIds): Proj
  * learns which composer it has.
  *
  * `intent` is ignored: the task state, not the utterance, determines this
- * surface — that is the whole point of projecting it. A failed composition
- * **throws**, because the interface has no error channel and yielding a
- * half-empty spec would be the silent fallback constraint 5 forbids. Callers
- * that must stay total (`nodes/project.ts`) use `composeProjected` directly.
+ * surface — that is the whole point of projecting it.
+ *
+ * A failed composition yields `{ kind: 'unavailable' }` rather than throwing.
+ * This composer was written against an earlier seam that had no error channel,
+ * where throwing was the only alternative to yielding a half-empty spec —
+ * the silent fallback constraint 5 forbids. `ComposeEvent` added that channel
+ * (it exists so the model composer can report `stopReason: 'unavailable'`
+ * instead of ending a turn painting nothing), so reporting is now both
+ * possible and uniform across the two composers. Callers that must stay total
+ * (`nodes/project.ts`) still use `composeProjected` directly.
+ *
+ * `inputTokens: 0` is the honest number and the point of this path: no model
+ * is consulted, so composition costs nothing and cannot be omitted by one.
  */
 export function projectedComposer(input: ProjectedInput, maxWidth?: number): StructureComposerLike {
   return {
-    async *compose({ requestId, generationId, signal }) {
-      signal?.throwIfAborted();
+    async *compose({ requestId, generationId }, signal) {
+      signal.throwIfAborted();
+      const startedAt = Date.now();
       const result = composeProjected(input, {
         requestId,
         generationId,
         ...(maxWidth !== undefined ? { maxWidth } : {}),
       });
-      if (!result.ok) throw new Error(`projectedComposer: ${result.reason}`);
-      yield result.structure;
+      const completion = {
+        stopReason: result.ok ? ('finish' as const) : ('unavailable' as const),
+        inputTokens: 0,
+        elapsedMs: Date.now() - startedAt,
+        steps: 0,
+      };
+      if (!result.ok) {
+        yield { kind: 'unavailable' as const, reason: result.reason, completion };
+        return;
+      }
+      yield { kind: 'structure' as const, update: result.structure, completion };
     },
   };
 }

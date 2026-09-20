@@ -10,7 +10,8 @@ import {
   MAX_SURFACE_ELEMENTS,
   type ProjectedInput,
 } from '../../src/compose/projected.js';
-import { deriveContentRequest, type StructureComposer } from '../../src/orchestration.js';
+import { deriveContentRequest } from '../../src/contract/content.js';
+import type { StructureComposer } from '../../src/contract/compose.js';
 import { completeStep, type Recipe, type TaskState } from '../../src/domain/recipe.js';
 import { CLASSIC_CHOCOLATE_CHIP } from '../../src/domain/recipes.js';
 import { CHOICE_OPTIONS, CONTACTS } from '../../src/seed.js';
@@ -142,13 +143,18 @@ describe('projected composer — every surface is schema-valid and fully bound',
       const result = composeProjected(input, ids);
       expect(result.ok).toBe(true);
       if (!result.ok) return;
-      const request = deriveContentRequest({
+      const { request, unresolved } = deriveContentRequest({
         requestId: ids.requestId,
         locale: 'en-CA',
         intent: name,
         context: {},
         spec: result.structure.spec,
       });
+      // Every binding this composer emits must be reachable by the device's
+      // only content write. `unresolved` is the contract layer's own report
+      // of bindings nothing can fill -- the permanent-shimmer class from
+      // docs/adr/0001 -- so an empty list is the strongest form of this check.
+      expect(unresolved, `unresolved bindings in ${name}`).toEqual([]);
       const targets = new Map(request.targets.map((t) => [t.elementId, t.fields.map((f) => f.name).sort()]));
       for (const [elementId, values] of Object.entries(result.content.values)) {
         expect(targets.get(elementId), `no content target derived for ${elementId}`).toEqual(
@@ -418,37 +424,53 @@ describe('projected composer — broken domain input fails loudly, never plausib
 });
 
 describe('projectedComposer — the StructureComposer seam', () => {
-  it('yields exactly one complete update and returns', async () => {
+  const never = new AbortController().signal;
+
+  it('yields exactly one complete structure event and returns', async () => {
     const seen = [];
-    for await (const update of projectedComposer({ kind: 'summary_done', state: fresh() }).compose({
-      intent: 'ignored — the state decides this surface',
-      requestId: 'r',
-      generationId: 'g',
-    })) {
-      seen.push(update);
+    for await (const event of projectedComposer({ kind: 'summary_done', state: fresh() }).compose(
+      { intent: 'ignored — the state decides this surface', requestId: 'r', generationId: 'g' },
+      never,
+    )) {
+      seen.push(event);
     }
     expect(seen).toHaveLength(1);
-    expect(seen[0]?.status).toBe('complete');
-    expect(seen[0]?.requestId).toBe('r');
+    expect(seen[0]?.kind).toBe('structure');
+    if (seen[0]?.kind !== 'structure') return;
+    expect(seen[0].update.status).toBe('complete');
+    expect(seen[0].update.requestId).toBe('r');
+    // No model is consulted, so composition cannot cost tokens and cannot be
+    // omitted by one. That zero is the point of this path, not an oversight.
+    expect(seen[0].completion?.inputTokens).toBe(0);
   });
 
-  it('throws rather than yielding a surface the hardware cannot drive', async () => {
+  it('reports a surface the hardware cannot drive instead of yielding it', async () => {
     const contacts = ['a', 'b', 'c', 'd'].map((id) => ({ id, name: id }));
-    const iterate = async () => {
-      for await (const _ of projectedComposer({ kind: 'people_picker', contacts }).compose({
-        intent: '', requestId: 'r', generationId: 'g',
-      })) void _;
-    };
-    await expect(iterate()).rejects.toThrow(/exceeds the hardware/);
+    const seen = [];
+    for await (const event of projectedComposer({ kind: 'people_picker', contacts }).compose(
+      { intent: '', requestId: 'r', generationId: 'g' },
+      never,
+    )) {
+      seen.push(event);
+    }
+    // `ComposeEvent` gained an error channel, so a failure is now REPORTED
+    // rather than thrown — and no half-empty spec is ever yielded, which is
+    // what constraint 5 actually asks for.
+    expect(seen).toHaveLength(1);
+    expect(seen[0]?.kind).toBe('unavailable');
+    if (seen[0]?.kind !== 'unavailable') return;
+    expect(seen[0].reason).toMatch(/exceeds the hardware/);
+    expect(seen[0].completion.stopReason).toBe('unavailable');
   });
 
   it('honours an already-aborted signal', async () => {
     const controller = new AbortController();
     controller.abort();
     const iterate = async () => {
-      for await (const _ of projectedComposer({ kind: 'summary_done', state: fresh() }).compose({
-        intent: '', requestId: 'r', generationId: 'g', signal: controller.signal,
-      })) void _;
+      for await (const _ of projectedComposer({ kind: 'summary_done', state: fresh() }).compose(
+        { intent: '', requestId: 'r', generationId: 'g' },
+        controller.signal,
+      )) void _;
     };
     await expect(iterate()).rejects.toThrow();
   });
