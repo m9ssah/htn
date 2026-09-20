@@ -5,6 +5,7 @@
     "declaration": false,
     "declarationMap": false,
     "noEmit": true,
+    "jsx": "react-jsx",
     "types": ["node"],
     "baseUrl": ".",
     // Resolve to source, matching vitest.config.ts, so a typecheck never
@@ -17,7 +18,9 @@
   },
   "include": [
     "packages/*/src/**/*.ts",
+    "packages/*/src/**/*.tsx",
     "packages/*/test/**/*.ts",
+    "packages/*/test/**/*.tsx",
     "packages/*/harness/**/*.ts",
     "apps/*/src/**/*.ts",
     "apps/*/test/**/*.ts"

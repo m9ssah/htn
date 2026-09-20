@@ -395,6 +395,8 @@ export type ContrastReport = {
   checks: ContrastCheck[];
 };
 
+export * from './surface.js';
+
 /**
  * Which grounds a template actually draws text on. Narrows the required pairs.
  *

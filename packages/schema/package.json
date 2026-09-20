@@ -14,5 +14,8 @@
   "files": ["dist"],
   "scripts": {
     "build": "tsc -b"
+  },
+  "dependencies": {
+    "zod": "4.3.6"
   }
 }

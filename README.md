@@ -16,9 +16,9 @@ npm install
 
 | Package | What it is |
 |---|---|
-| `packages/schema` | The patch contract. Types only, zero runtime deps. |
+| `packages/schema` | Runtime-validated surface and content-generation contracts. |
 | `packages/tokens` | Enum tables, `resolve`, `applyPolish`, `checkContrast`. |
-| `packages/renderer` | Framework-free JSON renderer + the 8 templates. |
+| `packages/renderer` | json-render catalog, React registry, renderer, and evaluated examples. |
 
 ### The look
 
@@ -79,11 +79,25 @@ npm test           # vitest, including type-level contract tests
 npm run harness    # dev harness at http://localhost:3001
 ```
 
+The device app runs at `http://localhost:3000/`. Its visual testbench lives at
+`http://localhost:3000/testbench`; it presents every demo surface inside the
+Pi's native 800×480 viewport, with a design-system primitives gallery first.
+
+## Generated surfaces
+
+The four updates are: Jev chooses a constrained json-render flat spec; the
+content model fills only the selected state fields; the theme selector chooses
+enum axes; and polish supplies contrast-gated tokens. The device shell, face,
+and rail stay ordinary application code. See
+[`docs/stage-2-contract.md`](docs/stage-2-contract.md) for the exact synthetic
+data handoff, and [`docs/mock-pages.md`](docs/mock-pages.md) for adding a new
+schema-driven mock page.
+
 ## The harness
 
-Fires each of the four patches independently, so the staging is inspectable by
-hand. Also does shuffled order, production-timed staging, and a deliberately
-unreadable polish patch to exercise the contrast gate.
+The device testbench and renderer harness both render the json-render examples
+and primitive gallery. The reflow check measures Stage 2 state updates across
+all four font pairings.
 
 Deep links: `?s=<scenario index>&fire=all|staged|unreadable|skeleton,content,...`
 
