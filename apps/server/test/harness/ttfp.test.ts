@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { startTurn } from '../../src/harness/turn.js';
-import { deps, oneNodeGraph, emitter, sleep } from './doubles.js';
+import { deps, oneNodeGraph, emitter, patch, sleep } from './doubles.js';
 import type { Ctx, Node } from '../../src/harness/types.js';
 
 /**
@@ -38,10 +38,10 @@ describe('time to first patch', () => {
       name: 'jev-shaped',
       async run(_input, ctx: Ctx): Promise<void> {
         await sleep(211); // P3's measured warm Jev p50 for the real 10-question batch
-        ctx.sink.emit({ v: 1, templateId: 'generic_answer', maxWidth: 720 });
-        for (let slot = 0; slot < 6; slot += 1) {
+        ctx.sink.emit(patch(0)); // stands in for the structure update
+        for (let slot = 1; slot <= 6; slot += 1) {
           await sleep(50);
-          ctx.sink.emit({ v: 1, slots: {} });
+          ctx.sink.emit(patch(slot));
         }
       },
     };

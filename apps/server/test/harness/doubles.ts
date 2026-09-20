@@ -1,5 +1,5 @@
 import { Annotation, END, START, StateGraph, type LangGraphRunnableConfig } from '@langchain/langgraph';
-import type { ContentPatch, Patch } from '@jit/schema';
+import type { ContentUpdateV2, SurfaceUpdate } from '@jit/schema';
 import { runGuarded, runtimeOf, type TurnRuntime } from '../../src/harness/graph-runtime.js';
 import type { PatchStream, TurnDeps } from '../../src/harness/turn.js';
 import { stubContentSource } from '../../src/harness/clients/content.js';
@@ -18,15 +18,28 @@ import type { Ctx, Node } from '../../src/harness/types.js';
 
 export const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** A recognisable, schema-valid payload. Contents are irrelevant to the wiring. */
-export const patch = (n: number): ContentPatch => ({
-  v: 1,
-  slots: { 'generic_answer.title': { kind: 'Heading', text: `patch ${n}` } },
+/**
+ * A recognisable, schema-valid payload. The contents are irrelevant to the
+ * wiring — what matters is that it is a real `ContentUpdateV2` and not a
+ * hand-shaped object, so a transport that accidentally started inspecting
+ * the payload would be caught by the schema rather than by luck.
+ *
+ * `ContentUpdateV2` rather than `StructureUpdateV2` on purpose: the latter
+ * carries a `SurfaceSpec` with its own zod schema, and a wrong literal there
+ * fails silently here and loudly on the device.
+ */
+export const patch = (n: number): ContentUpdateV2 => ({
+  v: 2,
+  stage: 'content',
+  requestId: 'test-request',
+  generationId: 'test-generation',
+  complete: false,
+  values: { probe: { n } },
 });
 
-export const patchLabel = (p: Patch): string => {
-  const slot = (p as ContentPatch).slots?.['generic_answer.title'];
-  return slot && slot.kind === 'Heading' ? slot.text : JSON.stringify(p);
+export const patchLabel = (p: SurfaceUpdate): string => {
+  const n = (p as ContentUpdateV2).values?.probe?.n;
+  return typeof n === 'number' ? `patch ${n}` : JSON.stringify(p);
 };
 
 const State = Annotation.Root({ step: Annotation<number> });

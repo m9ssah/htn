@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Patch } from '@jit/schema';
+import type { SurfaceUpdate } from '@jit/schema';
 import { createRealPatchSinkStore, type DropReason, type GatedSink } from './clients/sink.js';
 import type { TurnRuntime } from './graph-runtime.js';
 import { createTurnLog, describeError, DEFAULT_TURN_LOG_PATH, type TurnLog } from './turn-log.js';
@@ -18,10 +18,13 @@ import type { ContentSource, Ctx, Event, JevClient } from './types.js';
  * in a stream whose consumer is a device); it goes to the buffered turn log,
  * which is what a `grep <turnId>` reconstructs.
  *
- * **Payload-agnostic.** Nothing here inspects a patch. `Patch` is the
- * payload type today and is the single point that changes if the render
- * contract is replaced; shape checking is the injected `validate` hook, so
- * the validator belongs to whoever owns the contract, not to the transport.
+ * **Payload-agnostic.** Nothing here inspects an update. `SurfaceUpdate` is
+ * a type parameter in all but name: it is never read, never discriminated,
+ * never normalised — in particular `stage` is left exactly as the producer
+ * set it, because `StyleUpdateV1`/`PolishUpdateV1` make it optional and the
+ * renderer discriminates those on `'theme' in` / `'tokens' in` instead.
+ * Shape checking is the injected `validate` hook, so the validator belongs
+ * to whoever owns the contract, not to the transport.
  */
 
 /**
@@ -60,13 +63,13 @@ export type TurnDeps = {
    * the render contract, and it MUST NOT throw — an exception here would
    * reach the stream controller and discard every chunk already enqueued.
    */
-  validate?: (patch: Patch) => string | null;
+  validate?: (patch: SurfaceUpdate) => string | null;
 };
 
 export type Turn = {
   turnId: string;
   /** Yields each patch as it is produced. Iterate once. */
-  patches: AsyncGenerator<Patch>;
+  patches: AsyncGenerator<SurfaceUpdate>;
   /**
    * Barge-in. Aborts the turn's signal (stops the spend) AND closes its sink
    * (stops the paint). Both halves are needed: p19b measured that a node
@@ -95,7 +98,7 @@ export function startTurn(input: unknown, deps: TurnDeps): Turn {
   let firstPatchMs: number | null = null;
   let writer: ((chunk: unknown) => void) | undefined;
 
-  const onDrop = (_turnId: string, patch: Patch, reason: DropReason): void => {
+  const onDrop = (_turnId: string, patch: SurfaceUpdate, reason: DropReason): void => {
     // Never silent. A node still emitting after its turn ended is a real
     // bug; we keep it off the device and put it in the log (constraint 5).
     log.record('patch-dropped', { reason, patch });
@@ -107,7 +110,7 @@ export function startTurn(input: unknown, deps: TurnDeps): Turn {
    * loses queued chunks when something later errors, and an `await` here IS
    * consumer-side lag.
    */
-  const deliver = (patch: Patch): void => {
+  const deliver = (patch: SurfaceUpdate): void => {
     const problem = deps.validate?.(patch) ?? null;
     if (problem) {
       log.record('patch-rejected', { reason: problem, patch });
@@ -156,7 +159,7 @@ export function startTurn(input: unknown, deps: TurnDeps): Turn {
     controller.abort(err);
   };
 
-  async function* run(): AsyncGenerator<Patch> {
+  async function* run(): AsyncGenerator<SurfaceUpdate> {
     log.record('turn-start', { input });
     let outcome = 'ok';
     let completed = false;
@@ -178,7 +181,7 @@ export function startTurn(input: unknown, deps: TurnDeps): Turn {
         recursionLimit: 25,
       });
       for await (const chunk of stream) {
-        const [, payload] = chunk as [string, Patch];
+        const [, payload] = chunk as [string, SurfaceUpdate];
         // The fourth place a stale patch can hide. The sink's gate closes on
         // abort, but a patch written BEFORE the abort and read after it is
         // already past the sink and sitting in LangGraph's queue — handing it

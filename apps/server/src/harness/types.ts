@@ -1,4 +1,4 @@
-import type { Density, FontPairing, Motif, Palette, Patch, Radius, TemplateId } from '@jit/schema';
+import type { Density, FontPairing, Motif, Palette, Radius, SurfaceUpdate, TemplateId } from '@jit/schema';
 
 /**
  * The seam every orchestration node runs behind. Deliberately small: a node is
@@ -198,12 +198,12 @@ export interface ContentSource {
  * just the patch.
  */
 export interface PatchSink {
-  emit(patch: Patch): void;
+  emit(patch: SurfaceUpdate): void;
   flush?(): void;
 }
 
 /**
- * Where the turn id actually lives — not on `Patch` (`packages/schema` is a
+ * Where the turn id actually lives — not on the update itself (`packages/schema` is a
  * frozen contract, see CLAUDE.md "Do not touch"), and not smuggled into
  * `Ctx` either. `beginTurn` advances the store on (implementations gate on a
  * monotonic counter, not on `turnId` equality — re-entering the same turn id

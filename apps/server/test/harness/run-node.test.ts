@@ -3,6 +3,7 @@ import { runNode } from '../../src/harness/run-node.js';
 import { createStubCtx } from '../../src/harness/ctx.js';
 import { createMemorySinkStore } from '../../src/harness/clients/sink.js';
 import type { Ctx, Event, Node } from '../../src/harness/types.js';
+import { patch as update } from './doubles.js';
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
@@ -61,9 +62,9 @@ describe('runNode: the completion gate', () => {
     const leaky: Node<void, void> = {
       name: 'leaky',
       async run(_input, c: Ctx): Promise<void> {
-        c.sink.emit({ v: 1, slots: {} });
+        c.sink.emit(update(1));
         await sleep(20);
-        c.sink.emit({ v: 1, slots: {} });
+        c.sink.emit(update(1));
       },
     };
 

@@ -1,4 +1,4 @@
-import type { Patch } from '@jit/schema';
+import type { SurfaceUpdate } from '@jit/schema';
 import type { PatchSink, PatchSinkStore } from '../types.js';
 
 /**
@@ -15,8 +15,8 @@ import type { PatchSink, PatchSinkStore } from '../types.js';
  * (p19c: 2/6 delivered at 300ms/chunk).
  */
 export function createRealPatchSinkStore(
-  deliver: (patch: Patch, turnId: string) => void,
-  onDrop?: (turnId: string, patch: Patch, reason: DropReason) => void,
+  deliver: (patch: SurfaceUpdate, turnId: string) => void,
+  onDrop?: (turnId: string, patch: SurfaceUpdate, reason: DropReason) => void,
 ): GatedSinkStore {
   return createGatedSinkStore(deliver, onDrop);
 }
@@ -34,12 +34,12 @@ export function createRealPatchSinkStore(
  * `turnId` still goes to `onDrop` — it's the label, not the gate.
  */
 export function createMemorySinkStore(
-  onDrop?: (turnId: string, patch: Patch, reason?: DropReason) => void,
-): GatedSinkStore & { readonly patches: readonly Patch[] } {
-  const patches: Patch[] = [];
+  onDrop?: (turnId: string, patch: SurfaceUpdate, reason?: DropReason) => void,
+): GatedSinkStore & { readonly patches: readonly SurfaceUpdate[] } {
+  const patches: SurfaceUpdate[] = [];
   const store = createGatedSinkStore((patch) => patches.push(patch), onDrop);
   return {
-    get patches(): readonly Patch[] {
+    get patches(): readonly SurfaceUpdate[] {
       return patches;
     },
     beginTurn: (turnId: string, signal?: AbortSignal): GatedSink => store.beginTurn(turnId, signal),
@@ -89,8 +89,8 @@ export interface GatedSinkStore extends PatchSinkStore {
  * when a node errors (p19c: 2/6 delivered at 300ms/chunk).
  */
 export function createGatedSinkStore(
-  deliver: (patch: Patch, turnId: string) => void,
-  onDrop?: (turnId: string, patch: Patch, reason: DropReason) => void,
+  deliver: (patch: SurfaceUpdate, turnId: string) => void,
+  onDrop?: (turnId: string, patch: SurfaceUpdate, reason: DropReason) => void,
 ): GatedSinkStore {
   let epoch = 0;
   return {
@@ -98,7 +98,7 @@ export function createGatedSinkStore(
       const myEpoch = ++epoch;
       let closed = false;
       return {
-        emit(patch: Patch): void {
+        emit(patch: SurfaceUpdate): void {
           const reason: DropReason | null = closed
             ? 'closed'
             : signal?.aborted
