@@ -17,7 +17,6 @@ import { project } from './nodes/project.js';
  * exercises those instead. `research` has no owning phase, so it isn't
  * listed at all — see docs/orchestration-plan.md's "Node inventory".
  */
- */
 
 /**
  * `decide`'s output. It hands back the naive `SkeletonPatch`/`StylePatch`
