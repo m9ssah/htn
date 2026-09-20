@@ -1,0 +1,39 @@
+{
+  "relevance": [
+    {
+      "case": "billing-impl",
+      "f1": 1.0,
+      "detail": "P=1.00 R=1.00"
+    },
+    {
+      "case": "react-effects",
+      "f1": 1.0,
+      "detail": "P=1.00 R=1.00"
+    },
+    {
+      "case": "conflicting-facts",
+      "f1": 0.667,
+      "detail": "P=0.50 R=1.00  sources_conflict=0.97  has_current=0.89"
+    }
+  ],
+  "stopping": [
+    {
+      "scenario": "covered: 3 authoritative, current, agree",
+      "need_more": 0.093,
+      "expected": false,
+      "correct": true
+    },
+    {
+      "scenario": "thin: 1 result, 4 years old",
+      "need_more": 0.913,
+      "expected": true,
+      "correct": true
+    },
+    {
+      "scenario": "conflicting: 4 results, disagree, none authoritative",
+      "need_more": 0.94,
+      "expected": true,
+      "correct": true
+    }
+  ]
+}

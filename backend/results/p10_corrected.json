@@ -1,0 +1,122 @@
+[
+  {
+    "node": "FnAction: grab data",
+    "level": "L1",
+    "case": "whats-the-price",
+    "f1": 1.0,
+    "p50_ms": 213,
+    "detail": "P=1.00 R=1.00 "
+  },
+  {
+    "node": "FnAction: grab data",
+    "level": "L2",
+    "case": "good-deal",
+    "f1": 1.0,
+    "p50_ms": 153,
+    "detail": "P=1.00 R=1.00 "
+  },
+  {
+    "node": "FnAction: grab data",
+    "level": "L2",
+    "case": "trustworthy-seller",
+    "f1": 0.5,
+    "p50_ms": 223,
+    "detail": "P=1.00 R=0.33 -review_summary -seller_name"
+  },
+  {
+    "node": "FnAction: grab data",
+    "level": "L3",
+    "case": "total-to-my-door",
+    "f1": 1.0,
+    "p50_ms": 150,
+    "detail": "P=1.00 R=1.00 "
+  },
+  {
+    "node": "FnAction: grab data",
+    "level": "L3",
+    "case": "should-i-buy",
+    "f1": 0.222,
+    "p50_ms": 177,
+    "detail": "P=1.00 R=0.20 -price_history -stock_level -review_summary"
+  },
+  {
+    "node": "FnAction: grab data",
+    "level": "L4",
+    "case": "whats-the-catch",
+    "f1": 0.0,
+    "p50_ms": 182,
+    "detail": "P=1.00 R=0.00 -reviews_list -review_summary -seller_rating"
+  },
+  {
+    "node": "UpdateSetting: UI comps",
+    "level": "L1",
+    "case": "hide-effects",
+    "f1": 1.0,
+    "p50_ms": 201,
+    "detail": "P=1.00 R=1.00 "
+  },
+  {
+    "node": "UpdateSetting: UI comps",
+    "level": "L2",
+    "case": "just-trim",
+    "f1": 0.286,
+    "p50_ms": 167,
+    "detail": "P=1.00 R=0.17 -effects_panel -properties -media_library"
+  },
+  {
+    "node": "UpdateSetting: UI comps",
+    "level": "L2",
+    "case": "add-captions",
+    "f1": 0.286,
+    "p50_ms": 174,
+    "detail": "P=1.00 R=0.17 -effects_panel -properties -media_library"
+  },
+  {
+    "node": "UpdateSetting: UI comps",
+    "level": "L3",
+    "case": "bigger-preview",
+    "f1": 0.4,
+    "p50_ms": 176,
+    "detail": "P=1.00 R=0.25 -effects_panel -properties -media_library"
+  },
+  {
+    "node": "UpdateSetting: UI comps",
+    "level": "L4",
+    "case": "too-cluttered",
+    "f1": 0.727,
+    "p50_ms": 180,
+    "detail": "P=0.80 R=0.67 +timeline -captions_editor -audio_mixer"
+  },
+  {
+    "node": "MakeUI: choose the UI",
+    "level": "L1",
+    "case": "trim-clip",
+    "f1": 1.0,
+    "p50_ms": 155,
+    "detail": "picked=trim_minimal conf=1.00"
+  },
+  {
+    "node": "MakeUI: choose the UI",
+    "level": "L2",
+    "case": "add-subs",
+    "f1": 1.0,
+    "p50_ms": 167,
+    "detail": "picked=caption_view conf=1.00"
+  },
+  {
+    "node": "MakeUI: choose the UI",
+    "level": "L3",
+    "case": "too-dark",
+    "f1": 1.0,
+    "p50_ms": 187,
+    "detail": "picked=color_grade conf=1.00"
+  },
+  {
+    "node": "MakeUI: choose the UI",
+    "level": "L4",
+    "case": "post-tiktok",
+    "f1": 1.0,
+    "p50_ms": 152,
+    "detail": "picked=export_view conf=0.92"
+  }
+]

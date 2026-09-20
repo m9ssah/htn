@@ -1,0 +1,237 @@
+{
+  "stability": [
+    {
+      "case": "one-of-5-exclusive",
+      "level": "L1",
+      "stable": true,
+      "mean_conf": 0.964,
+      "accuracy": 1,
+      "modes": {
+        "radio_group": 8
+      }
+    },
+    {
+      "case": "notifications-on-off",
+      "level": "L1",
+      "stable": true,
+      "mean_conf": 1.0,
+      "accuracy": 1,
+      "modes": {
+        "toggle": 8
+      }
+    },
+    {
+      "case": "one-of-200-countries",
+      "level": "L1",
+      "stable": true,
+      "mean_conf": 0.909,
+      "accuracy": 1,
+      "modes": {
+        "combobox": 8
+      }
+    },
+    {
+      "case": "multi-20-interests",
+      "level": "L2",
+      "stable": true,
+      "mean_conf": 0.573,
+      "accuracy": 1,
+      "modes": {
+        "checkbox_group": 8
+      }
+    },
+    {
+      "case": "plan-compare",
+      "level": "L2",
+      "stable": true,
+      "mean_conf": 0.922,
+      "accuracy": 1,
+      "modes": {
+        "cards": 8
+      }
+    },
+    {
+      "case": "2-opts-mobile",
+      "level": "L2",
+      "stable": true,
+      "mean_conf": 0.965,
+      "accuracy": 1,
+      "modes": {
+        "segmented": 8
+      }
+    },
+    {
+      "case": "5-opts-long-desc",
+      "level": "L3",
+      "stable": true,
+      "mean_conf": 0.978,
+      "accuracy": 1,
+      "modes": {
+        "radio_group": 8
+      }
+    },
+    {
+      "case": "long-list-a11y",
+      "level": "L3",
+      "stable": true,
+      "mean_conf": 0.672,
+      "accuracy": 1,
+      "modes": {
+        "combobox": 8
+      }
+    },
+    {
+      "case": "12-options-ambiguous",
+      "level": "L4",
+      "stable": true,
+      "mean_conf": 0.51,
+      "accuracy": 1,
+      "modes": {
+        "select": 8
+      }
+    },
+    {
+      "case": "turn-off",
+      "level": "L1",
+      "stable": true,
+      "mean_conf": 0.99,
+      "accuracy": 1,
+      "modes": {
+        "disable_all": 8
+      }
+    },
+    {
+      "case": "push-not-email",
+      "level": "L2",
+      "stable": true,
+      "mean_conf": 1.0,
+      "accuracy": 1,
+      "modes": {
+        "disable_push_only": 8
+      }
+    },
+    {
+      "case": "until-tomorrow",
+      "level": "L3",
+      "stable": true,
+      "mean_conf": 0.971,
+      "accuracy": 1,
+      "modes": {
+        "snooze_temporary": 8
+      }
+    },
+    {
+      "case": "push-off-confirm",
+      "level": "L3",
+      "stable": true,
+      "mean_conf": 1.0,
+      "accuracy": 1,
+      "modes": {
+        "disable_push_only": 8
+      }
+    },
+    {
+      "case": "quiet-please",
+      "level": "L4",
+      "stable": false,
+      "mean_conf": 0.336,
+      "accuracy": 0.125,
+      "modes": {
+        "other": 7,
+        "disable_all": 1
+      }
+    },
+    {
+      "case": "cta-prominent",
+      "level": "L3",
+      "stable": true,
+      "mean_conf": 0.458,
+      "accuracy": 0,
+      "modes": {
+        "accent_color": 8
+      }
+    }
+  ],
+  "sweep": [
+    {
+      "T": 0.0,
+      "escalated": 0,
+      "kept": 120,
+      "acc_on_kept": 0.875,
+      "pct_escalated": 0.0
+    },
+    {
+      "T": 0.4,
+      "escalated": 8,
+      "kept": 112,
+      "acc_on_kept": 0.9286,
+      "pct_escalated": 0.067
+    },
+    {
+      "T": 0.5,
+      "escalated": 17,
+      "kept": 103,
+      "acc_on_kept": 0.9806,
+      "pct_escalated": 0.142
+    },
+    {
+      "T": 0.6,
+      "escalated": 31,
+      "kept": 89,
+      "acc_on_kept": 1,
+      "pct_escalated": 0.258
+    },
+    {
+      "T": 0.7,
+      "escalated": 39,
+      "kept": 81,
+      "acc_on_kept": 1,
+      "pct_escalated": 0.325
+    },
+    {
+      "T": 0.8,
+      "escalated": 40,
+      "kept": 80,
+      "acc_on_kept": 1,
+      "pct_escalated": 0.333
+    },
+    {
+      "T": 0.9,
+      "escalated": 41,
+      "kept": 79,
+      "acc_on_kept": 1,
+      "pct_escalated": 0.342
+    },
+    {
+      "T": 0.95,
+      "escalated": 56,
+      "kept": 64,
+      "acc_on_kept": 1,
+      "pct_escalated": 0.467
+    }
+  ],
+  "retests": [
+    {
+      "case": "styling/blue-to-green",
+      "values": {
+        "v1_orig": 0.68,
+        "v2_named": 0.97,
+        "v3_token": 0.9
+      },
+      "expect": "expect v2/v3 high"
+    },
+    {
+      "case": "research-stop/enough-info",
+      "values": {
+        "v1_orig": 0.25,
+        "v2_state": 0.98,
+        "v3_open": 0.03
+      },
+      "expect": "expect v2 high, v3 low"
+    }
+  ],
+  "conf_correct_mean": 0.8758,
+  "conf_wrong_mean": 0.4013,
+  "n_decisions": 120,
+  "reps": 8
+}

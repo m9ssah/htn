@@ -1,0 +1,494 @@
+{
+  "rows": [
+    {
+      "id": "one-of-5-exclusive",
+      "teacher_choice": "radio_group",
+      "jev_rubric": 4,
+      "gold_verdict": "sound",
+      "note": "Unambiguous single-select, all visible fits radio_group."
+    },
+    {
+      "id": "notifications-on-off",
+      "teacher_choice": "toggle",
+      "jev_rubric": 4,
+      "gold_verdict": "sound",
+      "note": "Canonical binary on/off case."
+    },
+    {
+      "id": "one-of-200-countries",
+      "teacher_choice": "combobox",
+      "jev_rubric": 4,
+      "gold_verdict": "sound",
+      "note": "Combobox best; native select is a common, defensible fallback."
+    },
+    {
+      "id": "multi-20-interests",
+      "teacher_choice": "checkbox_group",
+      "jev_rubric": 4,
+      "gold_verdict": "sound",
+      "note": "20 items borderline; both listed options reasonable."
+    },
+    {
+      "id": "plan-compare",
+      "teacher_choice": "cards",
+      "jev_rubric": 4,
+      "gold_verdict": "sound",
+      "note": "Feature comparison across named plans is the cards use case."
+    },
+    {
+      "id": "2-opts-mobile",
+      "teacher_choice": "segmented",
+      "jev_rubric": 4,
+      "gold_verdict": "sound",
+      "note": "Segmented ideal on mobile; radio_group also defensible."
+    },
+    {
+      "id": "5-opts-long-desc",
+      "teacher_choice": "radio_group",
+      "jev_rubric": 4,
+      "gold_verdict": "sound",
+      "note": "Persistent descriptions rule out select; not a feature comparison so not cards."
+    },
+    {
+      "id": "long-list-a11y",
+      "teacher_choice": "combobox",
+      "jev_rubric": 4,
+      "gold_verdict": "too_narrow",
+      "note": "Native select is arguably safer for keyboard/SR a11y; should be admitted too."
+    },
+    {
+      "id": "12-options-ambiguous",
+      "teacher_choice": "select",
+      "jev_rubric": 4,
+      "gold_verdict": "sound",
+      "note": "No constraints, three options genuinely tied; low confidence appropriate."
+    },
+    {
+      "id": "turn-off",
+      "teacher_choice": "disable_all",
+      "jev_rubric": 4,
+      "gold_verdict": "sound",
+      "note": "Plain, unqualified request."
+    },
+    {
+      "id": "push-not-email",
+      "teacher_choice": "disable_push_only",
+      "jev_rubric": 4,
+      "gold_verdict": "sound",
+      "note": "Explicit scoping matches option exactly."
+    },
+    {
+      "id": "until-tomorrow",
+      "teacher_choice": "snooze_temporary",
+      "jev_rubric": 4,
+      "gold_verdict": "sound",
+      "note": "Time-bounded phrasing implies temporary suspension, not disable_all."
+    },
+    {
+      "id": "push-off-confirm",
+      "teacher_choice": "disable_push_only",
+      "jev_rubric": 4,
+      "gold_verdict": "sound",
+      "note": "Utterance unambiguous; single defensible reading, gold matches."
+    },
+    {
+      "id": "quiet-please",
+      "teacher_choice": "snooze_temporary",
+      "jev_rubric": 1,
+      "gold_verdict": "sound",
+      "note": "'Other' wrongly excludes plausible reads; gold's 3-way ambiguity set is reasonable."
+    },
+    {
+      "id": "cta-prominent",
+      "teacher_choice": "increase_whitespace",
+      "jev_rubric": 1,
+      "gold_verdict": "sound",
+      "note": "Accent colour is trap: already 'reserved for primary,' adds weight; gold correctly excludes it."
+    }
+  ],
+  "payload": [
+    {
+      "id": "one-of-5-exclusive",
+      "level": "L1",
+      "node": "Component Decision",
+      "state": {
+        "request": "The user picks one of five mutually exclusive options."
+      },
+      "question": "Which UI component best fits this requirement?",
+      "options": {
+        "radio_group": "Radio group: all options visible, pick one",
+        "select": "Dropdown select: collapsed list, pick one",
+        "checkbox_group": "Checkbox group: all options visible, pick many",
+        "multi_select": "Multi-select dropdown: collapsed list, pick many",
+        "toggle": "Toggle switch: a single on/off state",
+        "combobox": "Combobox: type to filter a long list, pick one",
+        "segmented": "Segmented control: 2-4 short options in a row",
+        "cards": "Comparison cards: side-by-side feature columns",
+        "other": "None of these fit"
+      },
+      "jev_choice": "radio_group",
+      "jev_confidence": 0.96,
+      "gold": [
+        "radio_group"
+      ]
+    },
+    {
+      "id": "notifications-on-off",
+      "level": "L1",
+      "node": "Component Decision",
+      "state": {
+        "request": "The user turns notifications on or off."
+      },
+      "question": "Which UI component best fits this requirement?",
+      "options": {
+        "radio_group": "Radio group: all options visible, pick one",
+        "select": "Dropdown select: collapsed list, pick one",
+        "checkbox_group": "Checkbox group: all options visible, pick many",
+        "multi_select": "Multi-select dropdown: collapsed list, pick many",
+        "toggle": "Toggle switch: a single on/off state",
+        "combobox": "Combobox: type to filter a long list, pick one",
+        "segmented": "Segmented control: 2-4 short options in a row",
+        "cards": "Comparison cards: side-by-side feature columns",
+        "other": "None of these fit"
+      },
+      "jev_choice": "toggle",
+      "jev_confidence": 1.0,
+      "gold": [
+        "toggle"
+      ]
+    },
+    {
+      "id": "one-of-200-countries",
+      "level": "L1",
+      "node": "Component Decision",
+      "state": {
+        "request": "The user picks one country from a list of 200."
+      },
+      "question": "Which UI component best fits this requirement?",
+      "options": {
+        "radio_group": "Radio group: all options visible, pick one",
+        "select": "Dropdown select: collapsed list, pick one",
+        "checkbox_group": "Checkbox group: all options visible, pick many",
+        "multi_select": "Multi-select dropdown: collapsed list, pick many",
+        "toggle": "Toggle switch: a single on/off state",
+        "combobox": "Combobox: type to filter a long list, pick one",
+        "segmented": "Segmented control: 2-4 short options in a row",
+        "cards": "Comparison cards: side-by-side feature columns",
+        "other": "None of these fit"
+      },
+      "jev_choice": "combobox",
+      "jev_confidence": 0.92,
+      "gold": [
+        "combobox",
+        "select"
+      ]
+    },
+    {
+      "id": "multi-20-interests",
+      "level": "L2",
+      "node": "Component Decision",
+      "state": {
+        "request": "The user selects multiple interests from a list of 20."
+      },
+      "question": "Which UI component best fits this requirement?",
+      "options": {
+        "radio_group": "Radio group: all options visible, pick one",
+        "select": "Dropdown select: collapsed list, pick one",
+        "checkbox_group": "Checkbox group: all options visible, pick many",
+        "multi_select": "Multi-select dropdown: collapsed list, pick many",
+        "toggle": "Toggle switch: a single on/off state",
+        "combobox": "Combobox: type to filter a long list, pick one",
+        "segmented": "Segmented control: 2-4 short options in a row",
+        "cards": "Comparison cards: side-by-side feature columns",
+        "other": "None of these fit"
+      },
+      "jev_choice": "checkbox_group",
+      "jev_confidence": 0.54,
+      "gold": [
+        "checkbox_group",
+        "multi_select"
+      ]
+    },
+    {
+      "id": "plan-compare",
+      "level": "L2",
+      "node": "Component Decision",
+      "state": {
+        "request": "The user compares Free, Pro and Enterprise plans and picks one."
+      },
+      "question": "Which UI component best fits this requirement?",
+      "options": {
+        "radio_group": "Radio group: all options visible, pick one",
+        "select": "Dropdown select: collapsed list, pick one",
+        "checkbox_group": "Checkbox group: all options visible, pick many",
+        "multi_select": "Multi-select dropdown: collapsed list, pick many",
+        "toggle": "Toggle switch: a single on/off state",
+        "combobox": "Combobox: type to filter a long list, pick one",
+        "segmented": "Segmented control: 2-4 short options in a row",
+        "cards": "Comparison cards: side-by-side feature columns",
+        "other": "None of these fit"
+      },
+      "jev_choice": "cards",
+      "jev_confidence": 0.92,
+      "gold": [
+        "cards"
+      ]
+    },
+    {
+      "id": "2-opts-mobile",
+      "level": "L2",
+      "node": "Component Decision",
+      "state": {
+        "request": "The user switches between two short views, List and Grid.",
+        "surface": "mobile, width 375px"
+      },
+      "question": "Which UI component best fits this requirement?",
+      "options": {
+        "radio_group": "Radio group: all options visible, pick one",
+        "select": "Dropdown select: collapsed list, pick one",
+        "checkbox_group": "Checkbox group: all options visible, pick many",
+        "multi_select": "Multi-select dropdown: collapsed list, pick many",
+        "toggle": "Toggle switch: a single on/off state",
+        "combobox": "Combobox: type to filter a long list, pick one",
+        "segmented": "Segmented control: 2-4 short options in a row",
+        "cards": "Comparison cards: side-by-side feature columns",
+        "other": "None of these fit"
+      },
+      "jev_choice": "segmented",
+      "jev_confidence": 0.96,
+      "gold": [
+        "segmented",
+        "radio_group"
+      ]
+    },
+    {
+      "id": "5-opts-long-desc",
+      "level": "L3",
+      "node": "Component Decision",
+      "state": {
+        "request": "The user picks one of five options.",
+        "constraint": "each option has a two-sentence explanation that must stay visible",
+        "surface": "desktop"
+      },
+      "question": "Which UI component best fits this requirement?",
+      "options": {
+        "radio_group": "Radio group: all options visible, pick one",
+        "select": "Dropdown select: collapsed list, pick one",
+        "checkbox_group": "Checkbox group: all options visible, pick many",
+        "multi_select": "Multi-select dropdown: collapsed list, pick many",
+        "toggle": "Toggle switch: a single on/off state",
+        "combobox": "Combobox: type to filter a long list, pick one",
+        "segmented": "Segmented control: 2-4 short options in a row",
+        "cards": "Comparison cards: side-by-side feature columns",
+        "other": "None of these fit"
+      },
+      "jev_choice": "radio_group",
+      "jev_confidence": 0.97,
+      "gold": [
+        "radio_group"
+      ]
+    },
+    {
+      "id": "long-list-a11y",
+      "level": "L3",
+      "node": "Component Decision",
+      "state": {
+        "request": "The user picks one of 200 options.",
+        "constraint": "must be operable by keyboard only and announced by a screen reader"
+      },
+      "question": "Which UI component best fits this requirement?",
+      "options": {
+        "radio_group": "Radio group: all options visible, pick one",
+        "select": "Dropdown select: collapsed list, pick one",
+        "checkbox_group": "Checkbox group: all options visible, pick many",
+        "multi_select": "Multi-select dropdown: collapsed list, pick many",
+        "toggle": "Toggle switch: a single on/off state",
+        "combobox": "Combobox: type to filter a long list, pick one",
+        "segmented": "Segmented control: 2-4 short options in a row",
+        "cards": "Comparison cards: side-by-side feature columns",
+        "other": "None of these fit"
+      },
+      "jev_choice": "combobox",
+      "jev_confidence": 0.72,
+      "gold": [
+        "combobox"
+      ]
+    },
+    {
+      "id": "12-options-ambiguous",
+      "level": "L4",
+      "node": "Component Decision",
+      "state": {
+        "request": "The user picks one of twelve options.",
+        "constraint": "no other constraints given"
+      },
+      "question": "Which UI component best fits this requirement?",
+      "options": {
+        "radio_group": "Radio group: all options visible, pick one",
+        "select": "Dropdown select: collapsed list, pick one",
+        "checkbox_group": "Checkbox group: all options visible, pick many",
+        "multi_select": "Multi-select dropdown: collapsed list, pick many",
+        "toggle": "Toggle switch: a single on/off state",
+        "combobox": "Combobox: type to filter a long list, pick one",
+        "segmented": "Segmented control: 2-4 short options in a row",
+        "cards": "Comparison cards: side-by-side feature columns",
+        "other": "None of these fit"
+      },
+      "jev_choice": "select",
+      "jev_confidence": 0.53,
+      "gold": [
+        "radio_group",
+        "select",
+        "combobox"
+      ]
+    },
+    {
+      "id": "turn-off",
+      "level": "L1",
+      "node": "Functional Action",
+      "state": {
+        "utterance": "Turn notifications off."
+      },
+      "question": "Which action does the user want performed?",
+      "options": {
+        "disable_all": "Disable all notifications",
+        "disable_push_only": "Disable push notifications only, leave email on",
+        "disable_email_only": "Disable email notifications only, leave push on",
+        "enable_all": "Enable all notifications",
+        "snooze_temporary": "Temporarily suspend notifications, then restore them",
+        "other": "None of these"
+      },
+      "jev_choice": "disable_all",
+      "jev_confidence": 0.99,
+      "gold": [
+        "disable_all"
+      ]
+    },
+    {
+      "id": "push-not-email",
+      "level": "L2",
+      "node": "Functional Action",
+      "state": {
+        "utterance": "Disable push notifications but keep email notifications enabled."
+      },
+      "question": "Which action does the user want performed?",
+      "options": {
+        "disable_all": "Disable all notifications",
+        "disable_push_only": "Disable push notifications only, leave email on",
+        "disable_email_only": "Disable email notifications only, leave push on",
+        "enable_all": "Enable all notifications",
+        "snooze_temporary": "Temporarily suspend notifications, then restore them",
+        "other": "None of these"
+      },
+      "jev_choice": "disable_push_only",
+      "jev_confidence": 1.0,
+      "gold": [
+        "disable_push_only"
+      ]
+    },
+    {
+      "id": "until-tomorrow",
+      "level": "L3",
+      "node": "Functional Action",
+      "state": {
+        "utterance": "Disable notifications until tomorrow."
+      },
+      "question": "Which action does the user want performed?",
+      "options": {
+        "disable_all": "Disable all notifications",
+        "disable_push_only": "Disable push notifications only, leave email on",
+        "disable_email_only": "Disable email notifications only, leave push on",
+        "enable_all": "Enable all notifications",
+        "snooze_temporary": "Temporarily suspend notifications, then restore them",
+        "other": "None of these"
+      },
+      "jev_choice": "snooze_temporary",
+      "jev_confidence": 0.98,
+      "gold": [
+        "snooze_temporary"
+      ]
+    },
+    {
+      "id": "push-off-confirm",
+      "level": "L3",
+      "node": "Functional Action",
+      "state": {
+        "utterance": "Disable push notifications, preserve email, and show me a confirmation."
+      },
+      "question": "Which action does the user want performed?",
+      "options": {
+        "disable_all": "Disable all notifications",
+        "disable_push_only": "Disable push notifications only, leave email on",
+        "disable_email_only": "Disable email notifications only, leave push on",
+        "enable_all": "Enable all notifications",
+        "snooze_temporary": "Temporarily suspend notifications, then restore them",
+        "other": "None of these"
+      },
+      "jev_choice": "disable_push_only",
+      "jev_confidence": 1.0,
+      "gold": [
+        "disable_push_only"
+      ]
+    },
+    {
+      "id": "quiet-please",
+      "level": "L4",
+      "node": "Functional Action",
+      "state": {
+        "utterance": "It's too noisy, can you calm this down?"
+      },
+      "question": "Which action does the user want performed?",
+      "options": {
+        "disable_all": "Disable all notifications",
+        "disable_push_only": "Disable push notifications only, leave email on",
+        "disable_email_only": "Disable email notifications only, leave push on",
+        "enable_all": "Enable all notifications",
+        "snooze_temporary": "Temporarily suspend notifications, then restore them",
+        "other": "None of these"
+      },
+      "jev_choice": "other",
+      "jev_confidence": 0.31,
+      "gold": [
+        "disable_all",
+        "disable_push_only",
+        "snooze_temporary"
+      ]
+    },
+    {
+      "id": "cta-prominent",
+      "level": "L3",
+      "node": "Styling",
+      "state": {
+        "instruction": "Make the primary CTA more prominent without increasing its visual weight too much or disrupting the existing hierarchy.",
+        "design_system": "semantic tokens, fixed type scale, accent colour reserved for primary actions"
+      },
+      "question": "Which single approach best satisfies the instruction?",
+      "options": {
+        "increase_size": "Increase the element's size",
+        "accent_color": "Apply the design system's accent colour",
+        "increase_weight": "Increase font weight",
+        "add_shadow": "Add a drop shadow",
+        "increase_whitespace": "Increase surrounding whitespace so it stands alone",
+        "demote_siblings": "Reduce the visual weight of competing elements",
+        "other": "None of these"
+      },
+      "jev_choice": "accent_color",
+      "jev_confidence": 0.53,
+      "gold": [
+        "increase_whitespace",
+        "demote_siblings"
+      ]
+    }
+  ],
+  "agreement": 0.867,
+  "mean_rubric": 3.6,
+  "disputed": [
+    [
+      "long-list-a11y",
+      "too_narrow",
+      "Native select is arguably safer for keyboard/SR a11y; should be admitted too."
+    ]
+  ],
+  "teacher_cost_usd": 0.349,
+  "jev_p50_ms": 176
+}

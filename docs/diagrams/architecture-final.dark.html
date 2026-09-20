@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JIT UI — LangGraph Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'JetBrains Mono',monospace;background:#020617;min-height:100vh;padding:2rem;color:#fff}
+.container{max-width:1240px;margin:0 auto}
+.header{margin-bottom:2rem}.header-row{display:flex;align-items:center;gap:1rem;margin-bottom:.5rem}
+.pulse-dot{width:12px;height:12px;background:#22d3ee;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+h1{font-size:1.5rem;font-weight:700;letter-spacing:-.025em}
+.subtitle{color:#94a3b8;font-size:.875rem;margin-left:1.75rem}
+.diagram-container{background:rgba(15,23,42,.5);border-radius:1rem;border:1px solid #1e293b;padding:1.5rem;overflow-x:auto}
+svg{width:100%;min-width:1000px;display:block}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.5rem}
+.card{background:rgba(15,23,42,.5);border:1px solid #1e293b;border-radius:.75rem;padding:1rem}
+.card-header{display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem}
+.card-dot{width:8px;height:8px;border-radius:50%}
+.dot-emerald{background:#34d399}.dot-violet{background:#a78bfa}.dot-rose{background:#fb7185}
+.card h3{font-size:.8125rem;font-weight:600}.card ul{list-style:none}
+.card li{color:#94a3b8;font-size:.6875rem;line-height:1.75}.card li b{color:#e2e8f0}
+.footer{margin-top:1.5rem;color:#475569;font-size:.6875rem;text-align:center}
+.toolbar{position:relative;margin-left:auto;display:flex;align-items:center;gap:.5rem}
+.toolbar-actions{display:none;gap:.5rem}.toolbar-actions.open{display:flex}
+.toolbar button{font-family:inherit;font-size:.6875rem;color:#94a3b8;background:rgba(15,23,42,.8);border:1px solid #1e293b;border-radius:.5rem;padding:.35rem .6rem;cursor:pointer}
+.toolbar button:hover{color:#e2e8f0;border-color:#334155}
+@media print{.toolbar{display:none!important}}
+</style></head>
+<body>
+<div class="container" id="report-container">
+<div class="header">
+  <div class="header-row"><div class="pulse-dot"></div><h1>JIT UI — LangGraph Architecture</h1>
+    <div class="toolbar"><div class="toolbar-actions" id="ta">
+      <button onclick="copyAsImage()">📋 Copy</button><button onclick="downloadPNG()">🖼️ PNG</button><button onclick="downloadPDF()">📄 PDF</button>
+    </div><button onclick="document.getElementById('ta').classList.toggle('open')">⋯</button></div>
+  </div>
+  <p class="subtitle">Nodes emit patches through <b style="color:#e2e8f0">config.writer</b> + <b style="color:#e2e8f0">streamMode:"custom"</b> — there is no combine node · rose = corrected since the last draft</p>
+</div>
+<div class="diagram-container">
+<svg viewBox="0 0 1120 1000" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/></pattern>
+<marker id="ah" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/></marker>
+<marker id="ag" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/></marker>
+<marker id="av" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/></marker>
+<marker id="ar" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/></marker>
+</defs>
+<rect width="1120" height="1000" fill="url(#grid)"/>
+
+<!-- ============ GRAPH EDGES ============ -->
+<line x1="420" y1="64" x2="420" y2="90" stroke="#64748b" stroke-width="1.5" marker-end="url(#ah)"/>
+<line x1="420" y1="302" x2="420" y2="338" stroke="#64748b" stroke-width="1.5" marker-end="url(#ah)"/>
+<path d="M 420 396 L 420 412 L 222 412 L 222 428" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#ah)"/>
+<path d="M 420 396 L 420 412 L 615 412 L 615 458" fill="none" stroke="#64748b" stroke-width="1.5" marker-end="url(#ah)"/>
+<text x="132" y="406" fill="#fbbf24" font-size="8" font-weight="600">true · needsResearch ≥ 0.40 &amp;&amp; flags.research</text>
+<text x="452" y="406" fill="#64748b" font-size="8">false — the default</text>
+<path d="M 392 640 L 410 640 L 410 560 L 428 560" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ag)"/>
+<text x="398" y="600" fill="#34d399" font-size="8" transform="rotate(-90 398 600)">kept facts</text>
+<!-- research internal -->
+<line x1="222" y1="502" x2="222" y2="524" stroke="#64748b" stroke-width="1.5" marker-end="url(#ah)"/>
+<line x1="222" y1="566" x2="222" y2="588" stroke="#64748b" stroke-width="1.5" marker-end="url(#ah)"/>
+<path d="M 92 672 L 68 672 L 68 545 L 92 545" fill="none" stroke="#fb7185" stroke-width="1.6" stroke-dasharray="5,3" marker-end="url(#ar)"/>
+<text x="60" y="610" fill="#fb7185" font-size="8" font-weight="600" transform="rotate(-90 60 610)">search again? → loop</text>
+<!-- END -->
+<line x1="615" y1="632" x2="615" y2="668" stroke="#64748b" stroke-width="1.5" marker-end="url(#ah)"/>
+
+<!-- ============ WRITER ARROWS (cross the validation band) ============ -->
+<path d="M 800 178 L 846 178" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ag)"/>
+<path d="M 800 234 L 846 234" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ag)"/>
+<path d="M 800 500 L 846 500" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#av)"/>
+<path d="M 800 570 L 846 570" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#av)"/>
+
+<!-- ============ NODES ============ -->
+<!-- utterance -->
+<rect x="300" y="20" width="240" height="44" rx="6" fill="#0f172a"/><rect x="300" y="20" width="240" height="44" rx="6" fill="rgba(8,51,68,.4)" stroke="#22d3ee" stroke-width="1.5"/>
+<text x="420" y="40" fill="#fff" font-size="12" font-weight="600" text-anchor="middle">utterance → START</text>
+<text x="420" y="56" fill="#94a3b8" font-size="8" text-anchor="middle">partial transcript, stale requests cancelled</text>
+
+<!-- jev_decide -->
+<rect x="60" y="90" width="740" height="212" rx="8" fill="#0f172a"/><rect x="60" y="90" width="740" height="212" rx="8" fill="rgba(6,78,59,.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="430" y="116" fill="#34d399" font-size="12" font-weight="700" text-anchor="middle">NODE  jev_decide  —  ONE BATCHED JEV CALL</text>
+<text x="430" y="134" fill="#94a3b8" font-size="9" text-anchor="middle">8 questions · 214ms p50 measured · ~$0.00003 · asked speculatively, in parallel</text>
+<line x1="78" y1="148" x2="782" y2="148" stroke="#1e293b"/>
+<text x="78" y="172" fill="#e2e8f0" font-size="10">which template / skeleton?</text><text x="398" y="172" fill="#34d399" font-size="9" font-weight="600" text-anchor="end">8/8 e2e · 92% synth</text>
+<text x="78" y="192" fill="#e2e8f0" font-size="10">palette · font · density · radius · motif</text><text x="398" y="192" fill="#34d399" font-size="9" font-weight="600" text-anchor="end">100% · 432 combos</text>
+<text x="78" y="212" fill="#e2e8f0" font-size="10">which facts go to the LLM?</text><text x="398" y="212" fill="#34d399" font-size="9" font-weight="600" text-anchor="end">1.00 @ 20 items</text>
+<text x="78" y="232" fill="#e2e8f0" font-size="10">do we already know enough?</text><text x="398" y="232" fill="#34d399" font-size="9" font-weight="600" text-anchor="end">1.00</text>
+<text x="420" y="172" fill="#e2e8f0" font-size="10">needs external lookup?</text><text x="782" y="172" fill="#fb7185" font-size="9" font-weight="600" text-anchor="end">93% @ T=0.40 · flagged</text>
+<text x="420" y="192" fill="#e2e8f0" font-size="10">does this need generation?</text><text x="782" y="192" fill="#34d399" font-size="9" font-weight="600" text-anchor="end">✓</text>
+<text x="420" y="212" fill="#e2e8f0" font-size="10">which components must change?</text><text x="782" y="212" fill="#fbbf24" font-size="9" font-weight="600" text-anchor="end">0.78 · gate</text>
+<text x="420" y="232" fill="#e2e8f0" font-size="10">candidate list sufficient?</text><text x="782" y="232" fill="#34d399" font-size="9" font-weight="600" text-anchor="end">flags gaps 0.06</text>
+<text x="430" y="258" fill="#64748b" font-size="8" text-anchor="middle">questions are free — 1q 381ms · 32q 362ms · 200 options 366ms · only state size costs latency</text>
+<rect x="78" y="270" width="704" height="22" rx="4" fill="rgba(136,19,55,.4)" stroke="#fb7185" stroke-width="1"/>
+<text x="430" y="285" fill="#fb7185" font-size="8" text-anchor="middle">two config.writer calls fire HERE — the renderer has painted before any other node has started</text>
+
+<!-- route -->
+<rect x="300" y="338" width="240" height="58" rx="6" fill="#0f172a"/><rect x="300" y="338" width="240" height="58" rx="6" fill="rgba(30,41,59,.5)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="420" y="360" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">addConditionalEdges</text>
+<text x="420" y="376" fill="#94a3b8" font-size="8" text-anchor="middle">pure JS · no model · the feature flag lives here</text>
+<text x="420" y="389" fill="#fbbf24" font-size="8" text-anchor="middle">flag OFF → predicate forced false, branch never compiles in</text>
+
+<!-- research subgraph -->
+<rect x="52" y="428" width="340" height="256" rx="12" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="8,4"/>
+<rect x="66" y="418" width="230" height="20" rx="4" fill="rgba(120,53,15,.3)" stroke="#fbbf24" stroke-width="1"/>
+<text x="181" y="432" fill="#fbbf24" font-size="8" font-weight="700" text-anchor="middle">FEATURE FLAG · research.enabled</text>
+
+<rect x="92" y="456" width="260" height="46" rx="6" fill="#0f172a"/><rect x="92" y="456" width="260" height="46" rx="6" fill="rgba(76,29,149,.4)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="222" y="475" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">NODE  keywords</text>
+<text x="222" y="491" fill="#94a3b8" font-size="8" text-anchor="middle">LLM · once · cached</text>
+
+<rect x="92" y="524" width="260" height="42" rx="6" fill="#0f172a"/><rect x="92" y="524" width="260" height="42" rx="6" fill="rgba(30,41,59,.5)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="222" y="542" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">NODE  research_fetch</text>
+<text x="222" y="557" fill="#94a3b8" font-size="8" text-anchor="middle">CODE — no model</text>
+
+<rect x="92" y="588" width="260" height="84" rx="6" fill="#0f172a"/><rect x="92" y="588" width="260" height="84" rx="6" fill="rgba(6,78,59,.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="222" y="606" fill="#fff" font-size="10" font-weight="600" text-anchor="middle">NODE  jev_filter · one call · ~250ms</text>
+<text x="104" y="624" fill="#e2e8f0" font-size="8.5">relevant? per result</text><text x="340" y="624" fill="#34d399" font-size="8.5" font-weight="600" text-anchor="end">1.00</text>
+<text x="104" y="639" fill="#e2e8f0" font-size="8.5">current + authoritative?</text><text x="340" y="639" fill="#34d399" font-size="8.5" font-weight="600" text-anchor="end">0.89</text>
+<text x="104" y="654" fill="#e2e8f0" font-size="8.5">results conflict?</text><text x="340" y="654" fill="#34d399" font-size="8.5" font-weight="600" text-anchor="end">0.97</text>
+<text x="104" y="667" fill="#e2e8f0" font-size="8.5">search again?</text><text x="340" y="667" fill="#34d399" font-size="8.5" font-weight="600" text-anchor="end">3/3</text>
+
+<!-- content_llm -->
+<rect x="428" y="458" width="372" height="174" rx="6" fill="#0f172a"/><rect x="428" y="458" width="372" height="174" rx="6" fill="rgba(76,29,149,.4)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="614" y="480" fill="#fff" font-size="12" font-weight="600" text-anchor="middle">NODE  content_llm</text>
+<text x="614" y="497" fill="#94a3b8" font-size="8.5" text-anchor="middle">Pi agent or ChatAnthropic — lean prompt, zero tools</text>
+<text x="614" y="513" fill="#94a3b8" font-size="8.5" text-anchor="middle">one config.writer per slot, as it parses</text>
+<rect x="444" y="522" width="340" height="38" rx="4" fill="rgba(136,19,55,.4)" stroke="#fb7185" stroke-width="1"/>
+<text x="614" y="536" fill="#fb7185" font-size="8.5" font-weight="700" text-anchor="middle">TTFT 1605ms stripped vs 5369ms with a harness</text>
+<text x="614" y="551" fill="#fb7185" font-size="8" text-anchor="middle">the harness carried 23× the tokens — 21,009 against 922</text>
+<rect x="444" y="566" width="340" height="34" rx="4" fill="rgba(120,53,15,.3)" stroke="#fbbf24" stroke-width="1"/>
+<text x="614" y="580" fill="#fbbf24" font-size="8.5" font-weight="700" text-anchor="middle">EMISSION ORDER: nulls → Buttons → body</text>
+<text x="614" y="594" fill="#fbbf24" font-size="8" text-anchor="middle">step-17 relabel moves 10456ms → ~1.5s, prompt change only</text>
+<text x="614" y="616" fill="#64748b" font-size="8" text-anchor="middle">no checkpointer on this path · step 19 persists outside the run</text>
+
+<!-- END -->
+<rect x="515" y="668" width="200" height="38" rx="6" fill="#0f172a"/><rect x="515" y="668" width="200" height="38" rx="6" fill="rgba(30,41,59,.5)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="615" y="692" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">END  ~6–8s</text>
+
+<!-- ============ VALIDATION BAND ============ -->
+<rect x="810" y="120" width="26" height="500" rx="6" fill="rgba(136,19,55,.4)" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="4,4"/>
+<text x="823" y="370" fill="#fb7185" font-size="9.5" font-weight="700" text-anchor="middle" transform="rotate(-90 823 370)">WHITELIST VALIDATION · CODE · step 21</text>
+<text x="823" y="640" fill="#fb7185" font-size="8" text-anchor="middle">every patch</text>
+<text x="823" y="652" fill="#fb7185" font-size="8" text-anchor="middle">crosses it</text>
+
+<!-- ============ EMISSION RAIL ============ -->
+<line x1="858" y1="150" x2="858" y2="600" stroke="#334155" stroke-width="2"/>
+<text x="858" y="140" fill="#e2e8f0" font-size="10" font-weight="700" text-anchor="middle">PATCH STREAM</text>
+
+<circle cx="858" cy="178" r="5" fill="#34d399"/>
+<text x="876" y="174" fill="#34d399" font-size="10" font-weight="700">214ms · SkeletonPatch</text>
+<text x="876" y="188" fill="#94a3b8" font-size="8">renderer.applySkeleton — templateId, maxWidth</text>
+
+<circle cx="858" cy="234" r="5" fill="#34d399"/>
+<text x="876" y="230" fill="#34d399" font-size="10" font-weight="700">214ms · StylePatch</text>
+<text x="876" y="244" fill="#94a3b8" font-size="8">renderer.applyStyle — 5 enum axes, no hex</text>
+
+<circle cx="858" cy="500" r="5" fill="#a78bfa"/>
+<text x="876" y="496" fill="#a78bfa" font-size="10" font-weight="700">~1.2s · ContentPatch: nulls + Buttons</text>
+<text x="876" y="510" fill="#94a3b8" font-size="8">applyContent — layout settles, buttons relabel</text>
+
+<circle cx="858" cy="570" r="5" fill="#a78bfa"/>
+<text x="876" y="566" fill="#a78bfa" font-size="10" font-weight="700">1.2s → 6–8s · ContentPatch × N</text>
+<text x="876" y="580" fill="#94a3b8" font-size="8">body slots · ~380ms cadence, shimmer till filled</text>
+
+<rect x="850" y="622" width="250" height="62" rx="6" fill="rgba(136,19,55,.4)" stroke="#fb7185" stroke-width="1.5"/>
+<text x="975" y="642" fill="#fb7185" font-size="9.5" font-weight="700" text-anchor="middle">NO COMBINE NODE</text>
+<text x="975" y="657" fill="#e2e8f0" font-size="8" text-anchor="middle">a join would hold the 214ms paint</text>
+<text x="975" y="669" fill="#e2e8f0" font-size="8" text-anchor="middle">hostage to the 6–8s content node —</text>
+<text x="975" y="681" fill="#e2e8f0" font-size="8" text-anchor="middle">everything would land at once, at 6s</text>
+
+<!-- ============ PERCEIVED TIMELINE ============ -->
+<text x="60" y="756" fill="#e2e8f0" font-size="10" font-weight="700">WHAT THE JUDGE SEES</text>
+<rect x="80" y="772" width="26" height="22" rx="3" fill="#1e293b" stroke="#334155"/>
+<rect x="106" y="772" width="118" height="22" fill="rgba(6,78,59,.6)" stroke="#34d399"/>
+<rect x="224" y="772" width="816" height="22" rx="3" fill="rgba(76,29,149,.45)" stroke="#a78bfa"/>
+<line x1="106" y1="766" x2="106" y2="800" stroke="#34d399" stroke-width="1.5"/>
+<line x1="224" y1="766" x2="224" y2="800" stroke="#a78bfa" stroke-width="1.5"/>
+<line x1="800" y1="766" x2="800" y2="800" stroke="#64748b" stroke-width="1.5" stroke-dasharray="3,3"/>
+<text x="106" y="816" fill="#34d399" font-size="9" font-weight="700" text-anchor="middle">214ms</text>
+<text x="106" y="828" fill="#94a3b8" font-size="8" text-anchor="middle">reshaped + reskinned, all slots shimmering</text>
+<text x="224" y="816" fill="#a78bfa" font-size="9" font-weight="700">1.2s</text>
+<text x="224" y="828" fill="#94a3b8" font-size="8">layout settles, four buttons get their labels</text>
+<text x="800" y="816" fill="#64748b" font-size="9" font-weight="700" text-anchor="middle">6–8s</text>
+<text x="800" y="828" fill="#64748b" font-size="8" text-anchor="middle">last body slot</text>
+<text x="80" y="852" fill="#64748b" font-size="8">0</text><text x="1040" y="852" fill="#64748b" font-size="8" text-anchor="end">8s</text>
+<rect x="80" y="862" width="560" height="20" rx="4" fill="rgba(6,78,59,.3)" stroke="#34d399" stroke-width="1"/>
+<text x="360" y="876" fill="#34d399" font-size="8.5" font-weight="600" text-anchor="middle">plan-v1.md:75 — "under 1.5s from last word" — met by the reshape, not by the content</text>
+
+<!-- ============ LEGEND ============ -->
+<text x="60" y="922" fill="#94a3b8" font-size="10" font-weight="700">LEGEND</text>
+<rect x="60" y="936" width="14" height="14" rx="3" fill="rgba(6,78,59,.4)" stroke="#34d399" stroke-width="1.5"/><text x="82" y="947" fill="#94a3b8" font-size="9">Jev — ~214ms</text>
+<rect x="230" y="936" width="14" height="14" rx="3" fill="rgba(76,29,149,.4)" stroke="#a78bfa" stroke-width="1.5"/><text x="252" y="947" fill="#94a3b8" font-size="9">LLM — generative</text>
+<rect x="420" y="936" width="14" height="14" rx="3" fill="rgba(30,41,59,.5)" stroke="#94a3b8" stroke-width="1.5"/><text x="442" y="947" fill="#94a3b8" font-size="9">Code — no model</text>
+<rect x="600" y="936" width="14" height="14" rx="3" fill="rgba(120,53,15,.3)" stroke="#fbbf24" stroke-width="1.5"/><text x="622" y="947" fill="#94a3b8" font-size="9">flag / gate</text>
+<rect x="740" y="936" width="14" height="14" rx="3" fill="rgba(136,19,55,.4)" stroke="#fb7185" stroke-width="1.5"/><text x="762" y="947" fill="#94a3b8" font-size="9">changed / guard</text>
+<text x="60" y="978" fill="#64748b" font-size="8">Scores are accuracy or F1 against gold, 3–8 reps. Validated against packages/schema/src/index.ts in m9ssah/htn. Latency buckets from probe 17.</text>
+</svg>
+</div>
+<div class="cards">
+<div class="card"><div class="card-header"><div class="card-dot dot-rose"></div><h3>What LangGraph changes</h3></div><ul>
+<li>• Every box is a <b>node</b>; every patch leaves via <b>config.writer</b></li>
+<li>• <b>streamMode: "custom"</b> — "messages" can't see Jev at all</li>
+<li>• <b>No combine node</b>, and patches are not returned as state</li>
+<li>• Sequential, not a START fan-out — Content needs <b>templateId</b></li>
+<li>• Flag is the <b>routing function</b>, not a branch to delete</li>
+<li>• <b>No checkpointer</b> on the render path</li>
+<li>• <b>@langchain/langgraph</b> — imports @jit/schema directly</li>
+</ul></div>
+<div class="card"><div class="card-header"><div class="card-dot dot-emerald"></div><h3>Measured</h3></div><ul>
+<li>• schema-valid patch sets <b>8/8</b>, template correct <b>8/8</b></li>
+<li>• cascade losses <b>0</b> · StylePatch 5 axes <b>100%</b></li>
+<li>• decision layer <b>214ms p50</b>, 8 questions</li>
+<li>• content TTFT <b>5369 → 1605ms</b> once stripped</li>
+<li>• message_start → first token: <b>0–1ms, every run</b></li>
+<li>• per-slot cadence <b>~380ms</b>, unchanged by stripping</li>
+<li>• research gate <b>3386 → 1976ms</b> at T=0.40</li>
+</ul></div>
+<div class="card"><div class="card-header"><div class="card-dot dot-violet"></div><h3>Still open</h3></div><ul>
+<li>• <b>Nothing emits nulls yet</b> — 2 slots shimmer forever</li>
+<li>• Tail latency: one rep <b>5039ms</b>, one <b>21s</b></li>
+<li>• <b>update UI components</b> 0.78, still on the slow path</li>
+<li>• "what wine goes with this" → <b>0.13</b>, never researched</li>
+<li>• density defaulted <b>spacious 7/8</b></li>
+<li>• one confidently-wrong template at <b>0.72</b></li>
+<li>• Pi agent itself <b>unmeasured</b> — no API key here</li>
+</ul></div>
+</div>
+<div class="footer">jev-1.13.0 · api.typesafe.ai · 17 probes · Jev ~$0.09 total · validated against m9ssah/htn @ b63c98a</div>
+</div>
+<script>
+function rect(){const e=document.getElementById('report-container'),r=e.getBoundingClientRect(),p=32;return{x:scrollX+r.left-p,y:scrollY+r.top-p,width:r.width+p*2,height:r.height+p*2,ignoreElements:n=>n.classList&&n.classList.contains('toolbar')}}
+async function shot(){return await html2canvas(document.body,{backgroundColor:'#020617',scale:2,...rect()})}
+async function copyAsImage(){const c=await shot();c.toBlob(async b=>{try{await navigator.clipboard.write([new ClipboardItem({'image/png':b})])}catch(e){alert('Clipboard needs a secure context — use PNG.')}})}
+async function downloadPNG(){const c=await shot(),a=document.createElement('a');a.download='jit-ui-architecture.png';a.href=c.toDataURL('image/png');a.click()}
+async function downloadPDF(){const c=await shot(),{jsPDF}=window.jspdf,p=new jsPDF({orientation:c.width>c.height?'l':'p',unit:'px',format:[c.width,c.height]});p.addImage(c.toDataURL('image/png'),'PNG',0,0,c.width,c.height);p.save('jit-ui-architecture.pdf')}
+</script>
+</body></html>
