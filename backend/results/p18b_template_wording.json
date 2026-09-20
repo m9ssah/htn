@@ -1,0 +1,209 @@
+{
+ "A wording=p14 state=full": {
+  "rows": [
+   {
+    "utterance": "what should I make tonight",
+    "gold": "choice_cards",
+    "picked": "generic_answer",
+    "correct": false,
+    "stable": true
+   },
+   {
+    "utterance": "actually let's do something else",
+    "gold": "choice_cards",
+    "picked": "generic_answer",
+    "correct": false,
+    "stable": true
+   },
+   {
+    "utterance": "who should I invite on Friday",
+    "gold": "people_picker",
+    "picked": "people_picker",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "how long does it bake",
+    "gold": "generic_answer",
+    "picked": "generic_answer",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "is this recipe actually healthy",
+    "gold": "generic_answer",
+    "picked": "generic_answer",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "how does this device work",
+    "gold": "generic_answer",
+    "picked": "generic_answer",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "what's the weather like tomorrow",
+    "gold": "generic_answer",
+    "picked": "generic_answer",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "text them the recipe",
+    "gold": "people_picker",
+    "picked": "people_picker",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "start the first step",
+    "gold": "focus_step",
+    "picked": "focus_step",
+    "correct": true,
+    "stable": true
+   }
+  ],
+  "acc": 7,
+  "p50": 216
+ },
+ "B wording=p18 state=full": {
+  "rows": [
+   {
+    "utterance": "what should I make tonight",
+    "gold": "choice_cards",
+    "picked": "generic_answer",
+    "correct": false,
+    "stable": true
+   },
+   {
+    "utterance": "actually let's do something else",
+    "gold": "choice_cards",
+    "picked": "generic_answer",
+    "correct": false,
+    "stable": true
+   },
+   {
+    "utterance": "who should I invite on Friday",
+    "gold": "people_picker",
+    "picked": "people_picker",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "how long does it bake",
+    "gold": "generic_answer",
+    "picked": "item_detail",
+    "correct": false,
+    "stable": true
+   },
+   {
+    "utterance": "is this recipe actually healthy",
+    "gold": "generic_answer",
+    "picked": "item_detail",
+    "correct": false,
+    "stable": true
+   },
+   {
+    "utterance": "how does this device work",
+    "gold": "generic_answer",
+    "picked": "generic_answer",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "what's the weather like tomorrow",
+    "gold": "generic_answer",
+    "picked": "generic_answer",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "text them the recipe",
+    "gold": "people_picker",
+    "picked": "message_drafts",
+    "correct": false,
+    "stable": true
+   },
+   {
+    "utterance": "start the first step",
+    "gold": "focus_step",
+    "picked": "focus_step",
+    "correct": true,
+    "stable": true
+   }
+  ],
+  "acc": 4,
+  "p50": 226
+ },
+ "C wording=p14 state=utt ": {
+  "rows": [
+   {
+    "utterance": "what should I make tonight",
+    "gold": "choice_cards",
+    "picked": "choice_cards",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "actually let's do something else",
+    "gold": "choice_cards",
+    "picked": "generic_answer",
+    "correct": false,
+    "stable": true
+   },
+   {
+    "utterance": "who should I invite on Friday",
+    "gold": "people_picker",
+    "picked": "people_picker",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "how long does it bake",
+    "gold": "generic_answer",
+    "picked": "generic_answer",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "is this recipe actually healthy",
+    "gold": "generic_answer",
+    "picked": "generic_answer",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "how does this device work",
+    "gold": "generic_answer",
+    "picked": "generic_answer",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "what's the weather like tomorrow",
+    "gold": "generic_answer",
+    "picked": "generic_answer",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "text them the recipe",
+    "gold": "people_picker",
+    "picked": "people_picker",
+    "correct": true,
+    "stable": true
+   },
+   {
+    "utterance": "start the first step",
+    "gold": "focus_step",
+    "picked": "focus_step",
+    "correct": true,
+    "stable": true
+   }
+  ],
+  "acc": 8,
+  "p50": 216
+ }
+}

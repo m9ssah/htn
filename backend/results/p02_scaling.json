@@ -1,0 +1,98 @@
+[
+  {
+    "label": "1 questions",
+    "ok": true,
+    "p50_ms": 381,
+    "min_ms": 327,
+    "max_ms": 509,
+    "input_tokens": 297,
+    "n": 7
+  },
+  {
+    "label": "8 questions",
+    "ok": true,
+    "p50_ms": 384,
+    "min_ms": 325,
+    "max_ms": 479,
+    "input_tokens": 395,
+    "n": 7
+  },
+  {
+    "label": "32 questions",
+    "ok": true,
+    "p50_ms": 362,
+    "min_ms": 319,
+    "max_ms": 535,
+    "input_tokens": 753,
+    "n": 7
+  },
+  {
+    "label": "64 questions",
+    "ok": true,
+    "p50_ms": 518,
+    "min_ms": 342,
+    "max_ms": 699,
+    "input_tokens": 1233,
+    "n": 7
+  },
+  {
+    "label": "3 options",
+    "ok": true,
+    "p50_ms": 374,
+    "min_ms": 337,
+    "max_ms": 493,
+    "input_tokens": 341,
+    "n": 7
+  },
+  {
+    "label": "50 options",
+    "ok": true,
+    "p50_ms": 357,
+    "min_ms": 332,
+    "max_ms": 436,
+    "input_tokens": 1218,
+    "n": 7
+  },
+  {
+    "label": "200 options",
+    "ok": true,
+    "p50_ms": 366,
+    "min_ms": 315,
+    "max_ms": 428,
+    "input_tokens": 4266,
+    "n": 7
+  },
+  {
+    "label": "~1 KiB state",
+    "ok": true,
+    "p50_ms": 366,
+    "min_ms": 304,
+    "max_ms": 409,
+    "input_tokens": 443,
+    "n": 7
+  },
+  {
+    "label": "~32 KiB state",
+    "ok": true,
+    "p50_ms": 439,
+    "min_ms": 359,
+    "max_ms": 518,
+    "input_tokens": 5273,
+    "n": 7
+  },
+  {
+    "label": "~128 KiB state",
+    "ok": true,
+    "p50_ms": 948,
+    "min_ms": 603,
+    "max_ms": 1506,
+    "input_tokens": 20232,
+    "n": 7
+  },
+  {
+    "label": "token_ceiling_kib",
+    "ok": true,
+    "lo_kib": 208,
+    "hi_kib": 216
+  }
+]

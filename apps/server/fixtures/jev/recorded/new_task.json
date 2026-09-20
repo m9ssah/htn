@@ -1,0 +1,128 @@
+{
+  "state": {
+    "utterance": "what should I make tonight",
+    "currentTemplate": null,
+    "taskState": "nothing started"
+  },
+  "response": {
+    "model": "jev-1.13.0",
+    "answers": {
+      "route": {
+        "type": "choice",
+        "choice": "new_task",
+        "confidence": 0.44,
+        "probabilities": {
+          "correct": 0,
+          "new_task": 0.54,
+          "query": 0.46,
+          "select": 0,
+          "other": 0,
+          "refine": 0
+        }
+      },
+      "templateId": {
+        "type": "choice",
+        "choice": "choice_cards",
+        "confidence": 0.98,
+        "probabilities": {
+          "people_picker": 0,
+          "recovery": 0,
+          "item_detail": 0,
+          "choice_cards": 0.98,
+          "message_drafts": 0,
+          "generic_answer": 0.02,
+          "focus_step": 0,
+          "summary_done": 0
+        }
+      },
+      "palette": {
+        "type": "choice",
+        "choice": "slate",
+        "confidence": 0.37,
+        "probabilities": {
+          "slate": 0.53,
+          "contrast": 0.27,
+          "rose": 0.12,
+          "mono": 0.08
+        }
+      },
+      "fontPairing": {
+        "type": "choice",
+        "choice": "system",
+        "confidence": 0.63,
+        "probabilities": {
+          "geometric": 0.23,
+          "editorial": 0.05,
+          "mono": 0,
+          "system": 0.72
+        }
+      },
+      "density": {
+        "type": "choice",
+        "choice": "normal",
+        "confidence": 0.68,
+        "probabilities": {
+          "compact": 0.06,
+          "spacious": 0.15,
+          "normal": 0.79
+        }
+      },
+      "radius": {
+        "type": "choice",
+        "choice": "round",
+        "confidence": 0.42,
+        "probabilities": {
+          "round": 0.61,
+          "sharp": 0.08,
+          "soft": 0.31
+        }
+      },
+      "motif": {
+        "type": "choice",
+        "choice": "none",
+        "confidence": 0.99,
+        "probabilities": {
+          "geometric": 0,
+          "floral": 0,
+          "none": 1
+        }
+      },
+      "wantsStyleChange": {
+        "type": "noul",
+        "noul": 0.01
+      },
+      "deviationIngredient": {
+        "type": "choice",
+        "choice": "flour",
+        "confidence": 0.54,
+        "probabilities": {
+          "caster_sugar": 0,
+          "salt": 0.04,
+          "brown_sugar": 0,
+          "eggs": 0.3,
+          "flour": 0.59,
+          "butter": 0.03,
+          "vanilla": 0.01,
+          "baking_soda": 0,
+          "choc_chips": 0.03
+        }
+      },
+      "deviationFactor": {
+        "type": "choice",
+        "choice": "other",
+        "confidence": 1,
+        "probabilities": {
+          "1.5x": 0,
+          "half": 0,
+          "3x": 0,
+          "2x": 0,
+          "other": 1
+        }
+      }
+    },
+    "usage": {
+      "input_tokens": 1505,
+      "output_tokens": 525
+    }
+  }
+}

@@ -1,0 +1,232 @@
+{
+  "template": [
+    {
+      "level": "L1",
+      "case": "which-recipe",
+      "picked": "choice_cards",
+      "correct": true,
+      "conf": 0.89,
+      "stable": true
+    },
+    {
+      "level": "L1",
+      "case": "show-recipe",
+      "picked": "recipe_overview",
+      "correct": true,
+      "conf": 0.99,
+      "stable": true
+    },
+    {
+      "level": "L1",
+      "case": "whats-next",
+      "picked": "focus_step",
+      "correct": true,
+      "conf": 0.43,
+      "stable": true
+    },
+    {
+      "level": "L2",
+      "case": "burnt-it",
+      "picked": "recovery",
+      "correct": true,
+      "conf": 0.99,
+      "stable": true
+    },
+    {
+      "level": "L2",
+      "case": "all-done",
+      "picked": "summary_done",
+      "correct": true,
+      "conf": 1.0,
+      "stable": true
+    },
+    {
+      "level": "L2",
+      "case": "who-invite",
+      "picked": "people_picker",
+      "correct": true,
+      "conf": 0.963,
+      "stable": true
+    },
+    {
+      "level": "L2",
+      "case": "text-them",
+      "picked": "people_picker",
+      "correct": false,
+      "conf": 0.723,
+      "stable": true
+    },
+    {
+      "level": "L3",
+      "case": "judge-q",
+      "picked": "generic_answer",
+      "correct": true,
+      "conf": 0.95,
+      "stable": true
+    },
+    {
+      "level": "L3",
+      "case": "double-it",
+      "picked": "recipe_overview",
+      "correct": true,
+      "conf": 0.953,
+      "stable": true
+    },
+    {
+      "level": "L3",
+      "case": "too-salty",
+      "picked": "recovery",
+      "correct": true,
+      "conf": 0.463,
+      "stable": true
+    },
+    {
+      "level": "L4",
+      "case": "im-stuck",
+      "picked": "recovery",
+      "correct": true,
+      "conf": 0.68,
+      "stable": true
+    },
+    {
+      "level": "L4",
+      "case": "start-over",
+      "picked": "generic_answer",
+      "correct": true,
+      "conf": 0.317,
+      "stable": true
+    }
+  ],
+  "style": [
+    {
+      "level": "L1",
+      "case": "high-contrast-big",
+      "modes": {
+        "palette": "contrast",
+        "fontPairing": "geometric",
+        "density": "spacious",
+        "radius": "sharp",
+        "motif": "none"
+      },
+      "ok": true,
+      "constrained": [
+        "palette"
+      ],
+      "mean_conf": 0.847
+    },
+    {
+      "level": "L1",
+      "case": "pink-soft",
+      "modes": {
+        "palette": "rose",
+        "fontPairing": "editorial",
+        "density": "spacious",
+        "radius": "soft",
+        "motif": "floral"
+      },
+      "ok": true,
+      "constrained": [
+        "palette",
+        "radius"
+      ],
+      "mean_conf": 0.724
+    },
+    {
+      "level": "L2",
+      "case": "clean-technical",
+      "modes": {
+        "palette": "slate",
+        "fontPairing": "mono",
+        "density": "spacious",
+        "radius": "sharp",
+        "motif": "none"
+      },
+      "ok": true,
+      "constrained": [
+        "fontPairing",
+        "motif"
+      ],
+      "mean_conf": 0.699
+    },
+    {
+      "level": "L2",
+      "case": "more-on-screen",
+      "modes": {
+        "palette": "contrast",
+        "fontPairing": "mono",
+        "density": "compact",
+        "radius": "sharp",
+        "motif": "none"
+      },
+      "ok": true,
+      "constrained": [
+        "density"
+      ],
+      "mean_conf": 0.571
+    },
+    {
+      "level": "L2",
+      "case": "calm-airy",
+      "modes": {
+        "palette": "slate",
+        "fontPairing": "editorial",
+        "density": "spacious",
+        "radius": "round",
+        "motif": "none"
+      },
+      "ok": true,
+      "constrained": [
+        "density"
+      ],
+      "mean_conf": 0.467
+    },
+    {
+      "level": "L3",
+      "case": "elegant-serif",
+      "modes": {
+        "palette": "mono",
+        "fontPairing": "editorial",
+        "density": "spacious",
+        "radius": "soft",
+        "motif": "floral"
+      },
+      "ok": true,
+      "constrained": [
+        "fontPairing"
+      ],
+      "mean_conf": 0.696
+    },
+    {
+      "level": "L3",
+      "case": "cant-see",
+      "modes": {
+        "palette": "contrast",
+        "fontPairing": "system",
+        "density": "spacious",
+        "radius": "soft",
+        "motif": "none"
+      },
+      "ok": true,
+      "constrained": [
+        "palette",
+        "density"
+      ],
+      "mean_conf": 0.657
+    },
+    {
+      "level": "L4",
+      "case": "modern",
+      "modes": {
+        "palette": "slate",
+        "fontPairing": "geometric",
+        "density": "spacious",
+        "radius": "sharp",
+        "motif": "geometric"
+      },
+      "ok": true,
+      "constrained": [],
+      "mean_conf": 0.693
+    }
+  ],
+  "template_accuracy": 0.917
+}

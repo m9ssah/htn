@@ -1,0 +1,6251 @@
+{
+  "spike": "p20 — jevStructureComposer / experimental_composeSpec latency",
+  "measuredAt": "2026-09-20T03:24:31.549Z",
+  "node": "v26.4.0",
+  "host": "macOS darwin 25.4.0, residential broadband",
+  "budget": {
+    "structurePaintMs": 250,
+    "contentMs": 1500,
+    "polishMs": 2000
+  },
+  "transport": {
+    "shippedEndpoint": "https://ai-gateway.vercel.sh/v4/ai/evaluation-model (experimental_createEvaluator)",
+    "shippedAuthResult": "HTTP 401 with the project TYPESAFE_API_KEY (measured, 641ms to failure)",
+    "measuredEndpoint": "https://api.typesafe.ai/v1/systemone, model jev-latest (the endpoint the P3 JevHttpClient uses)",
+    "note": "globalThis.fetch was intercepted to forward the identical {state, questions} payload to the working endpoint and translate the reply back into the gateway response schema. Everything above the socket is the shipped code path: jevStructureComposer -> experimental_composeSpec -> composeBatch. One deviation: the shim does not forward init.signal, so the evaluator 10s timeout was not wired to the real request. No effect on successful-run timings; it would matter only for an abort test."
+  },
+  "apiShape": {
+    "strategy": "batch (default for a new tree: options.initialSpec is undefined and strategy is unset)",
+    "evaluatorRoundTripsPerCompose": "exactly 2 — one \"select\" call, then one \"layout\" call; 1 when the selection short-circuits",
+    "eventSequence": "step(after select) -> step(after layout) -> complete; composeSpec is NOT incremental per element",
+    "shortCircuit": "selected.length === 1, or === 2 with a single-slot root, yields complete immediately after the first step (1 round trip)",
+    "adapterMapping": "jevStructureComposer maps type==='step' to status 'partial' and type==='complete'+stopReason==='finish' to 'complete'; it drops steps[] and inputTokens, so cost is invisible to callers",
+    "silentFailureModes": [
+      "stopReason 'unavailable' yields spec: null, which `if (!event.spec) continue` swallows — the generator ends with zero events and no error (repo CLAUDE.md constraint 5)",
+      "stopReason 'limit' is mapped to status 'partial', so no 'complete' ever arrives and the caller cannot distinguish it from a still-streaming compose"
+    ]
+  },
+  "moduleImportMs": [
+    {
+      "process": "proc1",
+      "importMs": 68.7
+    },
+    {
+      "process": "proc2",
+      "importMs": 69.7
+    },
+    {
+      "process": "proc3",
+      "importMs": 70.8
+    },
+    {
+      "process": "proc4",
+      "importMs": 83.1
+    }
+  ],
+  "pools": {
+    "A": "5 candidates — verbatim from apps/server/src/jev-smoke.ts on origin/main (Card, Stack, Heading, Text, ListItem)",
+    "B": "15 candidates — device-realistic pool sized like a real generated surface (adds Row, Alert, repeated ListItem/Rule, Metric, Badge, Progress, Slider, ButtonGroup, 2 Buttons)"
+  },
+  "summary": {
+    "all": {
+      "name": "all 32 composes",
+      "n": 32,
+      "firstEventMs": {
+        "n": 32,
+        "min": 158.8,
+        "median": 216.9,
+        "max": 547.4
+      },
+      "firstCompleteMs": {
+        "n": 32,
+        "min": 158.9,
+        "median": 478.9,
+        "max": 865.1
+      },
+      "totalMs": {
+        "n": 32,
+        "min": 159,
+        "median": 479.1,
+        "max": 865.2
+      },
+      "httpCalls": {
+        "n": 32,
+        "min": 1,
+        "median": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "n": 32,
+        "min": 1081,
+        "median": 3289,
+        "max": 4314
+      },
+      "finalElements": {
+        "n": 32,
+        "min": 2,
+        "median": 3,
+        "max": 6
+      },
+      "usdPerCompose": {
+        "min": 0.000045,
+        "median": 0.000138,
+        "max": 0.000181
+      },
+      "under250First": 19,
+      "under250Complete": 5
+    },
+    "cold": {
+      "name": "cold (first compose in a fresh process)",
+      "n": 4,
+      "firstEventMs": {
+        "n": 4,
+        "min": 455.9,
+        "median": 504.8,
+        "max": 547.4
+      },
+      "firstCompleteMs": {
+        "n": 4,
+        "min": 675.5,
+        "median": 757.3,
+        "max": 865.1
+      },
+      "totalMs": {
+        "n": 4,
+        "min": 675.7,
+        "median": 757.4,
+        "max": 865.2
+      },
+      "httpCalls": {
+        "n": 4,
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "n": 4,
+        "min": 2449,
+        "median": 3289,
+        "max": 3289
+      },
+      "finalElements": {
+        "n": 4,
+        "min": 3,
+        "median": 5,
+        "max": 5
+      },
+      "usdPerCompose": {
+        "min": 0.000103,
+        "median": 0.000138,
+        "max": 0.000138
+      },
+      "under250First": 0,
+      "under250Complete": 0
+    },
+    "warm": {
+      "name": "warm (every later compose, connection reused)",
+      "n": 28,
+      "firstEventMs": {
+        "n": 28,
+        "min": 158.8,
+        "median": 202.1,
+        "max": 338.6
+      },
+      "firstCompleteMs": {
+        "n": 28,
+        "min": 158.9,
+        "median": 423.8,
+        "max": 664.7
+      },
+      "totalMs": {
+        "n": 28,
+        "min": 159,
+        "median": 423.9,
+        "max": 664.8
+      },
+      "httpCalls": {
+        "n": 28,
+        "min": 1,
+        "median": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "n": 28,
+        "min": 1081,
+        "median": 3289,
+        "max": 4314
+      },
+      "finalElements": {
+        "n": 28,
+        "min": 2,
+        "median": 3,
+        "max": 6
+      },
+      "usdPerCompose": {
+        "min": 0.000045,
+        "median": 0.000138,
+        "max": 0.000181
+      },
+      "under250First": 19,
+      "under250Complete": 5
+    },
+    "poolA": {
+      "name": "pool A (5 candidates)",
+      "n": 16,
+      "firstEventMs": {
+        "n": 16,
+        "min": 158.8,
+        "median": 200.7,
+        "max": 500.4
+      },
+      "firstCompleteMs": {
+        "n": 16,
+        "min": 158.9,
+        "median": 377.1,
+        "max": 757.3
+      },
+      "totalMs": {
+        "n": 16,
+        "min": 159,
+        "median": 377.2,
+        "max": 757.4
+      },
+      "httpCalls": {
+        "n": 16,
+        "min": 1,
+        "median": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "n": 16,
+        "min": 1081,
+        "median": 1814,
+        "max": 2449
+      },
+      "finalElements": {
+        "n": 16,
+        "min": 2,
+        "median": 3,
+        "max": 5
+      },
+      "usdPerCompose": {
+        "min": 0.000045,
+        "median": 0.000076,
+        "max": 0.000103
+      },
+      "under250First": 11,
+      "under250Complete": 5
+    },
+    "poolB": {
+      "name": "pool B (15 candidates)",
+      "n": 16,
+      "firstEventMs": {
+        "n": 16,
+        "min": 182.1,
+        "median": 256.6,
+        "max": 547.4
+      },
+      "firstCompleteMs": {
+        "n": 16,
+        "min": 354.8,
+        "median": 522.1,
+        "max": 865.1
+      },
+      "totalMs": {
+        "n": 16,
+        "min": 354.9,
+        "median": 522.2,
+        "max": 865.2
+      },
+      "httpCalls": {
+        "n": 16,
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "n": 16,
+        "min": 3289,
+        "median": 3296,
+        "max": 4314
+      },
+      "finalElements": {
+        "n": 16,
+        "min": 3,
+        "median": 3,
+        "max": 6
+      },
+      "usdPerCompose": {
+        "min": 0.000138,
+        "median": 0.000138,
+        "max": 0.000181
+      },
+      "under250First": 8,
+      "under250Complete": 0
+    },
+    "poolAWarm": {
+      "name": "pool A warm",
+      "n": 14,
+      "firstEventMs": {
+        "n": 14,
+        "min": 158.8,
+        "median": 199.8,
+        "max": 328.2
+      },
+      "firstCompleteMs": {
+        "n": 14,
+        "min": 158.9,
+        "median": 367.3,
+        "max": 523.9
+      },
+      "totalMs": {
+        "n": 14,
+        "min": 159,
+        "median": 367.4,
+        "max": 524.1
+      },
+      "httpCalls": {
+        "n": 14,
+        "min": 1,
+        "median": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "n": 14,
+        "min": 1081,
+        "median": 1699,
+        "max": 2449
+      },
+      "finalElements": {
+        "n": 14,
+        "min": 2,
+        "median": 3,
+        "max": 5
+      },
+      "usdPerCompose": {
+        "min": 0.000045,
+        "median": 0.000071,
+        "max": 0.000103
+      },
+      "under250First": 11,
+      "under250Complete": 5
+    },
+    "poolBWarm": {
+      "name": "pool B warm",
+      "n": 14,
+      "firstEventMs": {
+        "n": 14,
+        "min": 182.1,
+        "median": 222.2,
+        "max": 338.6
+      },
+      "firstCompleteMs": {
+        "n": 14,
+        "min": 354.8,
+        "median": 513.3,
+        "max": 664.7
+      },
+      "totalMs": {
+        "n": 14,
+        "min": 354.9,
+        "median": 513.5,
+        "max": 664.8
+      },
+      "httpCalls": {
+        "n": 14,
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "n": 14,
+        "min": 3289,
+        "median": 3296,
+        "max": 4314
+      },
+      "finalElements": {
+        "n": 14,
+        "min": 3,
+        "median": 3,
+        "max": 6
+      },
+      "usdPerCompose": {
+        "min": 0.000138,
+        "median": 0.000138,
+        "max": 0.000181
+      },
+      "under250First": 8,
+      "under250Complete": 0
+    }
+  },
+  "cost": {
+    "usdPerBillionInputTokens": 42,
+    "outputTokensBilled": false,
+    "totalInputTokensThisSpike": 83239,
+    "totalUsdThisSpike": 0.003496,
+    "composes": 32
+  },
+  "phaseTiming": {
+    "selectCall": {
+      "all": {
+        "n": 32,
+        "min": 158.2,
+        "median": 215.3,
+        "max": 538.8
+      },
+      "cold": {
+        "n": 4,
+        "min": 448.8,
+        "median": 496.8,
+        "max": 538.8
+      },
+      "warm": {
+        "n": 28,
+        "min": 158.2,
+        "median": 200.9,
+        "max": 337.2
+      }
+    },
+    "layoutCall": {
+      "all": {
+        "n": 26,
+        "min": 151.3,
+        "median": 215,
+        "max": 336.3
+      },
+      "warm": {
+        "n": 22,
+        "min": 151.3,
+        "median": 206.7,
+        "max": 336.3
+      }
+    },
+    "selectQuestionsPerCall": {
+      "n": 32,
+      "min": 6,
+      "median": 16,
+      "max": 16
+    },
+    "layoutQuestionsPerCall": {
+      "n": 26,
+      "min": 2,
+      "median": 3,
+      "max": 9
+    },
+    "selectInputTokens": {
+      "n": 32,
+      "min": 1080,
+      "median": 2555,
+      "max": 2557
+    },
+    "layoutInputTokens": {
+      "n": 26,
+      "min": 618,
+      "median": 734,
+      "max": 1758
+    },
+    "localOverheadMs": {
+      "n": 32,
+      "min": 0.3,
+      "median": 0.8,
+      "max": 4.5
+    }
+  },
+  "idle15s": {
+    "note": "pool A, 8 composes, 15s of idle between each. The server sends no Keep-Alive header; undici drops the idle socket, so every compose pays connection setup again.",
+    "summary": {
+      "name": "pool A with 15s gaps",
+      "n": 8,
+      "firstEventMs": {
+        "n": 8,
+        "min": 341.6,
+        "median": 471.2,
+        "max": 646.7
+      },
+      "firstCompleteMs": {
+        "n": 8,
+        "min": 426.3,
+        "median": 608.8,
+        "max": 860
+      },
+      "totalMs": {
+        "n": 8,
+        "min": 426.5,
+        "median": 608.8,
+        "max": 860.1
+      },
+      "httpCalls": {
+        "n": 8,
+        "min": 1,
+        "median": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "n": 8,
+        "min": 1081,
+        "median": 1814,
+        "max": 2449
+      },
+      "finalElements": {
+        "n": 8,
+        "min": 2,
+        "median": 3,
+        "max": 5
+      },
+      "usdPerCompose": {
+        "min": 0.000045,
+        "median": 0.000076,
+        "max": 0.000103
+      },
+      "under250First": 0,
+      "under250Complete": 0
+    },
+    "selectCallAfterIdleMs": {
+      "n": 8,
+      "min": 339.9,
+      "median": 466.8,
+      "max": 639.7
+    },
+    "layoutCallBackToBackMs": {
+      "n": 5,
+      "min": 186.4,
+      "median": 210.2,
+      "max": 236.7
+    },
+    "keepAliveHeader": null,
+    "connectionHeader": null,
+    "runs": [
+      {
+        "seq": 1,
+        "repeat": 1,
+        "pool": "A",
+        "process": "idle15s",
+        "prompt": "p1-plan",
+        "intent": "what should I make tonight",
+        "cold": true,
+        "firstEventMs": 646.7,
+        "firstCompleteMs": 860,
+        "partialsBeforeComplete": 2,
+        "finalElements": 5,
+        "eventCount": 3,
+        "totalMs": 860.1,
+        "error": null,
+        "httpCalls": 2,
+        "inputTokens": 2449,
+        "requestBytes": 6800,
+        "events": [
+          {
+            "atMs": 646.7,
+            "status": "partial",
+            "elements": 5,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default",
+              "node_2": "node_0/default",
+              "node_3": "node_0/default",
+              "node_4": "node_0/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Stack",
+              "node_2": "Heading",
+              "node_3": "Text",
+              "node_4": "ListItem"
+            },
+            "schemaValid": true
+          },
+          {
+            "atMs": 859.7,
+            "status": "partial",
+            "elements": 5,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default",
+              "node_2": "node_1/default",
+              "node_3": "node_1/default",
+              "node_4": "node_1/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Stack",
+              "node_2": "Heading",
+              "node_3": "Text",
+              "node_4": "ListItem"
+            },
+            "schemaValid": true
+          },
+          {
+            "atMs": 860,
+            "status": "complete",
+            "elements": 5,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default",
+              "node_2": "node_1/default",
+              "node_3": "node_1/default",
+              "node_4": "node_1/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Stack",
+              "node_2": "Heading",
+              "node_3": "Text",
+              "node_4": "ListItem"
+            },
+            "schemaValid": true
+          }
+        ],
+        "http": [
+          {
+            "headersMs": 636.1,
+            "bodyMs": 639.7,
+            "status": 200,
+            "ok": true,
+            "requestBytes": 3163,
+            "questionCount": 6,
+            "inputTokens": 1080,
+            "outputTokens": 214,
+            "keepAliveHeader": null,
+            "connectionHeader": null,
+            "answers": {
+              "root": "surface",
+              "select_0": "use:surface",
+              "select_1": "use:vertical-flow",
+              "select_2": "use:title",
+              "select_3": "use:explanation",
+              "select_4": "use:choice"
+            },
+            "confidence": {
+              "root": 0.95,
+              "select_0": 0.81,
+              "select_1": 0.36,
+              "select_2": 0.72,
+              "select_3": 0.21,
+              "select_4": 0.87
+            },
+            "atMs": 2.8
+          },
+          {
+            "headersMs": 209.9,
+            "bodyMs": 210.2,
+            "status": 200,
+            "ok": true,
+            "requestBytes": 3637,
+            "questionCount": 7,
+            "inputTokens": 1369,
+            "outputTokens": 321,
+            "keepAliveHeader": null,
+            "connectionHeader": null,
+            "answers": {
+              "order_node_1": "1",
+              "parent_node_2": "node_1:default",
+              "order_node_2": "1",
+              "parent_node_3": "node_1:default",
+              "order_node_3": "2",
+              "parent_node_4": "node_1:default",
+              "order_node_4": "4"
+            },
+            "confidence": {
+              "order_node_1": 0.84,
+              "parent_node_2": 0.95,
+              "order_node_2": 0.58,
+              "parent_node_3": 0.99,
+              "order_node_3": 0.29,
+              "parent_node_4": 0.99,
+              "order_node_4": 0.75
+            },
+            "atMs": 648.7
+          }
+        ]
+      },
+      {
+        "seq": 2,
+        "repeat": 1,
+        "pool": "A",
+        "process": "idle15s",
+        "prompt": "p2-recipe",
+        "intent": "show me the cookie recipe",
+        "cold": false,
+        "firstEventMs": 341.6,
+        "firstCompleteMs": 535.5,
+        "partialsBeforeComplete": 2,
+        "finalElements": 3,
+        "eventCount": 3,
+        "totalMs": 536.8,
+        "error": null,
+        "httpCalls": 2,
+        "inputTokens": 1814,
+        "requestBytes": 4784,
+        "events": [
+          {
+            "atMs": 341.6,
+            "status": "partial",
+            "elements": 3,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default",
+              "node_2": "node_0/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Stack",
+              "node_2": "Heading"
+            },
+            "schemaValid": true
+          },
+          {
+            "atMs": 534.1,
+            "status": "partial",
+            "elements": 3,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default",
+              "node_2": "node_1/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Stack",
+              "node_2": "Heading"
+            },
+            "schemaValid": true
+          },
+          {
+            "atMs": 535.5,
+            "status": "complete",
+            "elements": 3,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default",
+              "node_2": "node_1/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Stack",
+              "node_2": "Heading"
+            },
+            "schemaValid": true
+          }
+        ],
+        "http": [
+          {
+            "headersMs": 339.6,
+            "bodyMs": 339.9,
+            "status": 200,
+            "ok": true,
+            "requestBytes": 3162,
+            "questionCount": 6,
+            "inputTokens": 1080,
+            "outputTokens": 207,
+            "keepAliveHeader": null,
+            "connectionHeader": null,
+            "answers": {
+              "root": "surface",
+              "select_0": "use:surface",
+              "select_1": "use:vertical-flow",
+              "select_2": "use:title",
+              "select_3": "omit",
+              "select_4": "omit"
+            },
+            "confidence": {
+              "root": 0.81,
+              "select_0": 0.8,
+              "select_1": 0.56,
+              "select_2": 0.53,
+              "select_3": 0.46,
+              "select_4": 0.03
+            },
+            "atMs": 1.2
+          },
+          {
+            "headersMs": 185.9,
+            "bodyMs": 186.4,
+            "status": 200,
+            "ok": true,
+            "requestBytes": 1622,
+            "questionCount": 3,
+            "inputTokens": 734,
+            "outputTokens": 111,
+            "keepAliveHeader": null,
+            "connectionHeader": null,
+            "answers": {
+              "order_node_1": "1",
+              "parent_node_2": "node_1:default",
+              "order_node_2": "1"
+            },
+            "confidence": {
+              "order_node_1": 0.38,
+              "parent_node_2": 0.95,
+              "order_node_2": 0.93
+            },
+            "atMs": 341.9
+          }
+        ]
+      },
+      {
+        "seq": 3,
+        "repeat": 1,
+        "pool": "A",
+        "process": "idle15s",
+        "prompt": "p3-correct",
+        "intent": "I put in too much sugar",
+        "cold": false,
+        "firstEventMs": 565.1,
+        "firstCompleteMs": 803.6,
+        "partialsBeforeComplete": 2,
+        "finalElements": 3,
+        "eventCount": 3,
+        "totalMs": 803.8,
+        "error": null,
+        "httpCalls": 2,
+        "inputTokens": 1699,
+        "requestBytes": 4395,
+        "events": [
+          {
+            "atMs": 565.1,
+            "status": "partial",
+            "elements": 3,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default",
+              "node_2": "node_0/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Heading",
+              "node_2": "Text"
+            },
+            "schemaValid": true
+          },
+          {
+            "atMs": 803.3,
+            "status": "partial",
+            "elements": 3,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default",
+              "node_2": "node_0/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Heading",
+              "node_2": "Text"
+            },
+            "schemaValid": true
+          },
+          {
+            "atMs": 803.6,
+            "status": "complete",
+            "elements": 3,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default",
+              "node_2": "node_0/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Heading",
+              "node_2": "Text"
+            },
+            "schemaValid": true
+          }
+        ],
+        "http": [
+          {
+            "headersMs": 562.6,
+            "bodyMs": 563.2,
+            "status": 200,
+            "ok": true,
+            "requestBytes": 3160,
+            "questionCount": 6,
+            "inputTokens": 1081,
+            "outputTokens": 207,
+            "keepAliveHeader": null,
+            "connectionHeader": null,
+            "answers": {
+              "root": "surface",
+              "select_0": "use:surface",
+              "select_1": "omit",
+              "select_2": "use:title",
+              "select_3": "use:explanation",
+              "select_4": "omit"
+            },
+            "confidence": {
+              "root": 0.76,
+              "select_0": 0.44,
+              "select_1": 0.14,
+              "select_2": 0.35,
+              "select_3": 0.11,
+              "select_4": 0.03
+            },
+            "atMs": 0.9
+          },
+          {
+            "headersMs": 235.9,
+            "bodyMs": 236.7,
+            "status": 200,
+            "ok": true,
+            "requestBytes": 1235,
+            "questionCount": 2,
+            "inputTokens": 618,
+            "outputTokens": 65,
+            "keepAliveHeader": null,
+            "connectionHeader": null,
+            "answers": {
+              "order_node_1": "1",
+              "order_node_2": "2"
+            },
+            "confidence": {
+              "order_node_1": 0.72,
+              "order_node_2": 0.81
+            },
+            "atMs": 565.6
+          }
+        ]
+      },
+      {
+        "seq": 4,
+        "repeat": 1,
+        "pool": "A",
+        "process": "idle15s",
+        "prompt": "p4-message",
+        "intent": "text Sam that I'm running late",
+        "cold": false,
+        "firstEventMs": 461.5,
+        "firstCompleteMs": 461.7,
+        "partialsBeforeComplete": 1,
+        "finalElements": 2,
+        "eventCount": 2,
+        "totalMs": 461.7,
+        "error": null,
+        "httpCalls": 1,
+        "inputTokens": 1082,
+        "requestBytes": 3167,
+        "events": [
+          {
+            "atMs": 461.5,
+            "status": "partial",
+            "elements": 2,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Heading"
+            },
+            "schemaValid": true
+          },
+          {
+            "atMs": 461.7,
+            "status": "complete",
+            "elements": 2,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Heading"
+            },
+            "schemaValid": true
+          }
+        ],
+        "http": [
+          {
+            "headersMs": 459.9,
+            "bodyMs": 460.1,
+            "status": 200,
+            "ok": true,
+            "requestBytes": 3167,
+            "questionCount": 6,
+            "inputTokens": 1082,
+            "outputTokens": 203,
+            "keepAliveHeader": null,
+            "connectionHeader": null,
+            "answers": {
+              "root": "surface",
+              "select_0": "use:surface",
+              "select_1": "omit",
+              "select_2": "use:title",
+              "select_3": "omit",
+              "select_4": "omit"
+            },
+            "confidence": {
+              "root": 0.68,
+              "select_0": 0.43,
+              "select_1": 0.17,
+              "select_2": 0.44,
+              "select_3": 0.31,
+              "select_4": 0.3
+            },
+            "atMs": 1
+          }
+        ]
+      },
+      {
+        "seq": 5,
+        "repeat": 2,
+        "pool": "A",
+        "process": "idle15s",
+        "prompt": "p1-plan",
+        "intent": "what should I make tonight",
+        "cold": false,
+        "firstEventMs": 416.4,
+        "firstCompleteMs": 608.8,
+        "partialsBeforeComplete": 2,
+        "finalElements": 5,
+        "eventCount": 3,
+        "totalMs": 608.8,
+        "error": null,
+        "httpCalls": 2,
+        "inputTokens": 2449,
+        "requestBytes": 6800,
+        "events": [
+          {
+            "atMs": 416.4,
+            "status": "partial",
+            "elements": 5,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default",
+              "node_2": "node_0/default",
+              "node_3": "node_0/default",
+              "node_4": "node_0/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Stack",
+              "node_2": "Heading",
+              "node_3": "Text",
+              "node_4": "ListItem"
+            },
+            "schemaValid": true
+          },
+          {
+            "atMs": 608.6,
+            "status": "partial",
+            "elements": 5,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default",
+              "node_2": "node_1/default",
+              "node_3": "node_1/default",
+              "node_4": "node_1/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Stack",
+              "node_2": "Heading",
+              "node_3": "Text",
+              "node_4": "ListItem"
+            },
+            "schemaValid": true
+          },
+          {
+            "atMs": 608.8,
+            "status": "complete",
+            "elements": 5,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default",
+              "node_2": "node_1/default",
+              "node_3": "node_1/default",
+              "node_4": "node_1/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Stack",
+              "node_2": "Heading",
+              "node_3": "Text",
+              "node_4": "ListItem"
+            },
+            "schemaValid": true
+          }
+        ],
+        "http": [
+          {
+            "headersMs": 414.9,
+            "bodyMs": 415.1,
+            "status": 200,
+            "ok": true,
+            "requestBytes": 3163,
+            "questionCount": 6,
+            "inputTokens": 1080,
+            "outputTokens": 214,
+            "keepAliveHeader": null,
+            "connectionHeader": null,
+            "answers": {
+              "root": "surface",
+              "select_0": "use:surface",
+              "select_1": "use:vertical-flow",
+              "select_2": "use:title",
+              "select_3": "use:explanation",
+              "select_4": "use:choice"
+            },
+            "confidence": {
+              "root": 0.95,
+              "select_0": 0.8,
+              "select_1": 0.43,
+              "select_2": 0.68,
+              "select_3": 0.08,
+              "select_4": 0.85
+            },
+            "atMs": 0.7
+          },
+          {
+            "headersMs": 191.1,
+            "bodyMs": 191.4,
+            "status": 200,
+            "ok": true,
+            "requestBytes": 3637,
+            "questionCount": 7,
+            "inputTokens": 1369,
+            "outputTokens": 321,
+            "keepAliveHeader": null,
+            "connectionHeader": null,
+            "answers": {
+              "order_node_1": "1",
+              "parent_node_2": "node_1:default",
+              "order_node_2": "1",
+              "parent_node_3": "node_1:default",
+              "order_node_3": "2",
+              "parent_node_4": "node_1:default",
+              "order_node_4": "4"
+            },
+            "confidence": {
+              "order_node_1": 0.86,
+              "parent_node_2": 0.95,
+              "order_node_2": 0.45,
+              "parent_node_3": 0.99,
+              "order_node_3": 0.3,
+              "parent_node_4": 0.99,
+              "order_node_4": 0.72
+            },
+            "atMs": 416.7
+          }
+        ]
+      },
+      {
+        "seq": 6,
+        "repeat": 2,
+        "pool": "A",
+        "process": "idle15s",
+        "prompt": "p2-recipe",
+        "intent": "show me the cookie recipe",
+        "cold": false,
+        "firstEventMs": 476.2,
+        "firstCompleteMs": 694.9,
+        "partialsBeforeComplete": 2,
+        "finalElements": 4,
+        "eventCount": 3,
+        "totalMs": 695,
+        "error": null,
+        "httpCalls": 2,
+        "inputTokens": 2131,
+        "requestBytes": 5814,
+        "events": [
+          {
+            "atMs": 476.2,
+            "status": "partial",
+            "elements": 4,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default",
+              "node_2": "node_0/default",
+              "node_3": "node_0/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Stack",
+              "node_2": "Heading",
+              "node_3": "ListItem"
+            },
+            "schemaValid": true
+          },
+          {
+            "atMs": 694.8,
+            "status": "partial",
+            "elements": 4,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default",
+              "node_2": "node_1/default",
+              "node_3": "node_1/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Stack",
+              "node_2": "Heading",
+              "node_3": "ListItem"
+            },
+            "schemaValid": true
+          },
+          {
+            "atMs": 694.9,
+            "status": "complete",
+            "elements": 4,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default",
+              "node_2": "node_1/default",
+              "node_3": "node_1/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Stack",
+              "node_2": "Heading",
+              "node_3": "ListItem"
+            },
+            "schemaValid": true
+          }
+        ],
+        "http": [
+          {
+            "headersMs": 474.5,
+            "bodyMs": 474.8,
+            "status": 200,
+            "ok": true,
+            "requestBytes": 3162,
+            "questionCount": 6,
+            "inputTokens": 1080,
+            "outputTokens": 210,
+            "keepAliveHeader": null,
+            "connectionHeader": null,
+            "answers": {
+              "root": "surface",
+              "select_0": "use:surface",
+              "select_1": "use:vertical-flow",
+              "select_2": "use:title",
+              "select_3": "omit",
+              "select_4": "use:choice"
+            },
+            "confidence": {
+              "root": 0.8,
+              "select_0": 0.79,
+              "select_1": 0.6,
+              "select_2": 0.61,
+              "select_3": 0.42,
+              "select_4": 0.01
+            },
+            "atMs": 0.7
+          },
+          {
+            "headersMs": 217.8,
+            "bodyMs": 218,
+            "status": 200,
+            "ok": true,
+            "requestBytes": 2652,
+            "questionCount": 5,
+            "inputTokens": 1051,
+            "outputTokens": 209,
+            "keepAliveHeader": null,
+            "connectionHeader": null,
+            "answers": {
+              "order_node_1": "1",
+              "parent_node_2": "node_1:default",
+              "order_node_2": "1",
+              "parent_node_3": "node_1:default",
+              "order_node_3": "2"
+            },
+            "confidence": {
+              "order_node_1": 0.75,
+              "parent_node_2": 0.96,
+              "order_node_2": 0.7,
+              "parent_node_3": 0.99,
+              "order_node_3": 0.15
+            },
+            "atMs": 476.4
+          }
+        ]
+      },
+      {
+        "seq": 7,
+        "repeat": 2,
+        "pool": "A",
+        "process": "idle15s",
+        "prompt": "p3-correct",
+        "intent": "I put in too much sugar",
+        "cold": false,
+        "firstEventMs": 425.9,
+        "firstCompleteMs": 426.3,
+        "partialsBeforeComplete": 1,
+        "finalElements": 2,
+        "eventCount": 2,
+        "totalMs": 426.5,
+        "error": null,
+        "httpCalls": 1,
+        "inputTokens": 1081,
+        "requestBytes": 3160,
+        "events": [
+          {
+            "atMs": 425.9,
+            "status": "partial",
+            "elements": 2,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Heading"
+            },
+            "schemaValid": true
+          },
+          {
+            "atMs": 426.3,
+            "status": "complete",
+            "elements": 2,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Heading"
+            },
+            "schemaValid": true
+          }
+        ],
+        "http": [
+          {
+            "headersMs": 422,
+            "bodyMs": 422.7,
+            "status": 200,
+            "ok": true,
+            "requestBytes": 3160,
+            "questionCount": 6,
+            "inputTokens": 1081,
+            "outputTokens": 203,
+            "keepAliveHeader": null,
+            "connectionHeader": null,
+            "answers": {
+              "root": "surface",
+              "select_0": "use:surface",
+              "select_1": "omit",
+              "select_2": "use:title",
+              "select_3": "omit",
+              "select_4": "omit"
+            },
+            "confidence": {
+              "root": 0.75,
+              "select_0": 0.35,
+              "select_1": 0.29,
+              "select_2": 0.26,
+              "select_3": 0.02,
+              "select_4": 0.17
+            },
+            "atMs": 2.1
+          }
+        ]
+      },
+      {
+        "seq": 8,
+        "repeat": 2,
+        "pool": "A",
+        "process": "idle15s",
+        "prompt": "p4-message",
+        "intent": "text Sam that I'm running late",
+        "cold": false,
+        "firstEventMs": 471.2,
+        "firstCompleteMs": 471.8,
+        "partialsBeforeComplete": 1,
+        "finalElements": 2,
+        "eventCount": 2,
+        "totalMs": 472,
+        "error": null,
+        "httpCalls": 1,
+        "inputTokens": 1082,
+        "requestBytes": 3167,
+        "events": [
+          {
+            "atMs": 471.2,
+            "status": "partial",
+            "elements": 2,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Heading"
+            },
+            "schemaValid": true
+          },
+          {
+            "atMs": 471.8,
+            "status": "complete",
+            "elements": 2,
+            "root": "node_0",
+            "parents": {
+              "node_1": "node_0/default"
+            },
+            "types": {
+              "node_0": "Card",
+              "node_1": "Heading"
+            },
+            "schemaValid": true
+          }
+        ],
+        "http": [
+          {
+            "headersMs": 465.4,
+            "bodyMs": 466.8,
+            "status": 200,
+            "ok": true,
+            "requestBytes": 3167,
+            "questionCount": 6,
+            "inputTokens": 1082,
+            "outputTokens": 203,
+            "keepAliveHeader": null,
+            "connectionHeader": null,
+            "answers": {
+              "root": "surface",
+              "select_0": "use:surface",
+              "select_1": "omit",
+              "select_2": "use:title",
+              "select_3": "omit",
+              "select_4": "omit"
+            },
+            "confidence": {
+              "root": 0.55,
+              "select_0": 0.48,
+              "select_1": 0.33,
+              "select_2": 0.47,
+              "select_3": 0.33,
+              "select_4": 0.2
+            },
+            "atMs": 3.3
+          }
+        ]
+      }
+    ]
+  },
+  "determinism": [
+    {
+      "key": "A/p1-plan",
+      "n": 4,
+      "distinctTrees": 1,
+      "distinctAnswerSets": 1,
+      "elementCounts": [
+        5,
+        5,
+        5,
+        5
+      ],
+      "httpCalls": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "deterministic": true
+    },
+    {
+      "key": "A/p2-recipe",
+      "n": 4,
+      "distinctTrees": 1,
+      "distinctAnswerSets": 1,
+      "elementCounts": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "httpCalls": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "deterministic": true
+    },
+    {
+      "key": "A/p3-correct",
+      "n": 4,
+      "distinctTrees": 2,
+      "distinctAnswerSets": 2,
+      "elementCounts": [
+        2,
+        3,
+        3,
+        2
+      ],
+      "httpCalls": [
+        1,
+        2,
+        2,
+        1
+      ],
+      "deterministic": false
+    },
+    {
+      "key": "A/p4-message",
+      "n": 4,
+      "distinctTrees": 1,
+      "distinctAnswerSets": 1,
+      "elementCounts": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "httpCalls": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "deterministic": true
+    },
+    {
+      "key": "B/p1-plan",
+      "n": 4,
+      "distinctTrees": 1,
+      "distinctAnswerSets": 1,
+      "elementCounts": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "httpCalls": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "deterministic": true
+    },
+    {
+      "key": "B/p2-recipe",
+      "n": 4,
+      "distinctTrees": 1,
+      "distinctAnswerSets": 1,
+      "elementCounts": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "httpCalls": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "deterministic": true
+    },
+    {
+      "key": "B/p3-correct",
+      "n": 4,
+      "distinctTrees": 3,
+      "distinctAnswerSets": 3,
+      "elementCounts": [
+        6,
+        5,
+        5,
+        6
+      ],
+      "httpCalls": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "deterministic": false
+    },
+    {
+      "key": "B/p4-message",
+      "n": 4,
+      "distinctTrees": 2,
+      "distinctAnswerSets": 3,
+      "elementCounts": [
+        3,
+        3,
+        3,
+        4
+      ],
+      "httpCalls": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "deterministic": false
+    }
+  ],
+  "reshapeBetweenFirstPartialAndComplete": [
+    {
+      "seq": 1,
+      "process": "proc1",
+      "pool": "A",
+      "prompt": "p1-plan",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default",
+        "node_3": "node_0/default",
+        "node_4": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default",
+        "node_3": "node_1/default",
+        "node_4": "node_1/default"
+      },
+      "firstElements": 5,
+      "finalElements": 5,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 2,
+      "process": "proc1",
+      "pool": "A",
+      "prompt": "p2-recipe",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 3,
+      "process": "proc1",
+      "pool": "A",
+      "prompt": "p3-correct",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default"
+      },
+      "firstElements": 2,
+      "finalElements": 2,
+      "parentsIdentical": true
+    },
+    {
+      "seq": 4,
+      "process": "proc1",
+      "pool": "A",
+      "prompt": "p4-message",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default"
+      },
+      "firstElements": 2,
+      "finalElements": 2,
+      "parentsIdentical": true
+    },
+    {
+      "seq": 5,
+      "process": "proc1",
+      "pool": "A",
+      "prompt": "p1-plan",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default",
+        "node_3": "node_0/default",
+        "node_4": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default",
+        "node_3": "node_1/default",
+        "node_4": "node_1/default"
+      },
+      "firstElements": 5,
+      "finalElements": 5,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 6,
+      "process": "proc1",
+      "pool": "A",
+      "prompt": "p2-recipe",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 7,
+      "process": "proc1",
+      "pool": "A",
+      "prompt": "p3-correct",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": true
+    },
+    {
+      "seq": 8,
+      "process": "proc1",
+      "pool": "A",
+      "prompt": "p4-message",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default"
+      },
+      "firstElements": 2,
+      "finalElements": 2,
+      "parentsIdentical": true
+    },
+    {
+      "seq": 1,
+      "process": "proc2",
+      "pool": "A",
+      "prompt": "p1-plan",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default",
+        "node_3": "node_0/default",
+        "node_4": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default",
+        "node_3": "node_1/default",
+        "node_4": "node_1/default"
+      },
+      "firstElements": 5,
+      "finalElements": 5,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 2,
+      "process": "proc2",
+      "pool": "A",
+      "prompt": "p2-recipe",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 3,
+      "process": "proc2",
+      "pool": "A",
+      "prompt": "p3-correct",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": true
+    },
+    {
+      "seq": 4,
+      "process": "proc2",
+      "pool": "A",
+      "prompt": "p4-message",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default"
+      },
+      "firstElements": 2,
+      "finalElements": 2,
+      "parentsIdentical": true
+    },
+    {
+      "seq": 5,
+      "process": "proc2",
+      "pool": "A",
+      "prompt": "p1-plan",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default",
+        "node_3": "node_0/default",
+        "node_4": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default",
+        "node_3": "node_1/default",
+        "node_4": "node_1/default"
+      },
+      "firstElements": 5,
+      "finalElements": 5,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 6,
+      "process": "proc2",
+      "pool": "A",
+      "prompt": "p2-recipe",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 7,
+      "process": "proc2",
+      "pool": "A",
+      "prompt": "p3-correct",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default"
+      },
+      "firstElements": 2,
+      "finalElements": 2,
+      "parentsIdentical": true
+    },
+    {
+      "seq": 8,
+      "process": "proc2",
+      "pool": "A",
+      "prompt": "p4-message",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default"
+      },
+      "firstElements": 2,
+      "finalElements": 2,
+      "parentsIdentical": true
+    },
+    {
+      "seq": 1,
+      "process": "proc3",
+      "pool": "B",
+      "prompt": "p1-plan",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 2,
+      "process": "proc3",
+      "pool": "B",
+      "prompt": "p2-recipe",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 3,
+      "process": "proc3",
+      "pool": "B",
+      "prompt": "p3-correct",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default",
+        "node_3": "node_0/default",
+        "node_4": "node_0/default",
+        "node_5": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default",
+        "node_3": "node_0/default",
+        "node_4": "node_0/default",
+        "node_5": "node_4/default"
+      },
+      "firstElements": 6,
+      "finalElements": 6,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 4,
+      "process": "proc3",
+      "pool": "B",
+      "prompt": "p4-message",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 5,
+      "process": "proc3",
+      "pool": "B",
+      "prompt": "p1-plan",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 6,
+      "process": "proc3",
+      "pool": "B",
+      "prompt": "p2-recipe",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 7,
+      "process": "proc3",
+      "pool": "B",
+      "prompt": "p3-correct",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default",
+        "node_3": "node_0/default",
+        "node_4": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default",
+        "node_3": "node_0/default",
+        "node_4": "node_0/default"
+      },
+      "firstElements": 5,
+      "finalElements": 5,
+      "parentsIdentical": true
+    },
+    {
+      "seq": 8,
+      "process": "proc3",
+      "pool": "B",
+      "prompt": "p4-message",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 1,
+      "process": "proc4",
+      "pool": "B",
+      "prompt": "p1-plan",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 2,
+      "process": "proc4",
+      "pool": "B",
+      "prompt": "p2-recipe",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 3,
+      "process": "proc4",
+      "pool": "B",
+      "prompt": "p3-correct",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default",
+        "node_3": "node_0/default",
+        "node_4": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default",
+        "node_3": "node_0/default",
+        "node_4": "node_3/default"
+      },
+      "firstElements": 5,
+      "finalElements": 5,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 4,
+      "process": "proc4",
+      "pool": "B",
+      "prompt": "p4-message",
+      "repeat": 1,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 5,
+      "process": "proc4",
+      "pool": "B",
+      "prompt": "p1-plan",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 6,
+      "process": "proc4",
+      "pool": "B",
+      "prompt": "p2-recipe",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_1/default"
+      },
+      "firstElements": 3,
+      "finalElements": 3,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 7,
+      "process": "proc4",
+      "pool": "B",
+      "prompt": "p3-correct",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default",
+        "node_3": "node_0/default",
+        "node_4": "node_0/default",
+        "node_5": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default",
+        "node_3": "node_0/default",
+        "node_4": "node_0/default",
+        "node_5": "node_4/default"
+      },
+      "firstElements": 6,
+      "finalElements": 6,
+      "parentsIdentical": false
+    },
+    {
+      "seq": 8,
+      "process": "proc4",
+      "pool": "B",
+      "prompt": "p4-message",
+      "repeat": 2,
+      "firstParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default",
+        "node_3": "node_0/default"
+      },
+      "finalParents": {
+        "node_1": "node_0/default",
+        "node_2": "node_0/default",
+        "node_3": "node_2/default"
+      },
+      "firstElements": 4,
+      "finalElements": 4,
+      "parentsIdentical": false
+    }
+  ],
+  "runs": [
+    {
+      "seq": 1,
+      "repeat": 1,
+      "pool": "A",
+      "process": "proc1",
+      "prompt": "p1-plan",
+      "intent": "what should I make tonight",
+      "cold": true,
+      "firstEventMs": 455.9,
+      "firstCompleteMs": 675.5,
+      "partialsBeforeComplete": 2,
+      "finalElements": 5,
+      "eventCount": 3,
+      "totalMs": 675.7,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 2449,
+      "requestBytes": 6800,
+      "events": [
+        {
+          "atMs": 455.9,
+          "status": "partial",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading",
+            "node_3": "Text",
+            "node_4": "ListItem"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 675,
+          "status": "partial",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default",
+            "node_3": "node_1/default",
+            "node_4": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading",
+            "node_3": "Text",
+            "node_4": "ListItem"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 675.5,
+          "status": "complete",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default",
+            "node_3": "node_1/default",
+            "node_4": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading",
+            "node_3": "Text",
+            "node_4": "ListItem"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 446.1,
+          "bodyMs": 448.8,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3163,
+          "questionCount": 6,
+          "inputTokens": 1080,
+          "outputTokens": 214,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "use:title",
+            "select_3": "use:explanation",
+            "select_4": "use:choice"
+          },
+          "confidence": {
+            "root": 0.95,
+            "select_0": 0.81,
+            "select_1": 0.42,
+            "select_2": 0.67,
+            "select_3": 0.19,
+            "select_4": 0.87
+          },
+          "atMs": 2.7
+        },
+        {
+          "headersMs": 214.2,
+          "bodyMs": 215,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3637,
+          "questionCount": 7,
+          "inputTokens": 1369,
+          "outputTokens": 321,
+          "answers": {
+            "order_node_1": "1",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1",
+            "parent_node_3": "node_1:default",
+            "order_node_3": "2",
+            "parent_node_4": "node_1:default",
+            "order_node_4": "4"
+          },
+          "confidence": {
+            "order_node_1": 0.83,
+            "parent_node_2": 0.95,
+            "order_node_2": 0.56,
+            "parent_node_3": 0.99,
+            "order_node_3": 0.3,
+            "parent_node_4": 0.99,
+            "order_node_4": 0.67
+          },
+          "atMs": 458.1
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "repeat": 1,
+      "pool": "A",
+      "process": "proc1",
+      "prompt": "p2-recipe",
+      "intent": "show me the cookie recipe",
+      "cold": false,
+      "firstEventMs": 189,
+      "firstCompleteMs": 410.7,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 410.8,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 1814,
+      "requestBytes": 4784,
+      "events": [
+        {
+          "atMs": 189,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 410.6,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 410.7,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 187.7,
+          "bodyMs": 187.9,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3162,
+          "questionCount": 6,
+          "inputTokens": 1080,
+          "outputTokens": 207,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "use:title",
+            "select_3": "omit",
+            "select_4": "omit"
+          },
+          "confidence": {
+            "root": 0.78,
+            "select_0": 0.78,
+            "select_1": 0.57,
+            "select_2": 0.65,
+            "select_3": 0.44,
+            "select_4": 0.09
+          },
+          "atMs": 0.6
+        },
+        {
+          "headersMs": 220.8,
+          "bodyMs": 221.1,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1622,
+          "questionCount": 3,
+          "inputTokens": 734,
+          "outputTokens": 111,
+          "answers": {
+            "order_node_1": "1",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1"
+          },
+          "confidence": {
+            "order_node_1": 0.27,
+            "parent_node_2": 0.97,
+            "order_node_2": 0.94
+          },
+          "atMs": 189.2
+        }
+      ]
+    },
+    {
+      "seq": 3,
+      "repeat": 1,
+      "pool": "A",
+      "process": "proc1",
+      "prompt": "p3-correct",
+      "intent": "I put in too much sugar",
+      "cold": false,
+      "firstEventMs": 175.6,
+      "firstCompleteMs": 175.7,
+      "partialsBeforeComplete": 1,
+      "finalElements": 2,
+      "eventCount": 2,
+      "totalMs": 175.7,
+      "error": null,
+      "httpCalls": 1,
+      "inputTokens": 1081,
+      "requestBytes": 3160,
+      "events": [
+        {
+          "atMs": 175.6,
+          "status": "partial",
+          "elements": 2,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 175.7,
+          "status": "complete",
+          "elements": 2,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 174.7,
+          "bodyMs": 175,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3160,
+          "questionCount": 6,
+          "inputTokens": 1081,
+          "outputTokens": 203,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "use:title",
+            "select_3": "omit",
+            "select_4": "omit"
+          },
+          "confidence": {
+            "root": 0.74,
+            "select_0": 0.24,
+            "select_1": 0.34,
+            "select_2": 0.28,
+            "select_3": 0.05,
+            "select_4": 0.13
+          },
+          "atMs": 0.2
+        }
+      ]
+    },
+    {
+      "seq": 4,
+      "repeat": 1,
+      "pool": "A",
+      "process": "proc1",
+      "prompt": "p4-message",
+      "intent": "text Sam that I'm running late",
+      "cold": false,
+      "firstEventMs": 158.8,
+      "firstCompleteMs": 158.9,
+      "partialsBeforeComplete": 1,
+      "finalElements": 2,
+      "eventCount": 2,
+      "totalMs": 159,
+      "error": null,
+      "httpCalls": 1,
+      "inputTokens": 1082,
+      "requestBytes": 3167,
+      "events": [
+        {
+          "atMs": 158.8,
+          "status": "partial",
+          "elements": 2,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 158.9,
+          "status": "complete",
+          "elements": 2,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 157.9,
+          "bodyMs": 158.2,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3167,
+          "questionCount": 6,
+          "inputTokens": 1082,
+          "outputTokens": 203,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "use:title",
+            "select_3": "omit",
+            "select_4": "omit"
+          },
+          "confidence": {
+            "root": 0.7,
+            "select_0": 0.37,
+            "select_1": 0.3,
+            "select_2": 0.48,
+            "select_3": 0.28,
+            "select_4": 0.3
+          },
+          "atMs": 0.3
+        }
+      ]
+    },
+    {
+      "seq": 5,
+      "repeat": 2,
+      "pool": "A",
+      "process": "proc1",
+      "prompt": "p1-plan",
+      "intent": "what should I make tonight",
+      "cold": false,
+      "firstEventMs": 296.5,
+      "firstCompleteMs": 492.1,
+      "partialsBeforeComplete": 2,
+      "finalElements": 5,
+      "eventCount": 3,
+      "totalMs": 492.3,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 2449,
+      "requestBytes": 6800,
+      "events": [
+        {
+          "atMs": 296.5,
+          "status": "partial",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading",
+            "node_3": "Text",
+            "node_4": "ListItem"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 491.8,
+          "status": "partial",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default",
+            "node_3": "node_1/default",
+            "node_4": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading",
+            "node_3": "Text",
+            "node_4": "ListItem"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 492.1,
+          "status": "complete",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default",
+            "node_3": "node_1/default",
+            "node_4": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading",
+            "node_3": "Text",
+            "node_4": "ListItem"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 295,
+          "bodyMs": 295.5,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3163,
+          "questionCount": 6,
+          "inputTokens": 1080,
+          "outputTokens": 214,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "use:title",
+            "select_3": "use:explanation",
+            "select_4": "use:choice"
+          },
+          "confidence": {
+            "root": 0.94,
+            "select_0": 0.81,
+            "select_1": 0.34,
+            "select_2": 0.67,
+            "select_3": 0.19,
+            "select_4": 0.86
+          },
+          "atMs": 0.2
+        },
+        {
+          "headersMs": 193.3,
+          "bodyMs": 193.8,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3637,
+          "questionCount": 7,
+          "inputTokens": 1369,
+          "outputTokens": 321,
+          "answers": {
+            "order_node_1": "1",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1",
+            "parent_node_3": "node_1:default",
+            "order_node_3": "2",
+            "parent_node_4": "node_1:default",
+            "order_node_4": "4"
+          },
+          "confidence": {
+            "order_node_1": 0.87,
+            "parent_node_2": 0.96,
+            "order_node_2": 0.54,
+            "parent_node_3": 0.99,
+            "order_node_3": 0.39,
+            "parent_node_4": 0.99,
+            "order_node_4": 0.77
+          },
+          "atMs": 297
+        }
+      ]
+    },
+    {
+      "seq": 6,
+      "repeat": 2,
+      "pool": "A",
+      "process": "proc1",
+      "prompt": "p2-recipe",
+      "intent": "show me the cookie recipe",
+      "cold": false,
+      "firstEventMs": 328.2,
+      "firstCompleteMs": 523.9,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 524.1,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 1814,
+      "requestBytes": 4784,
+      "events": [
+        {
+          "atMs": 328.2,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 523.7,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 523.9,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 326.3,
+          "bodyMs": 326.8,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3162,
+          "questionCount": 6,
+          "inputTokens": 1080,
+          "outputTokens": 207,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "use:title",
+            "select_3": "omit",
+            "select_4": "omit"
+          },
+          "confidence": {
+            "root": 0.81,
+            "select_0": 0.81,
+            "select_1": 0.64,
+            "select_2": 0.59,
+            "select_3": 0.52,
+            "select_4": 0.11
+          },
+          "atMs": 0.6
+        },
+        {
+          "headersMs": 193.6,
+          "bodyMs": 194.4,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1622,
+          "questionCount": 3,
+          "inputTokens": 734,
+          "outputTokens": 111,
+          "answers": {
+            "order_node_1": "1",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1"
+          },
+          "confidence": {
+            "order_node_1": 0.28,
+            "parent_node_2": 0.94,
+            "order_node_2": 0.95
+          },
+          "atMs": 328.6
+        }
+      ]
+    },
+    {
+      "seq": 7,
+      "repeat": 2,
+      "pool": "A",
+      "process": "proc1",
+      "prompt": "p3-correct",
+      "intent": "I put in too much sugar",
+      "cold": false,
+      "firstEventMs": 174.6,
+      "firstCompleteMs": 377.1,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 377.2,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 1699,
+      "requestBytes": 4395,
+      "events": [
+        {
+          "atMs": 174.6,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Text"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 376.8,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Text"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 377.1,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Text"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 172.7,
+          "bodyMs": 173.2,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3160,
+          "questionCount": 6,
+          "inputTokens": 1081,
+          "outputTokens": 207,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "use:title",
+            "select_3": "use:explanation",
+            "select_4": "omit"
+          },
+          "confidence": {
+            "root": 0.76,
+            "select_0": 0.44,
+            "select_1": 0.03,
+            "select_2": 0.37,
+            "select_3": 0.04,
+            "select_4": 0.06
+          },
+          "atMs": 0.7
+        },
+        {
+          "headersMs": 200.7,
+          "bodyMs": 201.2,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1235,
+          "questionCount": 2,
+          "inputTokens": 618,
+          "outputTokens": 65,
+          "answers": {
+            "order_node_1": "1",
+            "order_node_2": "2"
+          },
+          "confidence": {
+            "order_node_1": 0.75,
+            "order_node_2": 0.74
+          },
+          "atMs": 175
+        }
+      ]
+    },
+    {
+      "seq": 8,
+      "repeat": 2,
+      "pool": "A",
+      "process": "proc1",
+      "prompt": "p4-message",
+      "intent": "text Sam that I'm running late",
+      "cold": false,
+      "firstEventMs": 216.9,
+      "firstCompleteMs": 217.2,
+      "partialsBeforeComplete": 1,
+      "finalElements": 2,
+      "eventCount": 2,
+      "totalMs": 217.3,
+      "error": null,
+      "httpCalls": 1,
+      "inputTokens": 1082,
+      "requestBytes": 3167,
+      "events": [
+        {
+          "atMs": 216.9,
+          "status": "partial",
+          "elements": 2,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 217.2,
+          "status": "complete",
+          "elements": 2,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 214.5,
+          "bodyMs": 215.3,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3167,
+          "questionCount": 6,
+          "inputTokens": 1082,
+          "outputTokens": 203,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "use:title",
+            "select_3": "omit",
+            "select_4": "omit"
+          },
+          "confidence": {
+            "root": 0.6,
+            "select_0": 0.46,
+            "select_1": 0.35,
+            "select_2": 0.42,
+            "select_3": 0.37,
+            "select_4": 0.25
+          },
+          "atMs": 0.4
+        }
+      ]
+    },
+    {
+      "seq": 1,
+      "repeat": 1,
+      "pool": "A",
+      "process": "proc2",
+      "prompt": "p1-plan",
+      "intent": "what should I make tonight",
+      "cold": true,
+      "firstEventMs": 500.4,
+      "firstCompleteMs": 757.3,
+      "partialsBeforeComplete": 2,
+      "finalElements": 5,
+      "eventCount": 3,
+      "totalMs": 757.4,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 2449,
+      "requestBytes": 6800,
+      "events": [
+        {
+          "atMs": 500.4,
+          "status": "partial",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading",
+            "node_3": "Text",
+            "node_4": "ListItem"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 757.1,
+          "status": "partial",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default",
+            "node_3": "node_1/default",
+            "node_4": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading",
+            "node_3": "Text",
+            "node_4": "ListItem"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 757.3,
+          "status": "complete",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default",
+            "node_3": "node_1/default",
+            "node_4": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading",
+            "node_3": "Text",
+            "node_4": "ListItem"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 494,
+          "bodyMs": 495.5,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3163,
+          "questionCount": 6,
+          "inputTokens": 1080,
+          "outputTokens": 214,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "use:title",
+            "select_3": "use:explanation",
+            "select_4": "use:choice"
+          },
+          "confidence": {
+            "root": 0.96,
+            "select_0": 0.78,
+            "select_1": 0.36,
+            "select_2": 0.68,
+            "select_3": 0.17,
+            "select_4": 0.87
+          },
+          "atMs": 3
+        },
+        {
+          "headersMs": 254.5,
+          "bodyMs": 254.8,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3637,
+          "questionCount": 7,
+          "inputTokens": 1369,
+          "outputTokens": 321,
+          "answers": {
+            "order_node_1": "1",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1",
+            "parent_node_3": "node_1:default",
+            "order_node_3": "2",
+            "parent_node_4": "node_1:default",
+            "order_node_4": "4"
+          },
+          "confidence": {
+            "order_node_1": 0.87,
+            "parent_node_2": 0.93,
+            "order_node_2": 0.67,
+            "parent_node_3": 0.99,
+            "order_node_3": 0.44,
+            "parent_node_4": 0.99,
+            "order_node_4": 0.8
+          },
+          "atMs": 501.6
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "repeat": 1,
+      "pool": "A",
+      "process": "proc2",
+      "prompt": "p2-recipe",
+      "intent": "show me the cookie recipe",
+      "cold": false,
+      "firstEventMs": 199.1,
+      "firstCompleteMs": 424.9,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 425,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 1814,
+      "requestBytes": 4784,
+      "events": [
+        {
+          "atMs": 199.1,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 424.8,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 424.9,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 196.9,
+          "bodyMs": 198.3,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3162,
+          "questionCount": 6,
+          "inputTokens": 1080,
+          "outputTokens": 207,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "use:title",
+            "select_3": "omit",
+            "select_4": "omit"
+          },
+          "confidence": {
+            "root": 0.75,
+            "select_0": 0.79,
+            "select_1": 0.55,
+            "select_2": 0.55,
+            "select_3": 0.48,
+            "select_4": 0.11
+          },
+          "atMs": 0.3
+        },
+        {
+          "headersMs": 224,
+          "bodyMs": 224.3,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1622,
+          "questionCount": 3,
+          "inputTokens": 734,
+          "outputTokens": 111,
+          "answers": {
+            "order_node_1": "1",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1"
+          },
+          "confidence": {
+            "order_node_1": 0.32,
+            "parent_node_2": 0.97,
+            "order_node_2": 0.91
+          },
+          "atMs": 200
+        }
+      ]
+    },
+    {
+      "seq": 3,
+      "repeat": 1,
+      "pool": "A",
+      "process": "proc2",
+      "prompt": "p3-correct",
+      "intent": "I put in too much sugar",
+      "cold": false,
+      "firstEventMs": 201.8,
+      "firstCompleteMs": 423.8,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 423.9,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 1699,
+      "requestBytes": 4395,
+      "events": [
+        {
+          "atMs": 201.8,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Text"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 423.7,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Text"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 423.8,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Text"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 200.1,
+          "bodyMs": 200.4,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3160,
+          "questionCount": 6,
+          "inputTokens": 1081,
+          "outputTokens": 207,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "use:title",
+            "select_3": "use:explanation",
+            "select_4": "omit"
+          },
+          "confidence": {
+            "root": 0.75,
+            "select_0": 0.36,
+            "select_1": 0.18,
+            "select_2": 0.21,
+            "select_3": 0.05,
+            "select_4": 0.17
+          },
+          "atMs": 0.4
+        },
+        {
+          "headersMs": 221,
+          "bodyMs": 221.2,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1235,
+          "questionCount": 2,
+          "inputTokens": 618,
+          "outputTokens": 65,
+          "answers": {
+            "order_node_1": "1",
+            "order_node_2": "2"
+          },
+          "confidence": {
+            "order_node_1": 0.68,
+            "order_node_2": 0.71
+          },
+          "atMs": 202.1
+        }
+      ]
+    },
+    {
+      "seq": 4,
+      "repeat": 1,
+      "pool": "A",
+      "process": "proc2",
+      "prompt": "p4-message",
+      "intent": "text Sam that I'm running late",
+      "cold": false,
+      "firstEventMs": 199.8,
+      "firstCompleteMs": 200,
+      "partialsBeforeComplete": 1,
+      "finalElements": 2,
+      "eventCount": 2,
+      "totalMs": 200,
+      "error": null,
+      "httpCalls": 1,
+      "inputTokens": 1082,
+      "requestBytes": 3167,
+      "events": [
+        {
+          "atMs": 199.8,
+          "status": "partial",
+          "elements": 2,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 200,
+          "status": "complete",
+          "elements": 2,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 198.9,
+          "bodyMs": 199.1,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3167,
+          "questionCount": 6,
+          "inputTokens": 1082,
+          "outputTokens": 203,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "use:title",
+            "select_3": "omit",
+            "select_4": "omit"
+          },
+          "confidence": {
+            "root": 0.61,
+            "select_0": 0.36,
+            "select_1": 0.34,
+            "select_2": 0.36,
+            "select_3": 0.28,
+            "select_4": 0.28
+          },
+          "atMs": 0.3
+        }
+      ]
+    },
+    {
+      "seq": 5,
+      "repeat": 2,
+      "pool": "A",
+      "process": "proc2",
+      "prompt": "p1-plan",
+      "intent": "what should I make tonight",
+      "cold": false,
+      "firstEventMs": 195.9,
+      "firstCompleteMs": 367.3,
+      "partialsBeforeComplete": 2,
+      "finalElements": 5,
+      "eventCount": 3,
+      "totalMs": 367.4,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 2449,
+      "requestBytes": 6800,
+      "events": [
+        {
+          "atMs": 195.9,
+          "status": "partial",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading",
+            "node_3": "Text",
+            "node_4": "ListItem"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 367.2,
+          "status": "partial",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default",
+            "node_3": "node_1/default",
+            "node_4": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading",
+            "node_3": "Text",
+            "node_4": "ListItem"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 367.3,
+          "status": "complete",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default",
+            "node_3": "node_1/default",
+            "node_4": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading",
+            "node_3": "Text",
+            "node_4": "ListItem"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 195,
+          "bodyMs": 195.2,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3163,
+          "questionCount": 6,
+          "inputTokens": 1080,
+          "outputTokens": 214,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "use:title",
+            "select_3": "use:explanation",
+            "select_4": "use:choice"
+          },
+          "confidence": {
+            "root": 0.95,
+            "select_0": 0.78,
+            "select_1": 0.41,
+            "select_2": 0.71,
+            "select_3": 0.2,
+            "select_4": 0.89
+          },
+          "atMs": 0.3
+        },
+        {
+          "headersMs": 170.3,
+          "bodyMs": 170.5,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3637,
+          "questionCount": 7,
+          "inputTokens": 1369,
+          "outputTokens": 321,
+          "answers": {
+            "order_node_1": "1",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1",
+            "parent_node_3": "node_1:default",
+            "order_node_3": "2",
+            "parent_node_4": "node_1:default",
+            "order_node_4": "4"
+          },
+          "confidence": {
+            "order_node_1": 0.85,
+            "parent_node_2": 0.96,
+            "order_node_2": 0.6,
+            "parent_node_3": 0.99,
+            "order_node_3": 0.41,
+            "parent_node_4": 0.99,
+            "order_node_4": 0.7
+          },
+          "atMs": 196.2
+        }
+      ]
+    },
+    {
+      "seq": 6,
+      "repeat": 2,
+      "pool": "A",
+      "process": "proc2",
+      "prompt": "p2-recipe",
+      "intent": "show me the cookie recipe",
+      "cold": false,
+      "firstEventMs": 200.7,
+      "firstCompleteMs": 365.4,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 365.5,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 1814,
+      "requestBytes": 4784,
+      "events": [
+        {
+          "atMs": 200.7,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 365.3,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 365.4,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 199.7,
+          "bodyMs": 200,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3162,
+          "questionCount": 6,
+          "inputTokens": 1080,
+          "outputTokens": 207,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "use:title",
+            "select_3": "omit",
+            "select_4": "omit"
+          },
+          "confidence": {
+            "root": 0.78,
+            "select_0": 0.82,
+            "select_1": 0.6,
+            "select_2": 0.65,
+            "select_3": 0.5,
+            "select_4": 0.13
+          },
+          "atMs": 0.3
+        },
+        {
+          "headersMs": 164,
+          "bodyMs": 164.1,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1622,
+          "questionCount": 3,
+          "inputTokens": 734,
+          "outputTokens": 111,
+          "answers": {
+            "order_node_1": "1",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1"
+          },
+          "confidence": {
+            "order_node_1": 0.39,
+            "parent_node_2": 0.96,
+            "order_node_2": 0.92
+          },
+          "atMs": 200.9
+        }
+      ]
+    },
+    {
+      "seq": 7,
+      "repeat": 2,
+      "pool": "A",
+      "process": "proc2",
+      "prompt": "p3-correct",
+      "intent": "I put in too much sugar",
+      "cold": false,
+      "firstEventMs": 315.6,
+      "firstCompleteMs": 315.8,
+      "partialsBeforeComplete": 1,
+      "finalElements": 2,
+      "eventCount": 2,
+      "totalMs": 316,
+      "error": null,
+      "httpCalls": 1,
+      "inputTokens": 1081,
+      "requestBytes": 3160,
+      "events": [
+        {
+          "atMs": 315.6,
+          "status": "partial",
+          "elements": 2,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 315.8,
+          "status": "complete",
+          "elements": 2,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 313.4,
+          "bodyMs": 314.4,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3160,
+          "questionCount": 6,
+          "inputTokens": 1081,
+          "outputTokens": 203,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "use:title",
+            "select_3": "omit",
+            "select_4": "omit"
+          },
+          "confidence": {
+            "root": 0.73,
+            "select_0": 0.26,
+            "select_1": 0.24,
+            "select_2": 0.3,
+            "select_3": 0.03,
+            "select_4": 0.11
+          },
+          "atMs": 0.2
+        }
+      ]
+    },
+    {
+      "seq": 8,
+      "repeat": 2,
+      "pool": "A",
+      "process": "proc2",
+      "prompt": "p4-message",
+      "intent": "text Sam that I'm running late",
+      "cold": false,
+      "firstEventMs": 197.8,
+      "firstCompleteMs": 198.2,
+      "partialsBeforeComplete": 1,
+      "finalElements": 2,
+      "eventCount": 2,
+      "totalMs": 198.4,
+      "error": null,
+      "httpCalls": 1,
+      "inputTokens": 1082,
+      "requestBytes": 3167,
+      "events": [
+        {
+          "atMs": 197.8,
+          "status": "partial",
+          "elements": 2,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 198.2,
+          "status": "complete",
+          "elements": 2,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 195.3,
+          "bodyMs": 196,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3167,
+          "questionCount": 6,
+          "inputTokens": 1082,
+          "outputTokens": 203,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "use:title",
+            "select_3": "omit",
+            "select_4": "omit"
+          },
+          "confidence": {
+            "root": 0.67,
+            "select_0": 0.45,
+            "select_1": 0.21,
+            "select_2": 0.46,
+            "select_3": 0.36,
+            "select_4": 0.29
+          },
+          "atMs": 0.7
+        }
+      ]
+    },
+    {
+      "seq": 1,
+      "repeat": 1,
+      "pool": "B",
+      "process": "proc3",
+      "prompt": "p1-plan",
+      "intent": "what should I make tonight",
+      "cold": true,
+      "firstEventMs": 504.8,
+      "firstCompleteMs": 692.3,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 692.5,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 3289,
+      "requestBytes": 10330,
+      "events": [
+        {
+          "atMs": 504.8,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 691.9,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 692.3,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 493.4,
+          "bodyMs": 496.8,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8710,
+          "questionCount": 16,
+          "inputTokens": 2555,
+          "outputTokens": 575,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "omit",
+            "select_3": "use:title",
+            "select_4": "omit",
+            "select_5": "omit",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "omit",
+            "select_12": "omit",
+            "select_13": "omit",
+            "select_14": "omit"
+          },
+          "confidence": {
+            "root": 0.95,
+            "select_0": 0.75,
+            "select_1": 0.57,
+            "select_2": 0.52,
+            "select_3": 0.46,
+            "select_4": 0.65,
+            "select_5": 1,
+            "select_6": 0.48,
+            "select_7": 1,
+            "select_8": 0.98,
+            "select_9": 0.97,
+            "select_10": 0.99,
+            "select_11": 0.99,
+            "select_12": 0.28,
+            "select_13": 0.75,
+            "select_14": 0.92
+          },
+          "atMs": 3.7
+        },
+        {
+          "headersMs": 182.9,
+          "bodyMs": 183.5,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1620,
+          "questionCount": 3,
+          "inputTokens": 734,
+          "outputTokens": 111,
+          "answers": {
+            "order_node_1": "2",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1"
+          },
+          "confidence": {
+            "order_node_1": 0.3,
+            "parent_node_2": 0.89,
+            "order_node_2": 0.92
+          },
+          "atMs": 507.2
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "repeat": 1,
+      "pool": "B",
+      "process": "proc3",
+      "prompt": "p2-recipe",
+      "intent": "show me the cookie recipe",
+      "cold": false,
+      "firstEventMs": 261.6,
+      "firstCompleteMs": 542.7,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 542.7,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 3289,
+      "requestBytes": 10328,
+      "events": [
+        {
+          "atMs": 261.6,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 542.5,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 542.7,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 258.1,
+          "bodyMs": 258.9,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8709,
+          "questionCount": 16,
+          "inputTokens": 2555,
+          "outputTokens": 575,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "omit",
+            "select_3": "use:title",
+            "select_4": "omit",
+            "select_5": "omit",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "omit",
+            "select_12": "omit",
+            "select_13": "omit",
+            "select_14": "omit"
+          },
+          "confidence": {
+            "root": 0.86,
+            "select_0": 0.89,
+            "select_1": 0.83,
+            "select_2": 0.91,
+            "select_3": 0.82,
+            "select_4": 0.64,
+            "select_5": 0.99,
+            "select_6": 0.68,
+            "select_7": 0.75,
+            "select_8": 0.69,
+            "select_9": 0.87,
+            "select_10": 0.97,
+            "select_11": 0.98,
+            "select_12": 0.73,
+            "select_13": 0.94,
+            "select_14": 0.95
+          },
+          "atMs": 1.2
+        },
+        {
+          "headersMs": 279.4,
+          "bodyMs": 279.8,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1619,
+          "questionCount": 3,
+          "inputTokens": 734,
+          "outputTokens": 111,
+          "answers": {
+            "order_node_1": "2",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1"
+          },
+          "confidence": {
+            "order_node_1": 0.06,
+            "parent_node_2": 0.9,
+            "order_node_2": 0.92
+          },
+          "atMs": 262.2
+        }
+      ]
+    },
+    {
+      "seq": 3,
+      "repeat": 1,
+      "pool": "B",
+      "process": "proc3",
+      "prompt": "p3-correct",
+      "intent": "I put in too much sugar",
+      "cold": false,
+      "firstEventMs": 222.2,
+      "firstCompleteMs": 496.5,
+      "partialsBeforeComplete": 2,
+      "finalElements": 6,
+      "eventCount": 3,
+      "totalMs": 496.6,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 4314,
+      "requestBytes": 13566,
+      "events": [
+        {
+          "atMs": 222.2,
+          "status": "partial",
+          "elements": 6,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_0/default",
+            "node_5": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Alert",
+            "node_3": "Slider",
+            "node_4": "ButtonGroup",
+            "node_5": "Button"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 496.3,
+          "status": "partial",
+          "elements": 6,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_0/default",
+            "node_5": "node_4/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Alert",
+            "node_3": "Slider",
+            "node_4": "ButtonGroup",
+            "node_5": "Button"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 496.5,
+          "status": "complete",
+          "elements": 6,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_0/default",
+            "node_5": "node_4/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Alert",
+            "node_3": "Slider",
+            "node_4": "ButtonGroup",
+            "node_5": "Button"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 220.4,
+          "bodyMs": 220.8,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8707,
+          "questionCount": 16,
+          "inputTokens": 2556,
+          "outputTokens": 581,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "omit",
+            "select_3": "use:title",
+            "select_4": "omit",
+            "select_5": "use:alert",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "use:slider",
+            "select_12": "use:buttons",
+            "select_13": "omit",
+            "select_14": "use:cancel"
+          },
+          "confidence": {
+            "root": 0.85,
+            "select_0": 0.65,
+            "select_1": 0.08,
+            "select_2": 0.85,
+            "select_3": 0.09,
+            "select_4": 0.2,
+            "select_5": 0.81,
+            "select_6": 0.81,
+            "select_7": 0.65,
+            "select_8": 0.84,
+            "select_9": 0.62,
+            "select_10": 0.95,
+            "select_11": 0.02,
+            "select_12": 0.29,
+            "select_13": 0.24,
+            "select_14": 0.09
+          },
+          "atMs": 0.7
+        },
+        {
+          "headersMs": 273,
+          "bodyMs": 273.2,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 4859,
+          "questionCount": 9,
+          "inputTokens": 1758,
+          "outputTokens": 447,
+          "answers": {
+            "parent_node_1": "node_0:default",
+            "order_node_1": "1",
+            "parent_node_2": "node_0:default",
+            "order_node_2": "2",
+            "parent_node_3": "node_0:default",
+            "order_node_3": "3",
+            "order_node_4": "4",
+            "parent_node_5": "node_4:default",
+            "order_node_5": "5"
+          },
+          "confidence": {
+            "parent_node_1": 1,
+            "order_node_1": 0.59,
+            "parent_node_2": 0.98,
+            "order_node_2": 0.87,
+            "parent_node_3": 0.96,
+            "order_node_3": 0.43,
+            "order_node_4": 0.51,
+            "parent_node_5": 0.99,
+            "order_node_5": 0.33
+          },
+          "atMs": 222.6
+        }
+      ]
+    },
+    {
+      "seq": 4,
+      "repeat": 1,
+      "pool": "B",
+      "process": "proc3",
+      "prompt": "p4-message",
+      "intent": "text Sam that I'm running late",
+      "cold": false,
+      "firstEventMs": 213.6,
+      "firstCompleteMs": 525.8,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 525.9,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 3296,
+      "requestBytes": 10376,
+      "events": [
+        {
+          "atMs": 213.6,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "ButtonGroup",
+            "node_2": "Button"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 525.7,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "ButtonGroup",
+            "node_2": "Button"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 525.8,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "ButtonGroup",
+            "node_2": "Button"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 212.4,
+          "bodyMs": 212.7,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8714,
+          "questionCount": 16,
+          "inputTokens": 2557,
+          "outputTokens": 576,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "omit",
+            "select_3": "omit",
+            "select_4": "omit",
+            "select_5": "omit",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "omit",
+            "select_12": "use:buttons",
+            "select_13": "use:confirm",
+            "select_14": "omit"
+          },
+          "confidence": {
+            "root": 0.5,
+            "select_0": 0.77,
+            "select_1": 0.24,
+            "select_2": 0.87,
+            "select_3": 0.18,
+            "select_4": 0.61,
+            "select_5": 0.99,
+            "select_6": 0.78,
+            "select_7": 0.99,
+            "select_8": 0.99,
+            "select_9": 0.88,
+            "select_10": 0.99,
+            "select_11": 1,
+            "select_12": 0.51,
+            "select_13": 0.58,
+            "select_14": 0.85
+          },
+          "atMs": 0.5
+        },
+        {
+          "headersMs": 311.2,
+          "bodyMs": 311.4,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1662,
+          "questionCount": 3,
+          "inputTokens": 739,
+          "outputTokens": 111,
+          "answers": {
+            "order_node_1": "2",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "2"
+          },
+          "confidence": {
+            "order_node_1": 0.53,
+            "parent_node_2": 0.98,
+            "order_node_2": 0.31
+          },
+          "atMs": 213.8
+        }
+      ]
+    },
+    {
+      "seq": 5,
+      "repeat": 2,
+      "pool": "B",
+      "process": "proc3",
+      "prompt": "p1-plan",
+      "intent": "what should I make tonight",
+      "cold": false,
+      "firstEventMs": 199.8,
+      "firstCompleteMs": 527.6,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 527.6,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 3289,
+      "requestBytes": 10330,
+      "events": [
+        {
+          "atMs": 199.8,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 527.5,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 527.6,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 198.4,
+          "bodyMs": 198.7,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8710,
+          "questionCount": 16,
+          "inputTokens": 2555,
+          "outputTokens": 575,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "omit",
+            "select_3": "use:title",
+            "select_4": "omit",
+            "select_5": "omit",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "omit",
+            "select_12": "omit",
+            "select_13": "omit",
+            "select_14": "omit"
+          },
+          "confidence": {
+            "root": 0.95,
+            "select_0": 0.76,
+            "select_1": 0.56,
+            "select_2": 0.45,
+            "select_3": 0.5,
+            "select_4": 0.65,
+            "select_5": 1,
+            "select_6": 0.43,
+            "select_7": 0.99,
+            "select_8": 0.98,
+            "select_9": 0.98,
+            "select_10": 0.99,
+            "select_11": 0.98,
+            "select_12": 0.21,
+            "select_13": 0.7,
+            "select_14": 0.94
+          },
+          "atMs": 0.5
+        },
+        {
+          "headersMs": 326.5,
+          "bodyMs": 326.8,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1620,
+          "questionCount": 3,
+          "inputTokens": 734,
+          "outputTokens": 111,
+          "answers": {
+            "order_node_1": "2",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1"
+          },
+          "confidence": {
+            "order_node_1": 0.25,
+            "parent_node_2": 0.8,
+            "order_node_2": 0.92
+          },
+          "atMs": 200.1
+        }
+      ]
+    },
+    {
+      "seq": 6,
+      "repeat": 2,
+      "pool": "B",
+      "process": "proc3",
+      "prompt": "p2-recipe",
+      "intent": "show me the cookie recipe",
+      "cold": false,
+      "firstEventMs": 219.7,
+      "firstCompleteMs": 391.7,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 391.7,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 3289,
+      "requestBytes": 10328,
+      "events": [
+        {
+          "atMs": 219.7,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 391.6,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 391.7,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 218.6,
+          "bodyMs": 218.8,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8709,
+          "questionCount": 16,
+          "inputTokens": 2555,
+          "outputTokens": 575,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "omit",
+            "select_3": "use:title",
+            "select_4": "omit",
+            "select_5": "omit",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "omit",
+            "select_12": "omit",
+            "select_13": "omit",
+            "select_14": "omit"
+          },
+          "confidence": {
+            "root": 0.91,
+            "select_0": 0.91,
+            "select_1": 0.85,
+            "select_2": 0.87,
+            "select_3": 0.86,
+            "select_4": 0.61,
+            "select_5": 0.99,
+            "select_6": 0.73,
+            "select_7": 0.72,
+            "select_8": 0.64,
+            "select_9": 0.88,
+            "select_10": 0.97,
+            "select_11": 0.98,
+            "select_12": 0.74,
+            "select_13": 0.96,
+            "select_14": 0.94
+          },
+          "atMs": 0.6
+        },
+        {
+          "headersMs": 171.3,
+          "bodyMs": 171.5,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1619,
+          "questionCount": 3,
+          "inputTokens": 734,
+          "outputTokens": 111,
+          "answers": {
+            "order_node_1": "2",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1"
+          },
+          "confidence": {
+            "order_node_1": 0.02,
+            "parent_node_2": 0.94,
+            "order_node_2": 0.93
+          },
+          "atMs": 219.8
+        }
+      ]
+    },
+    {
+      "seq": 7,
+      "repeat": 2,
+      "pool": "B",
+      "process": "proc3",
+      "prompt": "p3-correct",
+      "intent": "I put in too much sugar",
+      "cold": false,
+      "firstEventMs": 202.1,
+      "firstCompleteMs": 354.8,
+      "partialsBeforeComplete": 2,
+      "finalElements": 5,
+      "eventCount": 3,
+      "totalMs": 354.9,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 3944,
+      "requestBytes": 12439,
+      "events": [
+        {
+          "atMs": 202.1,
+          "status": "partial",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Alert",
+            "node_3": "Slider",
+            "node_4": "ButtonGroup"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 354.5,
+          "status": "partial",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Alert",
+            "node_3": "Slider",
+            "node_4": "ButtonGroup"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 354.8,
+          "status": "complete",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Alert",
+            "node_3": "Slider",
+            "node_4": "ButtonGroup"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 200.6,
+          "bodyMs": 200.9,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8707,
+          "questionCount": 16,
+          "inputTokens": 2556,
+          "outputTokens": 579,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "omit",
+            "select_3": "use:title",
+            "select_4": "omit",
+            "select_5": "use:alert",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "use:slider",
+            "select_12": "use:buttons",
+            "select_13": "omit",
+            "select_14": "omit"
+          },
+          "confidence": {
+            "root": 0.84,
+            "select_0": 0.65,
+            "select_1": 0.08,
+            "select_2": 0.86,
+            "select_3": 0.2,
+            "select_4": 0.22,
+            "select_5": 0.77,
+            "select_6": 0.82,
+            "select_7": 0.66,
+            "select_8": 0.88,
+            "select_9": 0.67,
+            "select_10": 0.94,
+            "select_11": 0.12,
+            "select_12": 0.31,
+            "select_13": 0.29,
+            "select_14": 0.02
+          },
+          "atMs": 0.5
+        },
+        {
+          "headersMs": 150.8,
+          "bodyMs": 151.3,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3732,
+          "questionCount": 7,
+          "inputTokens": 1388,
+          "outputTokens": 321,
+          "answers": {
+            "parent_node_1": "node_0:default",
+            "order_node_1": "1",
+            "parent_node_2": "node_0:default",
+            "order_node_2": "2",
+            "parent_node_3": "node_0:default",
+            "order_node_3": "3",
+            "order_node_4": "4"
+          },
+          "confidence": {
+            "parent_node_1": 1,
+            "order_node_1": 0.66,
+            "parent_node_2": 0.96,
+            "order_node_2": 0.9,
+            "parent_node_3": 0.92,
+            "order_node_3": 0.61,
+            "order_node_4": 0.86
+          },
+          "atMs": 202.4
+        }
+      ]
+    },
+    {
+      "seq": 8,
+      "repeat": 2,
+      "pool": "B",
+      "process": "proc3",
+      "prompt": "p4-message",
+      "intent": "text Sam that I'm running late",
+      "cold": false,
+      "firstEventMs": 299.7,
+      "firstCompleteMs": 494.1,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 494.2,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 3296,
+      "requestBytes": 10376,
+      "events": [
+        {
+          "atMs": 299.7,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "ButtonGroup",
+            "node_2": "Button"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 493.8,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "ButtonGroup",
+            "node_2": "Button"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 494.1,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "ButtonGroup",
+            "node_2": "Button"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 297.1,
+          "bodyMs": 297.7,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8714,
+          "questionCount": 16,
+          "inputTokens": 2557,
+          "outputTokens": 576,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "omit",
+            "select_3": "omit",
+            "select_4": "omit",
+            "select_5": "omit",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "omit",
+            "select_12": "use:buttons",
+            "select_13": "use:confirm",
+            "select_14": "omit"
+          },
+          "confidence": {
+            "root": 0.55,
+            "select_0": 0.73,
+            "select_1": 0.3,
+            "select_2": 0.84,
+            "select_3": 0.18,
+            "select_4": 0.63,
+            "select_5": 0.99,
+            "select_6": 0.74,
+            "select_7": 1,
+            "select_8": 0.99,
+            "select_9": 0.89,
+            "select_10": 0.99,
+            "select_11": 0.99,
+            "select_12": 0.54,
+            "select_13": 0.59,
+            "select_14": 0.84
+          },
+          "atMs": 1
+        },
+        {
+          "headersMs": 192.3,
+          "bodyMs": 193,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1662,
+          "questionCount": 3,
+          "inputTokens": 739,
+          "outputTokens": 111,
+          "answers": {
+            "order_node_1": "2",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1"
+          },
+          "confidence": {
+            "order_node_1": 0.56,
+            "parent_node_2": 0.98,
+            "order_node_2": 0.09
+          },
+          "atMs": 300.1
+        }
+      ]
+    },
+    {
+      "seq": 1,
+      "repeat": 1,
+      "pool": "B",
+      "process": "proc4",
+      "prompt": "p1-plan",
+      "intent": "what should I make tonight",
+      "cold": true,
+      "firstEventMs": 547.4,
+      "firstCompleteMs": 865.1,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 865.2,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 3289,
+      "requestBytes": 10330,
+      "events": [
+        {
+          "atMs": 547.4,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 864.8,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 865.1,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 534.9,
+          "bodyMs": 538.8,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8710,
+          "questionCount": 16,
+          "inputTokens": 2555,
+          "outputTokens": 575,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "omit",
+            "select_3": "use:title",
+            "select_4": "omit",
+            "select_5": "omit",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "omit",
+            "select_12": "omit",
+            "select_13": "omit",
+            "select_14": "omit"
+          },
+          "confidence": {
+            "root": 0.93,
+            "select_0": 0.72,
+            "select_1": 0.53,
+            "select_2": 0.5,
+            "select_3": 0.48,
+            "select_4": 0.64,
+            "select_5": 1,
+            "select_6": 0.45,
+            "select_7": 0.99,
+            "select_8": 0.98,
+            "select_9": 0.98,
+            "select_10": 1,
+            "select_11": 0.99,
+            "select_12": 0.21,
+            "select_13": 0.7,
+            "select_14": 0.91
+          },
+          "atMs": 4.1
+        },
+        {
+          "headersMs": 314,
+          "bodyMs": 314.4,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1620,
+          "questionCount": 3,
+          "inputTokens": 734,
+          "outputTokens": 111,
+          "answers": {
+            "order_node_1": "2",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1"
+          },
+          "confidence": {
+            "order_node_1": 0.28,
+            "parent_node_2": 0.82,
+            "order_node_2": 0.92
+          },
+          "atMs": 549.6
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "repeat": 1,
+      "pool": "B",
+      "process": "proc4",
+      "prompt": "p2-recipe",
+      "intent": "show me the cookie recipe",
+      "cold": false,
+      "firstEventMs": 338.6,
+      "firstCompleteMs": 546.2,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 546.3,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 3289,
+      "requestBytes": 10328,
+      "events": [
+        {
+          "atMs": 338.6,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 546.1,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 546.2,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 336.8,
+          "bodyMs": 337.2,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8709,
+          "questionCount": 16,
+          "inputTokens": 2555,
+          "outputTokens": 575,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "omit",
+            "select_3": "use:title",
+            "select_4": "omit",
+            "select_5": "omit",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "omit",
+            "select_12": "omit",
+            "select_13": "omit",
+            "select_14": "omit"
+          },
+          "confidence": {
+            "root": 0.88,
+            "select_0": 0.92,
+            "select_1": 0.87,
+            "select_2": 0.84,
+            "select_3": 0.86,
+            "select_4": 0.61,
+            "select_5": 0.99,
+            "select_6": 0.59,
+            "select_7": 0.67,
+            "select_8": 0.65,
+            "select_9": 0.86,
+            "select_10": 0.97,
+            "select_11": 0.98,
+            "select_12": 0.75,
+            "select_13": 0.96,
+            "select_14": 0.94
+          },
+          "atMs": 0.8
+        },
+        {
+          "headersMs": 206.5,
+          "bodyMs": 206.7,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1619,
+          "questionCount": 3,
+          "inputTokens": 734,
+          "outputTokens": 111,
+          "answers": {
+            "order_node_1": "2",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1"
+          },
+          "confidence": {
+            "order_node_1": 0.35,
+            "parent_node_2": 0.93,
+            "order_node_2": 0.93
+          },
+          "atMs": 338.8
+        }
+      ]
+    },
+    {
+      "seq": 3,
+      "repeat": 1,
+      "pool": "B",
+      "process": "proc4",
+      "prompt": "p3-correct",
+      "intent": "I put in too much sugar",
+      "cold": false,
+      "firstEventMs": 324.4,
+      "firstCompleteMs": 664.7,
+      "partialsBeforeComplete": 2,
+      "finalElements": 5,
+      "eventCount": 3,
+      "totalMs": 664.8,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 3932,
+      "requestBytes": 12400,
+      "events": [
+        {
+          "atMs": 324.4,
+          "status": "partial",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Alert",
+            "node_3": "ButtonGroup",
+            "node_4": "Button"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 664.5,
+          "status": "partial",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_3/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Alert",
+            "node_3": "ButtonGroup",
+            "node_4": "Button"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 664.7,
+          "status": "complete",
+          "elements": 5,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_3/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Alert",
+            "node_3": "ButtonGroup",
+            "node_4": "Button"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 318.6,
+          "bodyMs": 319.3,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8707,
+          "questionCount": 16,
+          "inputTokens": 2556,
+          "outputTokens": 578,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "omit",
+            "select_3": "use:title",
+            "select_4": "omit",
+            "select_5": "use:alert",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "omit",
+            "select_12": "use:buttons",
+            "select_13": "omit",
+            "select_14": "use:cancel"
+          },
+          "confidence": {
+            "root": 0.88,
+            "select_0": 0.61,
+            "select_1": 0.05,
+            "select_2": 0.84,
+            "select_3": 0.17,
+            "select_4": 0.12,
+            "select_5": 0.78,
+            "select_6": 0.83,
+            "select_7": 0.67,
+            "select_8": 0.84,
+            "select_9": 0.64,
+            "select_10": 0.95,
+            "select_11": 0,
+            "select_12": 0.32,
+            "select_13": 0.22,
+            "select_14": 0.12
+          },
+          "atMs": 0.6
+        },
+        {
+          "headersMs": 336,
+          "bodyMs": 336.3,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 3693,
+          "questionCount": 7,
+          "inputTokens": 1376,
+          "outputTokens": 321,
+          "answers": {
+            "parent_node_1": "node_0:default",
+            "order_node_1": "1",
+            "parent_node_2": "node_0:default",
+            "order_node_2": "2",
+            "order_node_3": "3",
+            "parent_node_4": "node_3:default",
+            "order_node_4": "4"
+          },
+          "confidence": {
+            "parent_node_1": 1,
+            "order_node_1": 0.46,
+            "parent_node_2": 0.99,
+            "order_node_2": 0.93,
+            "order_node_3": 0.37,
+            "parent_node_4": 0.99,
+            "order_node_4": 0.16
+          },
+          "atMs": 327.8
+        }
+      ]
+    },
+    {
+      "seq": 4,
+      "repeat": 1,
+      "pool": "B",
+      "process": "proc4",
+      "prompt": "p4-message",
+      "intent": "text Sam that I'm running late",
+      "cold": false,
+      "firstEventMs": 256.6,
+      "firstCompleteMs": 522.1,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 522.2,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 3296,
+      "requestBytes": 10376,
+      "events": [
+        {
+          "atMs": 256.6,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "ButtonGroup",
+            "node_2": "Button"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 522,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "ButtonGroup",
+            "node_2": "Button"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 522.1,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "ButtonGroup",
+            "node_2": "Button"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 254.4,
+          "bodyMs": 255.2,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8714,
+          "questionCount": 16,
+          "inputTokens": 2557,
+          "outputTokens": 576,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "omit",
+            "select_3": "omit",
+            "select_4": "omit",
+            "select_5": "omit",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "omit",
+            "select_12": "use:buttons",
+            "select_13": "use:confirm",
+            "select_14": "omit"
+          },
+          "confidence": {
+            "root": 0.59,
+            "select_0": 0.74,
+            "select_1": 0.26,
+            "select_2": 0.84,
+            "select_3": 0.13,
+            "select_4": 0.64,
+            "select_5": 0.99,
+            "select_6": 0.72,
+            "select_7": 1,
+            "select_8": 0.99,
+            "select_9": 0.89,
+            "select_10": 0.99,
+            "select_11": 1,
+            "select_12": 0.52,
+            "select_13": 0.62,
+            "select_14": 0.86
+          },
+          "atMs": 0.6
+        },
+        {
+          "headersMs": 264.5,
+          "bodyMs": 264.7,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1662,
+          "questionCount": 3,
+          "inputTokens": 739,
+          "outputTokens": 111,
+          "answers": {
+            "order_node_1": "2",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "2"
+          },
+          "confidence": {
+            "order_node_1": 0.52,
+            "parent_node_2": 0.98,
+            "order_node_2": 0.17
+          },
+          "atMs": 256.8
+        }
+      ]
+    },
+    {
+      "seq": 5,
+      "repeat": 2,
+      "pool": "B",
+      "process": "proc4",
+      "prompt": "p1-plan",
+      "intent": "what should I make tonight",
+      "cold": false,
+      "firstEventMs": 182.1,
+      "firstCompleteMs": 385.4,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 385.5,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 3289,
+      "requestBytes": 10330,
+      "events": [
+        {
+          "atMs": 182.1,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 385.2,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 385.4,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 180.8,
+          "bodyMs": 181.1,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8710,
+          "questionCount": 16,
+          "inputTokens": 2555,
+          "outputTokens": 575,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "omit",
+            "select_3": "use:title",
+            "select_4": "omit",
+            "select_5": "omit",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "omit",
+            "select_12": "omit",
+            "select_13": "omit",
+            "select_14": "omit"
+          },
+          "confidence": {
+            "root": 0.95,
+            "select_0": 0.77,
+            "select_1": 0.51,
+            "select_2": 0.41,
+            "select_3": 0.51,
+            "select_4": 0.6,
+            "select_5": 1,
+            "select_6": 0.4,
+            "select_7": 0.99,
+            "select_8": 0.98,
+            "select_9": 0.98,
+            "select_10": 0.99,
+            "select_11": 0.98,
+            "select_12": 0.11,
+            "select_13": 0.64,
+            "select_14": 0.9
+          },
+          "atMs": 0.6
+        },
+        {
+          "headersMs": 201.9,
+          "bodyMs": 202.4,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1620,
+          "questionCount": 3,
+          "inputTokens": 734,
+          "outputTokens": 111,
+          "answers": {
+            "order_node_1": "2",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1"
+          },
+          "confidence": {
+            "order_node_1": 0.15,
+            "parent_node_2": 0.88,
+            "order_node_2": 0.91
+          },
+          "atMs": 182.2
+        }
+      ]
+    },
+    {
+      "seq": 6,
+      "repeat": 2,
+      "pool": "B",
+      "process": "proc4",
+      "prompt": "p2-recipe",
+      "intent": "show me the cookie recipe",
+      "cold": false,
+      "firstEventMs": 301,
+      "firstCompleteMs": 478.9,
+      "partialsBeforeComplete": 2,
+      "finalElements": 3,
+      "eventCount": 3,
+      "totalMs": 479.1,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 3289,
+      "requestBytes": 10328,
+      "events": [
+        {
+          "atMs": 301,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 478.4,
+          "status": "partial",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 478.9,
+          "status": "complete",
+          "elements": 3,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_1/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Stack",
+            "node_2": "Heading"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 298.5,
+          "bodyMs": 299.1,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8709,
+          "questionCount": 16,
+          "inputTokens": 2555,
+          "outputTokens": 575,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "use:vertical-flow",
+            "select_2": "omit",
+            "select_3": "use:title",
+            "select_4": "omit",
+            "select_5": "omit",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "omit",
+            "select_12": "omit",
+            "select_13": "omit",
+            "select_14": "omit"
+          },
+          "confidence": {
+            "root": 0.88,
+            "select_0": 0.9,
+            "select_1": 0.85,
+            "select_2": 0.88,
+            "select_3": 0.84,
+            "select_4": 0.63,
+            "select_5": 0.99,
+            "select_6": 0.68,
+            "select_7": 0.78,
+            "select_8": 0.66,
+            "select_9": 0.86,
+            "select_10": 0.97,
+            "select_11": 0.97,
+            "select_12": 0.7,
+            "select_13": 0.95,
+            "select_14": 0.93
+          },
+          "atMs": 0.8
+        },
+        {
+          "headersMs": 175.1,
+          "bodyMs": 175.8,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 1619,
+          "questionCount": 3,
+          "inputTokens": 734,
+          "outputTokens": 111,
+          "answers": {
+            "order_node_1": "2",
+            "parent_node_2": "node_1:default",
+            "order_node_2": "1"
+          },
+          "confidence": {
+            "order_node_1": 0.1,
+            "parent_node_2": 0.93,
+            "order_node_2": 0.94
+          },
+          "atMs": 301.4
+        }
+      ]
+    },
+    {
+      "seq": 7,
+      "repeat": 2,
+      "pool": "B",
+      "process": "proc4",
+      "prompt": "p3-correct",
+      "intent": "I put in too much sugar",
+      "cold": false,
+      "firstEventMs": 185.8,
+      "firstCompleteMs": 513.3,
+      "partialsBeforeComplete": 2,
+      "finalElements": 6,
+      "eventCount": 3,
+      "totalMs": 513.5,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 4314,
+      "requestBytes": 13566,
+      "events": [
+        {
+          "atMs": 185.8,
+          "status": "partial",
+          "elements": 6,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_0/default",
+            "node_5": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Alert",
+            "node_3": "Slider",
+            "node_4": "ButtonGroup",
+            "node_5": "Button"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 512.6,
+          "status": "partial",
+          "elements": 6,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_0/default",
+            "node_5": "node_4/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Alert",
+            "node_3": "Slider",
+            "node_4": "ButtonGroup",
+            "node_5": "Button"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 513.3,
+          "status": "complete",
+          "elements": 6,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default",
+            "node_4": "node_0/default",
+            "node_5": "node_4/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "Alert",
+            "node_3": "Slider",
+            "node_4": "ButtonGroup",
+            "node_5": "Button"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 181.2,
+          "bodyMs": 182.2,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8707,
+          "questionCount": 16,
+          "inputTokens": 2556,
+          "outputTokens": 581,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "omit",
+            "select_3": "use:title",
+            "select_4": "omit",
+            "select_5": "use:alert",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "use:slider",
+            "select_12": "use:buttons",
+            "select_13": "omit",
+            "select_14": "use:cancel"
+          },
+          "confidence": {
+            "root": 0.87,
+            "select_0": 0.66,
+            "select_1": 0.01,
+            "select_2": 0.82,
+            "select_3": 0.14,
+            "select_4": 0.18,
+            "select_5": 0.81,
+            "select_6": 0.83,
+            "select_7": 0.59,
+            "select_8": 0.83,
+            "select_9": 0.64,
+            "select_10": 0.94,
+            "select_11": 0.22,
+            "select_12": 0.38,
+            "select_13": 0.25,
+            "select_14": 0.01
+          },
+          "atMs": 1.5
+        },
+        {
+          "headersMs": 322.6,
+          "bodyMs": 323.7,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 4859,
+          "questionCount": 9,
+          "inputTokens": 1758,
+          "outputTokens": 447,
+          "answers": {
+            "parent_node_1": "node_0:default",
+            "order_node_1": "1",
+            "parent_node_2": "node_0:default",
+            "order_node_2": "2",
+            "parent_node_3": "node_0:default",
+            "order_node_3": "3",
+            "order_node_4": "4",
+            "parent_node_5": "node_4:default",
+            "order_node_5": "5"
+          },
+          "confidence": {
+            "parent_node_1": 1,
+            "order_node_1": 0.51,
+            "parent_node_2": 0.97,
+            "order_node_2": 0.85,
+            "parent_node_3": 0.96,
+            "order_node_3": 0.57,
+            "order_node_4": 0.52,
+            "parent_node_5": 0.99,
+            "order_node_5": 0.36
+          },
+          "atMs": 186.6
+        }
+      ]
+    },
+    {
+      "seq": 8,
+      "repeat": 2,
+      "pool": "B",
+      "process": "proc4",
+      "prompt": "p4-message",
+      "intent": "text Sam that I'm running late",
+      "cold": false,
+      "firstEventMs": 198.3,
+      "firstCompleteMs": 365,
+      "partialsBeforeComplete": 2,
+      "finalElements": 4,
+      "eventCount": 3,
+      "totalMs": 365.1,
+      "error": null,
+      "httpCalls": 2,
+      "inputTokens": 3595,
+      "requestBytes": 11339,
+      "events": [
+        {
+          "atMs": 198.3,
+          "status": "partial",
+          "elements": 4,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_0/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "ButtonGroup",
+            "node_3": "Button"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 364.7,
+          "status": "partial",
+          "elements": 4,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_2/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "ButtonGroup",
+            "node_3": "Button"
+          },
+          "schemaValid": true
+        },
+        {
+          "atMs": 365,
+          "status": "complete",
+          "elements": 4,
+          "root": "node_0",
+          "parents": {
+            "node_1": "node_0/default",
+            "node_2": "node_0/default",
+            "node_3": "node_2/default"
+          },
+          "types": {
+            "node_0": "Card",
+            "node_1": "Heading",
+            "node_2": "ButtonGroup",
+            "node_3": "Button"
+          },
+          "schemaValid": true
+        }
+      ],
+      "http": [
+        {
+          "headersMs": 194.2,
+          "bodyMs": 195,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 8714,
+          "questionCount": 16,
+          "inputTokens": 2557,
+          "outputTokens": 577,
+          "answers": {
+            "root": "surface",
+            "select_0": "use:surface",
+            "select_1": "omit",
+            "select_2": "omit",
+            "select_3": "use:title",
+            "select_4": "omit",
+            "select_5": "omit",
+            "select_6": "0",
+            "select_7": "0",
+            "select_8": "omit",
+            "select_9": "omit",
+            "select_10": "omit",
+            "select_11": "omit",
+            "select_12": "use:buttons",
+            "select_13": "use:confirm",
+            "select_14": "omit"
+          },
+          "confidence": {
+            "root": 0.51,
+            "select_0": 0.75,
+            "select_1": 0.24,
+            "select_2": 0.84,
+            "select_3": 0.01,
+            "select_4": 0.6,
+            "select_5": 0.99,
+            "select_6": 0.74,
+            "select_7": 1,
+            "select_8": 0.99,
+            "select_9": 0.9,
+            "select_10": 0.99,
+            "select_11": 1,
+            "select_12": 0.53,
+            "select_13": 0.64,
+            "select_14": 0.86
+          },
+          "atMs": 1.8
+        },
+        {
+          "headersMs": 164.5,
+          "bodyMs": 165,
+          "status": 200,
+          "ok": true,
+          "requestBytes": 2625,
+          "questionCount": 5,
+          "inputTokens": 1038,
+          "outputTokens": 209,
+          "answers": {
+            "parent_node_1": "node_0:default",
+            "order_node_1": "1",
+            "order_node_2": "2",
+            "parent_node_3": "node_2:default",
+            "order_node_3": "3"
+          },
+          "confidence": {
+            "parent_node_1": 1,
+            "order_node_1": 0.8,
+            "order_node_2": 0.32,
+            "parent_node_3": 0.99,
+            "order_node_3": 0.13
+          },
+          "atMs": 199
+        }
+      ]
+    }
+  ]
+}

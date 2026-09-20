@@ -29,6 +29,12 @@ export type Step = {
   instruction: string;
   /** Ingredient IDs this step puts in the bowl. */
   adds: string[];
+  /**
+   * How long this step takes unattended, if it is a wait rather than a doing.
+   * Absent on steps you finish when you finish — `focus_step` shows a timer
+   * only where there is a real duration to count, never an invented one.
+   */
+  seconds?: number;
 };
 
 export type Recipe = {
@@ -54,6 +60,17 @@ export type TaskState = {
    * entire point of tracking it separately.
    */
   inBowl: Record<string, number>;
+  /**
+   * Wall-clock ms when the current step was entered — the origin any timer on
+   * that step counts from.
+   *
+   * It has to live here rather than be stamped at paint time: a surface
+   * repaints on every utterance, and a timer whose start is "now" restarts on
+   * each repaint and therefore never advances. Absent means the step was
+   * never formally entered, and the surface falls back to painting the full
+   * duration rather than a wrong elapsed.
+   */
+  stepStartedAt?: number;
 };
 
 /* ------------------------------------------------------------------ *

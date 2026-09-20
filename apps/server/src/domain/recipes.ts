@@ -31,9 +31,9 @@ export const CLASSIC_CHOCOLATE_CHIP: Recipe = {
     { id: 's2', instruction: 'Beat in the eggs and vanilla', adds: ['eggs', 'vanilla'] },
     { id: 's3', instruction: 'Add dry ingredients', adds: ['flour', 'baking_soda', 'salt'] },
     { id: 's4', instruction: 'Fold in the chocolate chips', adds: ['choc_chips'] },
-    { id: 's5', instruction: 'Chill the dough for 20 minutes', adds: [] },
+    { id: 's5', instruction: 'Chill the dough for 20 minutes', adds: [], seconds: 20 * 60 },
     { id: 's6', instruction: 'Scoop onto a lined tray', adds: [] },
-    { id: 's7', instruction: 'Bake at 180°C for 11 minutes', adds: [] },
+    { id: 's7', instruction: 'Bake at 180°C for 11 minutes', adds: [], seconds: 11 * 60 },
   ],
 };
 
