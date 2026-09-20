@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { experimental_composeSpec, type Experimental_ChoiceQuestion, type Experimental_CompositionCandidate, type Experimental_CompositionEvaluator } from '@json-render/core';
 import { JIT_CATALOG } from '@jit/renderer';
 import type { SurfaceSpec } from '@jit/schema';
-import { COMPOSE_DEADLINE_MS, jevStructureComposer, rebindComposedSpec, type ComposeEvent, type JevCandidate } from '../../src/contract/compose.js';
+import { COMPOSE_DEADLINE_MS, fixtureComposer, jevStructureComposer, rebindComposedSpec, type ComposeEvent, type JevCandidate } from '../../src/contract/compose.js';
 import { deriveContentRequest } from '../../src/contract/content.js';
 
 const bind = (id: string, field: string) => ({ $state: `/content/${id}/${field}` });
@@ -149,6 +149,15 @@ describe('structure composition', () => {
       candidates: [...CANDIDATES, { id: 'spacer', description: 'A repeated row.', maxUses: 3, element: { type: 'Row', props: {} } }],
       initialState: INITIAL_STATE,
     })).toThrow('maxUses > 1');
+  });
+
+  it('replays a fixture through the same seam, and still respects barge-in', async () => {
+    const update = { v: 2, stage: 'structure', requestId: 'r', generationId: 'g', maxWidth: 640, status: 'complete', spec: { root: 'card', elements: { card: { type: 'Card', props: {} } } } } as const;
+    const composer = fixtureComposer(update);
+    expect(await drain(composer.compose(INPUT, live()))).toEqual([{ kind: 'structure', update, completion: { stopReason: 'finish', inputTokens: 0, elapsedMs: 0, steps: 0 } }]);
+    const aborted = new AbortController();
+    aborted.abort(new Error('barge-in'));
+    await expect(drain(composer.compose(INPUT, aborted.signal))).rejects.toThrow('barge-in');
   });
 
   it('cancels on the caller signal and on its own deadline', async () => {
