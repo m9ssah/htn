@@ -828,3 +828,49 @@ body {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
+
+/* ------------------------------------------------------------------ *
+ * What the device is hearing
+ *
+ * Partial transcript, shown while the sentence is still being said. It sits
+ * above the utterance bar and reads as provisional — dim, italic-free, and
+ * replaced wholesale on every partial rather than appended to, because the
+ * recogniser revises what it thought it heard as you keep talking.
+ *
+ * Only `opacity` animates. The text changes many times a second, and anything
+ * that animated a layout property here would repaint the whole stage on every
+ * syllable.
+ * ------------------------------------------------------------------ */
+
+.heard {
+  position: absolute;
+  right: var(--sh-pad);
+  /* Above the utterance bar, which sits above the rail. Positioned against
+     `.shell` rather than the stage, so it has to clear both rows itself —
+     at `bottom: 8px` it printed straight over the rail's labels. */
+  bottom: calc(var(--sh-rail-h) + 46px);
+  left: var(--sh-pad);
+  z-index: 4;
+  margin: 0;
+  overflow: hidden;
+  color: var(--sh-dim);
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  animation: heard-in 160ms var(--sh-ease);
+}
+
+@keyframes heard-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* The mic's own state, so "is it listening?" is answerable at a glance from a
+   metre away rather than by talking at it and waiting. */
+.shell[data-mic='off'] .utterance {
+  border-color: color-mix(in srgb, var(--sh-fg) 20%, transparent);
+}
+
+.shell[data-mic='live'] .utterance::placeholder {
+  color: color-mix(in srgb, var(--sh-accent) 70%, transparent);
+}

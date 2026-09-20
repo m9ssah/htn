@@ -1,5 +1,6 @@
 import { createJsonRenderer, toLegacyActions, type JsonSurfaceRenderer } from '@jit/renderer';
 import { connect, type Connection, type ConnectionStatus } from './connection.js';
+import { createDictation, type DictationState } from './dictation.js';
 import { createEmoticon, type Mood } from './emoticon.js';
 import { createRail } from './rail.js';
 import { HOME_TILES } from './script.js';
@@ -197,12 +198,61 @@ const connection: Connection = connect({
 const setMood = (mood: Mood): void => face.setMood(mood);
 
 /**
- * The mic stand-in. `apps/bridge` and STT are not built, so an utterance is
- * typed — but it is the same `utterance` frame on the same wire, routed by
- * the same graph, so what this exercises is the real flow rather than a
- * shortcut around it.
+ * Typing is the fallback path, not the main one — the device is spoken to.
+ * It stays because a noisy room, a denied microphone permission or a Chromium
+ * without the speech service all end here, and because it is what a test can
+ * drive.
  */
 const input = $<HTMLInputElement>('utterance');
+
+/* ------------------------------------------------------------------ *
+ * Voice
+ * ------------------------------------------------------------------ */
+
+const listening = $('listening');
+const heard = $('heard');
+
+/**
+ * What the device thinks it heard, while you are still saying it.
+ *
+ * Shown, never sent. The turn starts on the FINAL transcript (see
+ * `dictation.ts`) — painting a new surface off a half-finished sentence would
+ * change the screen under someone mid-utterance.
+ */
+function showPartial(text: string): void {
+  heard.textContent = text;
+  heard.hidden = text === '';
+}
+
+const dictation = createDictation({
+  onPartial(text) {
+    showPartial(text);
+    face.setMood('listening');
+  },
+  onFinal(text) {
+    showPartial('');
+    // Straight onto the wire. An utterance arriving mid-turn is a barge-in,
+    // which the server already treats as the normal way to correct yourself.
+    say(text);
+  },
+  onState(next: DictationState, detail) {
+    listening.hidden = next !== 'listening';
+    if (next === 'listening') {
+      shell.dataset['mic'] = 'live';
+      return;
+    }
+    showPartial('');
+    if (next === 'unavailable') {
+      shell.dataset['mic'] = 'off';
+      // Loud, because the alternative is a device that looks like it is
+      // listening and never hears anything (constraint 5).
+      showStatus(`${detail ?? 'microphone unavailable'} — type instead`);
+      input.focus();
+      return;
+    }
+    shell.dataset['mic'] = 'idle';
+  },
+});
 
 input.addEventListener('keydown', (event) => {
   if (event.key !== 'Enter') return;
@@ -231,9 +281,16 @@ window.addEventListener('keydown', (event) => {
       input.focus();
       break;
     case ' ':
+      // Hard mute. A hackathon floor is loud, and a device that must be told
+      // to stop listening is easier to trust than one that cannot be.
       event.preventDefault();
-      $('listening').hidden = false;
-      setMood('listening');
+      if (dictation.state === 'listening') {
+        dictation.stop();
+        showStatus('microphone off — press space to listen again');
+      } else if (dictation.available) {
+        showStatus(null);
+        dictation.start();
+      }
       break;
     case 'Backspace':
       reset();
@@ -243,12 +300,7 @@ window.addEventListener('keydown', (event) => {
   }
 });
 
-window.addEventListener('keyup', (event) => {
-  if (event.key !== ' ' || event.target === input) return;
-  $('listening').hidden = true;
-  setMood('idle');
-  input.focus();
-});
+
 
 $('surface').addEventListener('click', (event) => {
   const target = (event.target as HTMLElement).closest<HTMLElement>('[data-action]');
@@ -261,3 +313,8 @@ $('home').addEventListener('click', () => input.focus());
 
 paintHome();
 reset();
+
+// Open the microphone at boot: the device is meant to be spoken to, and a
+// stream opened on first press would put permission and startup cost inside
+// the utterance the user is already saying.
+dictation.start();
