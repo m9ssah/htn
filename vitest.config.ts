@@ -30,7 +30,7 @@ export default defineConfig({
      */
     pool: 'threads',
     environment: 'happy-dom',
-    include: ['packages/*/test/**/*.test.ts', 'apps/*/test/**/*.test.ts'],
+    include: ['packages/*/test/**/*.test.ts', 'packages/*/test/**/*.test.tsx', 'apps/*/test/**/*.test.ts'],
     typecheck: {
       enabled: true,
       include: ['packages/*/test/**/*.test-d.ts', 'apps/*/test/**/*.test-d.ts'],

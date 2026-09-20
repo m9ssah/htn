@@ -1,12 +1,7 @@
 import type {
   ActionDescriptor,
-  LeafComponent,
-  SlotValue,
-  ThemeEnums,
 } from '@jit/schema';
-import { LEAVES, TEMPLATES, createRenderer } from '@jit/renderer';
-import { resolve } from '@jit/tokens';
-import { SCENARIOS } from '../../../packages/renderer/harness/scenarios.js';
+import { EXAMPLES, PRIMITIVE_GALLERY_EXAMPLE, STUDY_SESSION_EXAMPLE, createJsonRenderer, toLegacyActions } from '@jit/renderer';
 import { createRail } from './rail.js';
 import './testbench.css';
 
@@ -91,6 +86,7 @@ const encoderLabel = $('encoder-label');
 const encoderMap = $('encoder-map');
 let display = $('testbench-display');
 let activeRail: ReturnType<typeof createRail> | null = null;
+let activeRenderer: ReturnType<typeof createJsonRenderer> | null = null;
 let activeActions: ActionDescriptor[] = [];
 let encoderIndex = 0;
 let encoderRotation = -120;
@@ -102,18 +98,8 @@ type Tab = {
   render: () => void;
 };
 
-const TEMPLATE_LABELS: Record<string, string> = {
-  choice_cards: 'Choices',
-  item_detail: 'Details',
-  focus_step: 'Focus',
-  recovery: 'Recovery',
-  summary_done: 'Done',
-  people_picker: 'People',
-  message_drafts: 'Messages',
-  generic_answer: 'Answer',
-};
-
 const resetScreen = (): void => {
+  activeRenderer?.destroy();
   const next = document.createElement('section');
   next.id = 'testbench-display';
   next.className = 'testbench-display surface';
@@ -123,147 +109,53 @@ const resetScreen = (): void => {
   faderHost.replaceChildren();
   faderHost.hidden = true;
   activeRail = null;
+  activeRenderer = null;
 };
 
 const renderScenario = (index: number): void => {
   resetScreen();
-  const scenario = SCENARIOS[index];
+  const scenario = EXAMPLES[index];
   if (!scenario) return;
 
-  const renderer = createRenderer(display);
-  renderer.applySkeleton({
-    v: 1,
-    templateId: scenario.templateId,
-    maxWidth: TEMPLATES[scenario.templateId].maxWidth,
-  });
-  renderer.applyStyle(scenario.style);
-  renderer.applyContent(scenario.content);
-  if (scenario.polish) renderer.applyPolish(scenario.polish);
+  const renderer = createJsonRenderer(display);
+  activeRenderer = renderer;
+  renderer.apply(scenario.structure);
+  renderer.apply(scenario.style);
+  renderer.apply(scenario.content);
+  if (scenario.polish) renderer.apply(scenario.polish);
 
+  const actions = toLegacyActions(renderer.getActions());
   activeRail = createRail(railHost, faderHost);
-  activeRail.update(renderer.getActions());
-  mapHardware(renderer.getActions());
-};
-
-type PrimitiveOptions = {
-  props?: Parameters<(typeof LEAVES)[LeafComponent]['build']>[0];
-  className?: string;
-  action?: string;
-  detail?: boolean;
-};
-
-const primitive = (
-  kind: LeafComponent,
-  value: SlotValue,
-  options: PrimitiveOptions = {},
-): HTMLElement => {
-  const spec = LEAVES[kind];
-  const element = spec.build(options.props ?? {});
-  element.dataset['slot'] = `primitive.${kind}`;
-  if (options.className) element.classList.add(options.className);
-  if (options.action) element.dataset['action'] = options.action;
-  if (options.detail) element.dataset['hasDetail'] = 'true';
-  spec.fill(element, value);
-  return element;
-};
-
-const section = (title: string, children: HTMLElement[]): HTMLElement => {
-  const card = document.createElement('section');
-  card.className = 'primitive-card';
-  const heading = document.createElement('p');
-  heading.className = 'primitive-card-title';
-  heading.textContent = title;
-  const content = document.createElement('div');
-  content.className = 'primitive-card-content';
-  content.append(...children);
-  card.append(heading, content);
-  return card;
+  activeRail.update(actions);
+  mapHardware(actions);
 };
 
 const renderPrimitives = (): void => {
   resetScreen();
-  display.classList.add('jit-root', 'primitives-root');
-
-  const theme: ThemeEnums = {
-    palette: 'slate',
-    fontPairing: 'system',
-    density: 'compact',
-    radius: 'soft',
-    motif: 'none',
-  };
-  const tokens = resolve(theme);
-  for (const [name, value] of Object.entries(tokens)) {
-    display.style.setProperty(name, value);
-  }
-  display.style.setProperty('--jit-maxw', '760px');
-
-  const typography = section('Typography', [
-    primitive('Label', { kind: 'Label', text: 'Section label' }),
-    primitive('Heading', { kind: 'Heading', text: 'Display heading' }, { props: { level: 1 } }),
-    primitive('Heading', { kind: 'Heading', text: 'Supporting heading' }, { props: { level: 2 } }),
-    primitive('Text', { kind: 'Text', text: 'Body copy stays compact, calm, and readable at arm’s length.' }),
-    primitive('Text', { kind: 'Text', text: 'Muted copy provides supporting context.' }, { props: { tone: 'muted' } }),
-    primitive('Badge', { kind: 'Badge', text: 'Ready' }),
-  ]);
-
-  const information = section('Information', [
-    primitive('Metric', { kind: 'Metric', label: 'Batch size', value: '30 cookies', delta: '+12 from original' }),
-    primitive('ListItem', { kind: 'ListItem', title: 'Chocolate chips', detail: 'Pantry', meta: '2 cups' }, { detail: true, action: 'confirm' }),
-    primitive('Rule', { kind: 'Rule', left: 'Estimated total', right: '$12.80' }),
-    primitive('Progress', { kind: 'Progress', pct: 64 }),
-    primitive('Bars', { kind: 'Bars', values: [34, 68, 48, 88, 62] }),
-    primitive('Alert', { kind: 'Alert', text: 'This is an inline alert with a recommended next step.' }),
-  ]);
-
-  const controls = section('Controls', [
-    primitive('TextField', { kind: 'TextField', label: 'Message', placeholder: 'Type a note…' }),
-    primitive('Slider', {
-      kind: 'Slider',
-      label: 'Intensity',
-      min: 0,
-      max: 4,
-      step: 1,
-      value: 2,
-      minLabel: 'Soft',
-      maxLabel: 'Bold',
-    }, { action: 'intensity' }),
-    primitive('Toggle', { kind: 'Toggle', label: 'Include substitutions', on: true }),
-    primitive('Button', { kind: 'Button', text: 'Primary action' }, { props: { variant: 'primary' }, action: 'choose' }),
-    primitive('Button', { kind: 'Button', text: 'Secondary' }, { props: { variant: 'secondary' }, action: 'back' }),
-    primitive('Button', { kind: 'Button', text: 'Ghost action' }, { props: { variant: 'ghost' }, action: 'edit' }),
-    primitive('Media', { kind: 'Media', caption: 'Media · 16:9' }),
-  ]);
-
-  const sheet = document.createElement('div');
-  sheet.className = 'primitive-sheet';
-  sheet.append(typography, information, controls);
-  display.append(sheet);
-
-  const sampleActions: ActionDescriptor[] = [
-    { index: 0, action: 'choose', kind: 'press', slot: 'choice_cards.option1', label: 'Choose' },
-    { index: 1, action: 'back', kind: 'press', slot: 'focus_step.prev', label: 'Back' },
-    { index: 2, action: 'edit', kind: 'press', slot: 'message_drafts.edit', label: 'Edit' },
-    { index: 3, action: 'confirm', kind: 'press', slot: 'people_picker.confirm', label: 'Confirm' },
-    {
-      index: 4,
-      action: 'intensity',
-      kind: 'range',
-      slot: 'choice_cards.axis',
-      label: 'Intensity',
-      range: {
-        min: 0,
-        max: 4,
-        step: 1,
-        value: 2,
-        unit: null,
-        minLabel: 'Soft',
-        maxLabel: 'Bold',
-      },
-    },
-  ];
+  display.classList.add('primitives-root');
+  const renderer = createJsonRenderer(display);
+  activeRenderer = renderer;
+  renderer.apply(PRIMITIVE_GALLERY_EXAMPLE.structure);
+  renderer.apply(PRIMITIVE_GALLERY_EXAMPLE.style);
+  renderer.apply(PRIMITIVE_GALLERY_EXAMPLE.content);
+  const actions = toLegacyActions(renderer.getActions());
   activeRail = createRail(railHost, faderHost);
-  activeRail.update(sampleActions);
-  mapHardware(sampleActions);
+  activeRail.update(actions);
+  mapHardware(actions);
+};
+
+const renderExample = (example: typeof STUDY_SESSION_EXAMPLE): void => {
+  resetScreen();
+  const renderer = createJsonRenderer(display);
+  activeRenderer = renderer;
+  renderer.apply(example.structure);
+  renderer.apply(example.style);
+  renderer.apply(example.content);
+  if (example.polish) renderer.apply(example.polish);
+  const actions = toLegacyActions(renderer.getActions());
+  activeRail = createRail(railHost, faderHost);
+  activeRail.update(actions);
+  mapHardware(actions);
 };
 
 const pressActions = (): ActionDescriptor[] =>
@@ -429,12 +321,18 @@ const tabs: Tab[] = [
     description: 'Design-system primitives',
     render: renderPrimitives,
   },
-  ...SCENARIOS.map((scenario, index) => ({
-    id: scenario.templateId,
-    label: TEMPLATE_LABELS[scenario.templateId] ?? scenario.templateId,
+  ...EXAMPLES.map((scenario, index) => ({
+    id: scenario.id,
+    label: scenario.id.replace(/-/g, ' '),
     description: scenario.intent,
     render: () => renderScenario(index),
   })),
+  {
+    id: STUDY_SESSION_EXAMPLE.id,
+    label: 'study session',
+    description: STUDY_SESSION_EXAMPLE.intent,
+    render: () => renderExample(STUDY_SESSION_EXAMPLE),
+  },
 ];
 
 const tabHost = $('page-tabs');

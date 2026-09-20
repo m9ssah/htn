@@ -1,4 +1,4 @@
-import { createRenderer, TEMPLATES, type Renderer } from '@jit/renderer';
+import { createJsonRenderer, toLegacyActions, type JsonSurfaceRenderer } from '@jit/renderer';
 import { createEmoticon, type Mood } from './emoticon.js';
 import { createRail } from './rail.js';
 import { DEMO, HOME_TILES } from './script.js';
@@ -27,7 +27,7 @@ const $ = <T extends HTMLElement>(id: string): T => {
 const shell = $('shell');
 const surface = $('surface');
 const rail = createRail($('rail'), $('fader'));
-const renderer: Renderer = createRenderer(surface, { transitions: true });
+const renderer: JsonSurfaceRenderer = createJsonRenderer(surface, { transitions: true });
 
 const LAYERS: readonly (readonly [HTMLElement, ShellState])[] = [
   [$('greeting'), 'greeting'],
@@ -73,7 +73,12 @@ function paintHome(): void {
     const el = document.createElement('div');
     el.className = 'tile';
     el.style.setProperty('--i', String(i));
-    if (tile.accent) el.dataset['accent'] = 'true';
+    const w = tile.w ?? 1;
+    const h = tile.h ?? 1;
+    el.style.setProperty('--w', String(w));
+    el.style.setProperty('--h', String(h));
+    el.dataset['size'] = `${w}x${h}`;
+    if (tile.tone) el.dataset['tone'] = tile.tone;
     const b = document.createElement('b');
     b.textContent = tile.title;
     const span = document.createElement('span');
@@ -92,7 +97,7 @@ function paintHome(): void {
 let beat = -1;
 
 function syncRail(): void {
-  rail.update(renderer.getActions());
+  rail.update(toLegacyActions(renderer.getActions()));
 }
 
 /** Advance to the next scripted surface. Stands in for the orchestrator. */
@@ -106,26 +111,22 @@ function advance(to = beat + 1): void {
 
   surface.dataset['gen'] = surface.dataset['gen'] === '0' ? '1' : '0';
 
-  renderer.applySkeleton({
-    v: 1,
-    templateId: next.templateId,
-    maxWidth: TEMPLATES[next.templateId].maxWidth,
-  });
+  renderer.apply(next.structure);
   syncRail();
 
   window.setTimeout(() => {
-    renderer.applyStyle(next.style);
+    renderer.apply(next.style);
   }, 90);
 
   window.setTimeout(() => {
-    renderer.applyContent(next.content);
+    renderer.apply(next.content);
     syncRail();
     face.setMood('pleased');
     window.setTimeout(() => face.setMood('idle'), 700);
   }, 430);
 
   if (next.polish) {
-    window.setTimeout(() => renderer.applyPolish(next.polish!), 1400);
+    window.setTimeout(() => renderer.apply(next.polish!), 1400);
   }
 }
 

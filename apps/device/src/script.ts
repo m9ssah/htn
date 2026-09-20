@@ -1,5 +1,5 @@
-import type { ContentPatch, PolishPatch, StylePatch, TemplateId } from '@jit/schema';
-import { SCENARIOS } from '../../../packages/renderer/harness/scenarios.js';
+import type { ContentUpdateV2, PolishPatch, StructureUpdateV2, StylePatch } from '@jit/schema';
+import { EXAMPLES } from '@jit/renderer';
 
 /**
  * The scripted demo, and the home tiles.
@@ -12,14 +12,14 @@ import { SCENARIOS } from '../../../packages/renderer/harness/scenarios.js';
  * first thing deleted once `apps/server` is talking.
  */
 export type Beat = {
-  templateId: TemplateId;
-  content: ContentPatch;
+  structure: StructureUpdateV2;
+  content: ContentUpdateV2;
   style: StylePatch;
   polish: PolishPatch | null;
 };
 
-export const DEMO: Beat[] = SCENARIOS.map((s) => ({
-  templateId: s.templateId,
+export const DEMO: Beat[] = EXAMPLES.map((s) => ({
+  structure: s.structure,
   content: s.content,
   style: s.style,
   polish: s.polish,
