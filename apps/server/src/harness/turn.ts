@@ -159,6 +159,7 @@ export function startTurn(input: unknown, deps: TurnDeps): Turn {
   async function* run(): AsyncGenerator<Patch> {
     log.record('turn-start', { input });
     let outcome = 'ok';
+    let completed = false;
     try {
       const stream = await deps.graph.stream(input as never, {
         // The ARRAY form, always. `streamMode: "custom"` (a bare string)
@@ -178,19 +179,44 @@ export function startTurn(input: unknown, deps: TurnDeps): Turn {
       });
       for await (const chunk of stream) {
         const [, payload] = chunk as [string, Patch];
+        // The fourth place a stale patch can hide. The sink's gate closes on
+        // abort, but a patch written BEFORE the abort and read after it is
+        // already past the sink and sitting in LangGraph's queue — handing it
+        // on would paint after a barge-in. Breaking here also releases the
+        // consumer instead of making it wait out a node that ignores the
+        // signal (p19b) to the end.
+        if (aborted) {
+          log.record('patch-dropped', { reason: 'aborted', patch: payload, stage: 'stream-queue' });
+          break;
+        }
         firstPatchMs ??= now() - t0;
         yield payload;
       }
+      completed = true;
     } catch (err) {
       outcome = 'crashed';
       log.record('turn-error', { error: describeError(err) });
       throw err;
     } finally {
-      // A consumer that breaks out of the loop is a barge-in — p19b: nothing
-      // else stops a running node, so leaving without aborting leaks the
-      // whole remaining generation and keeps paying for it.
-      if (!aborted) abort(new Error('turn ended'));
-      else if (outcome === 'ok') outcome = 'aborted';
+      if (aborted) {
+        // Checked first: the stream loop `break`s on an abort and therefore
+        // also falls through to `completed = true`.
+        if (outcome === 'ok') outcome = 'aborted';
+      } else if (completed) {
+        // The graph ran out of patches on its own. Close the sink so a node
+        // still running somehow cannot paint, but do NOT abort: recording
+        // an abort on every successful turn would make the log unable to
+        // answer the one question it exists for — did this turn abort?
+        sink.close();
+      } else {
+        // The consumer walked away mid-stream (a `break`, or a thrown error
+        // in its body). That is a barge-in, and p19b measured that nothing
+        // on the consumer side stops a running node — leaving without
+        // aborting leaks the whole remaining generation and keeps paying
+        // for it.
+        abort(new Error('consumer left before the turn ended'));
+        if (outcome === 'ok') outcome = 'aborted';
+      }
       log.record('turn-end', { firstEmitMs: round(firstEmitMs), firstPatchMs: round(firstPatchMs) });
       log.flush(outcome);
     }

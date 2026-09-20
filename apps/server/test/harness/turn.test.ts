@@ -237,6 +237,9 @@ describe('turn log', () => {
     };
     expect(record.turnId).toBe(turn.turnId);
     expect(record.outcome).toBe('ok');
+    // A turn that finished is not a turn that aborted. If every line carried
+    // an `abort` entry the log could not answer the question it exists for.
+    expect(record.entries.some((e) => e.kind === 'abort')).toBe(false);
     expect(record.entries.filter((e) => e.kind === 'patch')).toHaveLength(3);
     expect(record.entries.some((e) => e.kind === 'turn-start')).toBe(true);
     expect(record.entries.some((e) => e.kind === 'node')).toBe(true);
@@ -278,5 +281,10 @@ describe('turn log', () => {
     expect(lines).toHaveLength(2);
     expect(lines.filter((l) => l.includes(a.turnId))).toHaveLength(1);
     expect(lines.filter((l) => l.includes(b.turnId))).toHaveLength(1);
+    for (const line of lines) {
+      const record = JSON.parse(line) as { outcome: string; entries: { kind: string }[] };
+      expect(record.outcome).toBe('ok');
+      expect(record.entries.filter((e) => e.kind === 'patch')).toHaveLength(2);
+    }
   });
 });

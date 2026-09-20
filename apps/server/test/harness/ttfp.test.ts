@@ -56,8 +56,9 @@ describe('time to first patch', () => {
 
     // The skeleton reaches the consumer essentially the moment the node
     // emits it, and — the part that matters — long before the six content
-    // patches behind it have finished.
+    // patches behind it have finished. Only the DELTA is asserted: the
+    // absolute number is mostly the 211ms sleep, and the plan's 250ms is
+    // "from `decide` start, warm", which a sleep does not model.
     expect(consumer - emit).toBeLessThan(16);
-    expect(consumer).toBeLessThan(250);
   });
 });
