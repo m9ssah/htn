@@ -42,6 +42,47 @@ describe('parseJevResponse', () => {
 
     expect(answer.route.distribution).toEqual({ query: 0.7 });
   });
+
+  it('leaves wantsStyleChange/deviationIngredient/deviationFactor undefined when absent (the 4 recorded fixtures predate them)', () => {
+    const answer = parseJevResponse(VALID_RESPONSE);
+
+    expect(answer.wantsStyleChange).toBeUndefined();
+    expect(answer.deviationIngredient).toBeUndefined();
+    expect(answer.deviationFactor).toBeUndefined();
+  });
+
+  it('parses a noul answer as a bare probability, thresholded and confidence-derived like the Python client', () => {
+    const withNoul: JevWireResponse = {
+      ...VALID_RESPONSE,
+      answers: { ...VALID_ANSWERS, wantsStyleChange: { type: 'noul', noul: 0.83 } },
+    };
+
+    const answer = parseJevResponse(withNoul);
+
+    expect(answer.wantsStyleChange?.value).toBe(true);
+    expect(answer.wantsStyleChange?.probability).toBe(0.83);
+    expect(answer.wantsStyleChange?.confidence).toBeCloseTo(0.66);
+  });
+
+  it('a noul at exactly 0.5 has zero confidence and counts as true (>= 0.5)', () => {
+    const withNoul: JevWireResponse = {
+      ...VALID_RESPONSE,
+      answers: { ...VALID_ANSWERS, wantsStyleChange: { type: 'noul', noul: 0.5 } },
+    };
+
+    const answer = parseJevResponse(withNoul);
+
+    expect(answer.wantsStyleChange).toEqual({ value: true, probability: 0.5, confidence: 0 });
+  });
+
+  it('throws if a noul-typed slot comes back as a choice answer instead', () => {
+    const broken: JevWireResponse = {
+      ...VALID_RESPONSE,
+      answers: { ...VALID_ANSWERS, wantsStyleChange: { type: 'choice', choice: 'true', confidence: 1 } },
+    };
+
+    expect(() => parseJevResponse(broken)).toThrow('is not a noul answer');
+  });
 });
 
 describe('JevHttpClient', () => {

@@ -1,16 +1,19 @@
 import type { SkeletonPatch, StylePatch } from '@jit/schema';
 import { TEMPLATES } from '@jit/renderer';
 import type { JevAnswer, JevState, Node } from './types.js';
+import { policy } from './nodes/policy.js';
+import { style } from './nodes/style.js';
+import { project } from './nodes/project.js';
 
 /**
- * The registry the CLI lists and runs from — deliberately just the two nodes
- * that actually exercise a `Ctx` client, so `npm run node --` never lists a
- * name that is guaranteed to fail. The full intended node set (`decide`,
- * `policy`, `style`, `project`, `generate`, `research`) is recorded in
- * `docs/orchestration-plan.md`'s "Node inventory" — that table doesn't claim
- * runnability, so it isn't lying the way this registry would if it listed
- * unimplemented names. `policy`/`style`/`project` are P2's job; `research`
- * has no phase yet.
+ * The registry the CLI lists and runs from. `decide`/`generate` take a `Ctx`
+ * client and a CLI-buildable input (see `cli.ts`'s `INPUT_BUILDERS`), so
+ * `npm run node -- <name> ...` exercises them meaningfully. `policy`/`style`/
+ * `project` (P2) are pure, total functions of a structured input `Ctx`
+ * cannot supply from bare argv — they are listed here so the registry names
+ * every implemented node, but the CLI's string-argv fallback does not build
+ * a meaningful input for them; they are exercised by `test/harness/nodes/`
+ * instead. `research` has no phase yet, so it isn't listed at all.
  */
 
 /**
@@ -75,4 +78,7 @@ export const generate: Node<string, string[]> = {
 export const NODES: Record<string, Node<any, unknown>> = {
   decide,
   generate,
+  policy,
+  style,
+  project,
 };

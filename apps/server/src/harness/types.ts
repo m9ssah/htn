@@ -86,12 +86,31 @@ export type JevChoiceAnswer<T extends string> = {
 };
 
 /**
+ * One `noul` (yes/no) question's answer. Jev's `noul` primitive
+ * (`backend/jev/client.py`) returns a bare probability, not a labelled
+ * choice — `value` is that probability thresholded at 0.5, `probability` is
+ * the raw number (the calibration data worth keeping), and `confidence` is
+ * derived the same way the Python client derives it: `abs(p - 0.5) * 2`.
+ */
+export type JevNoulAnswer = {
+  value: boolean;
+  probability: number;
+  confidence: number;
+};
+
+/**
  * Constraint 1 (CLAUDE.md): Jev returns typed values only — a flat set of
  * enums, booleans, scores or selections from a finite list, never free-form
- * strings or nested JSON. Every field here is a `choice` answer plus its full
- * distribution, never a bare argmax — see `Distribution`'s comment. Building
- * this into `SkeletonPatch`/`StylePatch` is `decide`'s job, not the client's;
- * applying (or overriding) `templateId` is `policy`'s (P2), not `decide`'s.
+ * strings or nested JSON. Every field here is a `choice` (or `noul`) answer
+ * plus its full distribution, never a bare argmax — see `Distribution`'s
+ * comment. Building this into `SkeletonPatch`/`StylePatch` is `decide`'s job,
+ * not the client's; applying (or overriding) `templateId` is `policy`'s (P2),
+ * not `decide`'s.
+ *
+ * `wantsStyleChange`/`deviationIngredient`/`deviationFactor` are optional and
+ * added by P2 (`style`'s gate, `project`'s recovery beat) — they are absent
+ * from the four recorded fixtures (`fixtures/jev/recorded/*.json`), which
+ * predate them, so parsing must not require them.
  */
 export type JevAnswer = {
   route: JevChoiceAnswer<Route>;
@@ -103,6 +122,15 @@ export type JevAnswer = {
     radius: JevChoiceAnswer<Radius>;
     motif: JevChoiceAnswer<Motif>;
   };
+  /** Does the utterance express a preference about how the interface should
+   * LOOK? `style`'s only gate (p14: Jev otherwise picks a theme on every
+   * utterance). */
+  wantsStyleChange?: JevNoulAnswer;
+  /** `correct`-route only: which of the current recipe's ingredients the
+   * utterance was about. */
+  deviationIngredient?: JevChoiceAnswer<string>;
+  /** `correct`-route only: roughly how far off the planned amount. */
+  deviationFactor?: JevChoiceAnswer<string>;
   usage: { inputTokens: number; outputTokens: number };
 };
 
