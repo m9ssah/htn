@@ -31,8 +31,6 @@ export function resolve(theme: ThemeEnums): TokenSet {
     '--jit-fg': palette.fg,
     '--jit-muted': palette.muted,
     '--jit-accent': palette.accent,
-    '--jit-accent-2': palette.accent2,
-    '--jit-accent-3': palette.accent3,
     '--jit-on-accent': palette.onAccent,
     '--jit-accent-soft': palette.accentSoft,
     '--jit-input': palette.input,

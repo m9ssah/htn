@@ -67,33 +67,6 @@
   background-size: 120px 120px;
 }
 
-/*
- * The accent ramp.
- *
- * Three stops, never two. Two colours read as a crossfade between two things;
- * three read as one material catching the light, and the middle stop is what
- * carries that. The palette guarantees the three are hue neighbours — see
- * `tokens/palettes.ts` — so the ramp sweeps rather than collides.
- *
- * Used in exactly two places: the primary button and the progress fill. Those
- * are small, active, and benefit from reading as energy. Everywhere else the
- * accent is the flat block Metro asks for — a large field with a gradient
- * across it is the thing this design is explicitly not.
- *
- * All three stops are equal in the `contrast` palette, where this correctly
- * collapses to a solid fill. It is static paint, rasterised once and never
- * animated. It lives in the `--ph-*` internal namespace because `--jit-*` is
- * the patch contract and the renderer declares none of it.
- */
-.jit-root {
-  --ph-accent-ramp: linear-gradient(
-    135deg,
-    var(--jit-accent),
-    var(--jit-accent-2),
-    var(--jit-accent-3)
-  );
-}
-
 /* ------------------------------------------------------------------ *
  * Layout
  * ------------------------------------------------------------------ */
@@ -121,11 +94,48 @@
   gap: var(--jit-gap);
 }
 
+/*
+ * Glass, not a frame.
+ *
+ * The old card was an opaque lighter panel with a stroke around it — a box
+ * drawn on the device. This is a pane sitting above the ground: a translucent
+ * fill, a bright hairline along the top edge where light would catch, and a
+ * dark one along the bottom where it would fall away. The two inset lines are
+ * what actually read as glass; the blur is almost incidental on a flat ground.
+ *
+ * THE FILL IS MADE OF `--jit-surface`, NOT OF `--jit-fg`, and that is load
+ * bearing rather than stylistic. The contrast gate certifies text against
+ * `--jit-bg` and against `--jit-surface` separately. Compositing surface at 74%
+ * over bg puts every pixel of this pane strictly between those two colours, so
+ * any foreground that clears AA on both also clears it here. Mixing a fill out
+ * of `--jit-fg` instead would paint a ground that nothing has certified and
+ * quietly invalidate the gate.
+ */
 .c-card {
+  position: relative;
   padding: var(--jit-pad);
-  border: 1px solid var(--jit-border);
+  border: 1px solid color-mix(in srgb, var(--jit-fg) 9%, transparent);
   border-radius: var(--jit-radius);
-  background: var(--jit-surface);
+  background: color-mix(in srgb, var(--jit-surface) 74%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--jit-fg) 13%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--jit-bg) 55%, transparent);
+}
+
+/*
+ * The blur is additive and deliberately last.
+ *
+ * `backdrop-filter` is the one expensive thing in this stylesheet: it re-samples
+ * everything behind the pane, and it does that again on every frame the pane or
+ * its ancestors move. The ground here is a flat colour with nothing behind it to
+ * blur, so switching it off costs almost nothing visually — which is exactly why
+ * it is quarantined in its own rule. Dropping this block is the whole of the
+ * fallback if the panel cannot hold frames.
+ */
+@supports (backdrop-filter: blur(1px)) {
+  .c-card {
+    backdrop-filter: blur(10px) saturate(1.25);
+  }
 }
 
 .c-divider {
@@ -277,9 +287,17 @@
   padding: 2px 9px;
   border-radius: 999px;
   background: var(--jit-accent-soft);
-  /* Was var(--jit-accent) — for slate that measured 3.63:1 against
-     accent-soft, and no accentSoft value can fix it without going to solid
-     black (ceiling 4.512:1). fg clears AA by a wide margin on every palette. */
+  /*
+   * Was var(--jit-accent), which measured 3.63:1 on the palette this was
+   * written against — no accentSoft value could fix that without going to
+   * solid black (ceiling 4.512:1).
+   *
+   * The plum palettes that replaced it happen to clear AA on accent too
+   * (5.40:1 at worst), so this is no longer load bearing for the table as it
+   * stands. It stays anyway: `fg` measures 14.0-17.6:1 across all four, and
+   * tying Badge to `accent` would make every future palette's accent hue
+   * answerable to a pairing it has no other reason to satisfy.
+   */
   color: var(--jit-fg);
   font-size: var(--ph-fs);
   font-weight: 700;
@@ -400,7 +418,7 @@
 .c-progress .p-fill {
   display: block;
   height: 100%;
-  background: var(--ph-accent-ramp);
+  background: var(--jit-accent);
   transition: width 0.3s ease;
 }
 
@@ -416,7 +434,7 @@
   padding: calc(10px * var(--jit-density-f)) 14px;
   border: 1px solid transparent;
   border-radius: var(--jit-radius-sm);
-  background: var(--ph-accent-ramp);
+  background: var(--jit-accent);
   color: var(--jit-on-accent);
   font-family: var(--jit-font-body);
   font-size: var(--ph-fs);
