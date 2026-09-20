@@ -1,0 +1,101 @@
+{
+  "sweep": [
+    {
+      "T": 0.2,
+      "acc": 0.8,
+      "false_alarms": 2,
+      "missed": 1,
+      "mean_ms": 2681
+    },
+    {
+      "T": 0.3,
+      "acc": 0.867,
+      "false_alarms": 1,
+      "missed": 1,
+      "mean_ms": 2328
+    },
+    {
+      "T": 0.4,
+      "acc": 0.933,
+      "false_alarms": 0,
+      "missed": 1,
+      "mean_ms": 1976
+    },
+    {
+      "T": 0.5,
+      "acc": 0.867,
+      "false_alarms": 0,
+      "missed": 2,
+      "mean_ms": 1624
+    },
+    {
+      "T": 0.6,
+      "acc": 0.867,
+      "false_alarms": 0,
+      "missed": 2,
+      "mean_ms": 1624
+    }
+  ],
+  "raw": {
+    "make it high contrast, I can't read this": [
+      0.05,
+      false
+    ],
+    "make the text bigger": [
+      0.04,
+      false
+    ],
+    "go back": [
+      0.05,
+      false
+    ],
+    "ok what's the next step": [
+      0.147,
+      false
+    ],
+    "show me the whole recipe": [
+      0.237,
+      false
+    ],
+    "I burnt the sauce": [
+      0.047,
+      false
+    ],
+    "how does this device work": [
+      0.31,
+      false
+    ],
+    "start over": [
+      0.04,
+      false
+    ],
+    "what should I make tonight": [
+      0.073,
+      false
+    ],
+    "is this recipe actually healthy": [
+      0.4,
+      true
+    ],
+    "what's the weather like tomorrow": [
+      0.98,
+      true
+    ],
+    "how much is saffron going for right now": [
+      0.95,
+      true
+    ],
+    "is the grocery store still open": [
+      0.95,
+      true
+    ],
+    "are there any recalls on this ingredient": [
+      0.963,
+      true
+    ],
+    "what wine goes well with this": [
+      0.13,
+      true
+    ]
+  }
+}

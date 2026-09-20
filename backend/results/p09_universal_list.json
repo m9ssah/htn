@@ -1,0 +1,59 @@
+{
+  "universal": [
+    {
+      "request": "dark mode",
+      "precision": 1.0,
+      "recall": 0.875,
+      "f1": 0.933,
+      "n_picked": 7,
+      "errors": [
+        "-a11y_target"
+      ]
+    },
+    {
+      "request": "translate the UI into French",
+      "precision": 0.75,
+      "recall": 0.6,
+      "f1": 0.667,
+      "n_picked": 4,
+      "errors": [
+        "+system_pref",
+        "-component_lib",
+        "-rtl_support"
+      ]
+    },
+    {
+      "request": "add subscription billing",
+      "precision": 0.571,
+      "recall": 1.0,
+      "f1": 0.727,
+      "n_picked": 14,
+      "errors": [
+        "+component_lib",
+        "+copy_source",
+        "+data_volume",
+        "+deploy_target",
+        "+error_states",
+        "+permissions"
+      ]
+    },
+    {
+      "request": "live metrics dashboard refreshing every minute",
+      "precision": 0.727,
+      "recall": 1.0,
+      "f1": 0.842,
+      "n_picked": 11,
+      "errors": [
+        "+component_lib",
+        "+db_schema",
+        "+deploy_target"
+      ]
+    }
+  ],
+  "crippled": {
+    "selected": [
+      "deploy_target"
+    ],
+    "list_sufficient": 0.06
+  }
+}

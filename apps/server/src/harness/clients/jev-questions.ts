@@ -1,5 +1,6 @@
 import type { Density, FontPairing, Motif, Palette, Radius, TemplateId } from '@jit/schema';
 import type { JevState, Route } from '../types.js';
+import { CLASSIC_CHOCOLATE_CHIP } from '../../domain/recipes.js';
 
 /**
  * The wording and option descriptions Jev is asked with.
@@ -89,7 +90,7 @@ export const AXIS_DESCRIPTIONS = {
   } satisfies Record<Motif, string>,
 };
 
-/** The wire shape of a `choice` question — the only primitive `decide` uses. */
+/** The wire shape of a `choice` question. */
 export type JevChoiceQuestion = {
   type: 'choice';
   instructions: string;
@@ -102,8 +103,74 @@ const choice = (instructions: string, criteria: Record<string, string>): JevChoi
   criteria,
 });
 
-/** The 7 batched questions `decide` sends in one call — free per p02 (1q 381ms, 32q 362ms). */
-export function buildQuestions(): Record<string, JevChoiceQuestion> {
+/**
+ * The wire shape of a `noul` (yes/no) question. `criteria` is required here,
+ * not optional as the Python client allows — p06 measured that omitting it
+ * is what caused a conservative bias first misattributed to the model
+ * (accuracy 0.95 -> 1.00, latency 224ms -> 193ms with it supplied).
+ */
+export type JevNoulQuestion = {
+  type: 'noul';
+  instructions: string;
+  criteria: { true: string; false: string };
+};
+
+const noul = (instructions: string, criteria: { true: string; false: string }): JevNoulQuestion => ({
+  type: 'noul',
+  instructions,
+  criteria,
+});
+
+export type JevQuestion = JevChoiceQuestion | JevNoulQuestion;
+
+// p14: Jev picks a theme on every utterance, restyling surfaces nobody asked
+// to restyle. This is `style`'s only gate.
+export const STYLE_GATE_QUESTION = 'Does the utterance ask for the interface to look different?';
+export const STYLE_GATE_CRITERIA = {
+  true: 'The utterance asks for a different look, feel, colour, density, or decoration',
+  false: 'The utterance is about the task, not about how the interface looks',
+};
+
+export const DEVIATION_INGREDIENT_QUESTION = 'Which ingredient is the utterance about?';
+
+/**
+ * Built from the one recipe actually being followed right now
+ * (`domain/recipes.ts`), not hand-duplicated — honest per CLAUDE.md
+ * constraint 6, and it generalises the moment a second real recipe exists:
+ * this is the demo's only bake in progress, so there is only one ingredient
+ * list a correction utterance could be about.
+ */
+export const DEVIATION_INGREDIENT_DESCRIPTIONS: Record<string, string> = Object.fromEntries(
+  CLASSIC_CHOCOLATE_CHIP.ingredients.map((ingredient) => [ingredient.id, ingredient.name]),
+);
+
+export const DEVIATION_FACTOR_QUESTION = 'Roughly how much of the planned amount actually went in?';
+
+/**
+ * The model classifies which bucket; code does the arithmetic (CLAUDE.md
+ * constraint 2) — `null` means "not a number `applyDeviation` can use",
+ * which is what `other` means by construction. Single source of truth for
+ * both the question's criteria (below) and `project`'s conversion, so the
+ * two can't drift apart.
+ */
+export const DEVIATION_FACTORS: Record<string, number | null> = {
+  half: 0.5,
+  '1.5x': 1.5,
+  '2x': 2,
+  '3x': 3,
+  other: null,
+};
+
+export const DEVIATION_FACTOR_DESCRIPTIONS: Record<string, string> = {
+  half: 'About half of what the plan called for',
+  '1.5x': 'About one and a half times what the plan called for',
+  '2x': 'About twice what the plan called for',
+  '3x': 'About three times what the plan called for',
+  other: 'Some other amount, not covered by the choices above',
+};
+
+/** The 10 batched questions `decide` sends in one call — free per p02 (1q 381ms, 32q 362ms). */
+export function buildQuestions(): Record<string, JevQuestion> {
   return {
     route: choice(ROUTE_QUESTION, ROUTES),
     templateId: choice(TEMPLATE_QUESTION, TEMPLATE_DESCRIPTIONS),
@@ -112,6 +179,9 @@ export function buildQuestions(): Record<string, JevChoiceQuestion> {
     density: choice(AXIS_QUESTION('density'), AXIS_DESCRIPTIONS.density),
     radius: choice(AXIS_QUESTION('radius'), AXIS_DESCRIPTIONS.radius),
     motif: choice(AXIS_QUESTION('motif'), AXIS_DESCRIPTIONS.motif),
+    wantsStyleChange: noul(STYLE_GATE_QUESTION, STYLE_GATE_CRITERIA),
+    deviationIngredient: choice(DEVIATION_INGREDIENT_QUESTION, DEVIATION_INGREDIENT_DESCRIPTIONS),
+    deviationFactor: choice(DEVIATION_FACTOR_QUESTION, DEVIATION_FACTOR_DESCRIPTIONS),
   };
 }
 

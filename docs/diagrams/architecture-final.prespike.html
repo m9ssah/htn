@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JIT UI — Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,'Helvetica Neue',Arial,sans-serif;background:#fafafa;min-height:100vh;padding:2rem;color:#1f1f1f}
+.container{max-width:1320px;margin:0 auto}
+.header{margin-bottom:1.5rem}
+h1{font-size:1.375rem;font-weight:600;letter-spacing:-.02em;margin-bottom:.35rem}
+.subtitle{color:#6b6b6b;font-size:.8125rem;line-height:1.6}
+.subtitle b{color:#1f1f1f;font-weight:600}
+.header-row{display:flex;align-items:flex-start;gap:1rem}
+.diagram-container{background:#fff;border-radius:.5rem;border:1px solid #e2e2e2;padding:.5rem;overflow-x:auto}
+svg{width:100%;min-width:1100px;display:block}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.25rem}
+.card{background:#fff;border:1px solid #e2e2e2;border-radius:.5rem;padding:1rem}
+.card-header{display:flex;align-items:center;gap:.5rem;margin-bottom:.65rem}
+.card-dot{width:8px;height:8px;border-radius:50%}
+.dot-emerald{background:#2f7d5d}.dot-violet{background:#6b4fa8}.dot-rose{background:#b04a5a}
+.card h3{font-size:.8125rem;font-weight:600}.card ul{list-style:none}
+.card li{color:#6b6b6b;font-size:.6875rem;line-height:1.8}.card li b{color:#1f1f1f;font-weight:600}
+.footer{margin-top:1.25rem;color:#9a9a9a;font-size:.6875rem;text-align:center}
+.toolbar{margin-left:auto;display:flex;align-items:center;gap:.5rem;flex-shrink:0}
+.toolbar-actions{display:none;gap:.5rem}.toolbar-actions.open{display:flex}
+.toolbar button{font-family:inherit;font-size:.6875rem;color:#6b6b6b;background:#fff;border:1px solid #e2e2e2;border-radius:.375rem;padding:.35rem .6rem;cursor:pointer}
+.toolbar button:hover{color:#1f1f1f;border-color:#b4b4b4}
+@media print{.toolbar{display:none!important}}
+</style></head>
+<body>
+<div class="container" id="report-container">
+<div class="header"><div class="header-row"><div>
+  <h1>JIT UI — Architecture</h1>
+  <p class="subtitle">Your flow, with the measured numbers attached. Green is Jev, purple is the LLM, outlined is plain code.</p>
+</div>
+<div class="toolbar"><div class="toolbar-actions" id="ta">
+  <button onclick="copyAsImage()">Copy</button><button onclick="downloadPNG()">PNG</button><button onclick="downloadPDF()">PDF</button>
+</div><button onclick="document.getElementById('ta').classList.toggle('open')">⋯</button></div>
+</div></div>
+<div class="diagram-container">
+<svg viewBox="0 0 1400 1660" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.1" fill="#d8d8d8"/></pattern>
+<marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#6b6b6b"/></marker>
+<marker id="ag" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#2f7d5d"/></marker>
+<marker id="av" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#6b4fa8"/></marker>
+<marker id="ar" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#b04a5a"/></marker>
+</defs>
+<rect width="1400" height="1660" fill="url(#dots)"/>
+
+<!-- ================= EDGES ================= -->
+<line x1="660" y1="165" x2="660" y2="211" stroke="#6b6b6b" stroke-width="1.6" marker-end="url(#a)"/>
+<path d="M 660 615 V 655 H 310 V 696" fill="none" stroke="#2f7d5d" stroke-width="1.6" marker-end="url(#ag)"/>
+<path d="M 660 615 V 655 H 760 V 696" fill="none" stroke="#6b4fa8" stroke-width="1.6" marker-end="url(#av)"/>
+<!-- LLM side outputs -->
+<path d="M 960 742 H 1056" fill="none" stroke="#6b4fa8" stroke-width="1.6" marker-end="url(#av)"/>
+<path d="M 960 800 H 1010 V 875 H 1056" fill="none" stroke="#6b4fa8" stroke-width="1.6" marker-end="url(#av)"/>
+<!-- research chain -->
+<line x1="760" y1="930" x2="760" y2="971" stroke="#6b6b6b" stroke-width="1.6" marker-end="url(#a)"/>
+<text x="772" y="955" fill="#6b6b6b" font-size="11.5">research if needed</text>
+<line x1="760" y1="1035" x2="760" y2="1071" stroke="#6b6b6b" stroke-width="1.6" marker-end="url(#a)"/>
+<line x1="760" y1="1135" x2="760" y2="1171" stroke="#6b6b6b" stroke-width="1.6" marker-end="url(#a)"/>
+<path d="M 610 1250 H 575 V 1105 H 632" fill="none" stroke="#b04a5a" stroke-width="1.6" stroke-dasharray="5,4" marker-end="url(#ar)"/>
+<text x="567" y="1190" fill="#b04a5a" font-size="10" font-weight="600" transform="rotate(-90 567 1190)">search again? → loop</text>
+<!-- converge on the renderer -->
+<path d="M 310 810 V 1390 H 600 V 1422" fill="none" stroke="#2f7d5d" stroke-width="1.6" marker-end="url(#ag)"/>
+<path d="M 780 1325 V 1390 H 740 V 1422" fill="none" stroke="#6b6b6b" stroke-width="1.6" marker-end="url(#a)"/>
+<path d="M 960 880 H 1000 V 1470 H 848" fill="none" stroke="#6b4fa8" stroke-width="1.6" marker-end="url(#av)"/>
+<text x="360" y="1382" fill="#6b6b6b" font-size="11.5">animation</text>
+<text x="880" y="1462" fill="#6b4fa8" font-size="11">content, as each slot parses</text>
+
+<!-- ================= NODES ================= -->
+<path d="M 540 40 H 780 V 122 L 660 165 L 540 122 Z" fill="#fff" stroke="#6b6b6b" stroke-width="1.6" stroke-linejoin="round"/>
+<text x="660" y="84" fill="#1f1f1f" font-size="15" font-weight="600" text-anchor="middle">user request</text>
+<text x="660" y="106" fill="#6b6b6b" font-size="11" text-anchor="middle">partial transcript, stale requests cancelled</text>
+
+<!-- STAGE 1 -->
+<rect x="180" y="215" width="960" height="400" rx="10" fill="#f3f9f6" stroke="#2f7d5d" stroke-width="1.8"/>
+<text x="660" y="252" fill="#1f1f1f" font-size="15" font-weight="700" text-anchor="middle">STAGE 1 · JEV DECISION LAYER — ONE BATCHED CALL</text>
+<text x="660" y="274" fill="#6b6b6b" font-size="11.5" text-anchor="middle">214ms p50 measured · ~$0.00003 · every enumerable judgment, asked speculatively and in parallel</text>
+<line x1="210" y1="292" x2="1110" y2="292" stroke="#cfe3d9"/>
+<text x="210" y="320" fill="#2f7d5d" font-size="11" font-weight="700">routing</text><text x="310" y="320" fill="#1f1f1f" font-size="12.5">which paths are needed?</text><text x="1110" y="320" fill="#b04a5a" font-size="11" font-weight="600" text-anchor="end">93% @ T = 0.40</text>
+<text x="210" y="344" fill="#2f7d5d" font-size="11" font-weight="700">risk</text><text x="310" y="344" fill="#1f1f1f" font-size="12.5">see open risk</text><text x="1110" y="344" fill="#9a9a9a" font-size="11" text-anchor="end">not benchmarked</text>
+<text x="210" y="368" fill="#2f7d5d" font-size="11" font-weight="700">research</text><text x="310" y="368" fill="#1f1f1f" font-size="12.5">which candidates to investigate?</text><text x="1110" y="368" fill="#a67c00" font-size="11" font-weight="600" text-anchor="end">0.79 — predicting, not seeing</text>
+<text x="210" y="392" fill="#2f7d5d" font-size="11" font-weight="700">research</text><text x="310" y="392" fill="#1f1f1f" font-size="12.5">does the candidate list cover this?</text><text x="1110" y="392" fill="#2f7d5d" font-size="11" font-weight="600" text-anchor="end">flags gaps at 0.06</text>
+<text x="210" y="416" fill="#2f7d5d" font-size="11" font-weight="700">research</text><text x="310" y="416" fill="#1f1f1f" font-size="12.5">do we already know enough?</text><text x="1110" y="416" fill="#2f7d5d" font-size="11" font-weight="600" text-anchor="end">1.00</text>
+<text x="210" y="440" fill="#2f7d5d" font-size="11" font-weight="700">context</text><text x="310" y="440" fill="#1f1f1f" font-size="12.5">which facts go to the strong model?</text><text x="1110" y="440" fill="#2f7d5d" font-size="11" font-weight="600" text-anchor="end">1.00 @ 20 items</text>
+<text x="210" y="464" fill="#2f7d5d" font-size="11" font-weight="700">layout</text><text x="310" y="464" fill="#1f1f1f" font-size="12.5">which layout / skeleton?</text><text x="1110" y="464" fill="#2f7d5d" font-size="11" font-weight="600" text-anchor="end">8/8 end-to-end · 92% synthetic</text>
+<text x="310" y="488" fill="#1f1f1f" font-size="12.5">which component?</text><text x="1110" y="488" fill="#2f7d5d" font-size="11" font-weight="600" text-anchor="end">falls out of the skeleton choice</text>
+<text x="210" y="512" fill="#2f7d5d" font-size="11" font-weight="700">style</text><text x="310" y="512" fill="#1f1f1f" font-size="12.5">palette / font / density?</text><text x="1110" y="512" fill="#2f7d5d" font-size="11" font-weight="600" text-anchor="end">100% · 432 combos, one call</text>
+<text x="310" y="536" fill="#1f1f1f" font-size="12.5">which components must change?</text><text x="1110" y="536" fill="#a67c00" font-size="11" font-weight="600" text-anchor="end">0.78 · needs a gate</text>
+<text x="310" y="560" fill="#1f1f1f" font-size="12.5">does this need generation?</text><text x="1110" y="560" fill="#2f7d5d" font-size="11" font-weight="600" text-anchor="end">routes the branch</text>
+<text x="660" y="592" fill="#8a8a8a" font-size="10.5" text-anchor="middle">questions are free — 1q 381ms · 32q 362ms · 200 options 366ms · only state size costs latency</text>
+
+<!-- choose UI components -->
+<rect x="160" y="696" width="300" height="114" rx="10" fill="#f3f9f6" stroke="#2f7d5d" stroke-width="1.8"/>
+<text x="310" y="728" fill="#1f1f1f" font-size="15" font-weight="700" text-anchor="middle">choose UI components</text>
+<text x="310" y="750" fill="#2f7d5d" font-size="12.5" font-weight="600" text-anchor="middle">Jev</text>
+<text x="310" y="772" fill="#6b6b6b" font-size="11" text-anchor="middle">SkeletonPatch + StylePatch</text>
+<text x="310" y="792" fill="#2f7d5d" font-size="11.5" font-weight="700" text-anchor="middle">paints first · ~214ms</text>
+
+<!-- LLM -->
+<rect x="560" y="696" width="400" height="234" rx="10" fill="#f7f4fc" stroke="#6b4fa8" stroke-width="1.8"/>
+<text x="760" y="728" fill="#1f1f1f" font-size="15" font-weight="700" text-anchor="middle">LLM</text>
+<text x="760" y="750" fill="#6b6b6b" font-size="11.5" text-anchor="middle">need more context? over 0.5</text>
+<text x="760" y="770" fill="#6b6b6b" font-size="11.5" text-anchor="middle">generative?</text>
+<text x="760" y="790" fill="#6b6b6b" font-size="11.5" text-anchor="middle">fed ONLY Jev's selected context</text>
+<text x="760" y="810" fill="#6b6b6b" font-size="11.5" text-anchor="middle">keywords · markup · CSS · hex · copy · to-do</text>
+<rect x="582" y="826" width="356" height="48" rx="5" fill="#fdf2f4" stroke="#b04a5a" stroke-width="1.2"/>
+<text x="760" y="845" fill="#b04a5a" font-size="11" font-weight="700" text-anchor="middle">first token ~1.6s lean · 5.4s with a heavy harness</text>
+<text x="760" y="863" fill="#b04a5a" font-size="10.5" text-anchor="middle">the harness carried 23× the tokens — 21,009 against 922</text>
+<text x="760" y="894" fill="#6b6b6b" font-size="11" text-anchor="middle">emits one patch per slot, ~380ms apart</text>
+<text x="760" y="914" fill="#a67c00" font-size="11" font-weight="600" text-anchor="middle">order: nulls → Buttons → body</text>
+
+<!-- right-hand outputs -->
+<rect x="1056" y="700" width="264" height="84" rx="10" fill="#f7f4fc" stroke="#6b4fa8" stroke-width="1.6"/>
+<text x="1188" y="736" fill="#1f1f1f" font-size="13.5" font-weight="600" text-anchor="middle">update UI components</text>
+<text x="1188" y="758" fill="#a67c00" font-size="10.5" text-anchor="middle">Jev reaches 0.78 here —</text>
+<text x="1188" y="772" fill="#a67c00" font-size="10.5" text-anchor="middle">gate it, or leave it on the LLM</text>
+
+<rect x="1056" y="833" width="264" height="84" rx="10" fill="#f7f4fc" stroke="#6b4fa8" stroke-width="1.6"/>
+<text x="1188" y="869" fill="#1f1f1f" font-size="13.5" font-weight="600" text-anchor="middle">image generation</text>
+<text x="1188" y="893" fill="#6b6b6b" font-size="10.5" text-anchor="middle">generative — never Jev</text>
+
+<!-- research chain -->
+<rect x="640" y="971" width="240" height="64" rx="10" fill="#f7f4fc" stroke="#6b4fa8" stroke-width="1.6"/>
+<text x="760" y="1000" fill="#1f1f1f" font-size="13" font-weight="600" text-anchor="middle">keywords / queries</text>
+<text x="760" y="1021" fill="#6b6b6b" font-size="10.5" text-anchor="middle">LLM · once · cached</text>
+
+<rect x="640" y="1071" width="240" height="64" rx="10" fill="#fff" stroke="#6b6b6b" stroke-width="1.6"/>
+<text x="760" y="1100" fill="#1f1f1f" font-size="13" font-weight="600" text-anchor="middle">run search / fetch</text>
+<text x="760" y="1121" fill="#6b6b6b" font-size="10.5" text-anchor="middle">code — no model</text>
+
+<rect x="610" y="1171" width="300" height="154" rx="10" fill="#f3f9f6" stroke="#2f7d5d" stroke-width="1.8"/>
+<text x="760" y="1199" fill="#1f1f1f" font-size="12.5" font-weight="700" text-anchor="middle">JEV · one call over N results · ~250ms</text>
+<text x="632" y="1227" fill="#1f1f1f" font-size="11.5">relevant? per result</text><text x="888" y="1227" fill="#2f7d5d" font-size="11" font-weight="600" text-anchor="end">1.00</text>
+<text x="632" y="1252" fill="#1f1f1f" font-size="11.5">current + authoritative?</text><text x="888" y="1252" fill="#2f7d5d" font-size="11" font-weight="600" text-anchor="end">0.89</text>
+<text x="632" y="1277" fill="#1f1f1f" font-size="11.5">do the results conflict?</text><text x="888" y="1277" fill="#2f7d5d" font-size="11" font-weight="600" text-anchor="end">0.97</text>
+<text x="632" y="1302" fill="#1f1f1f" font-size="11.5">search again?</text><text x="888" y="1302" fill="#2f7d5d" font-size="11" font-weight="600" text-anchor="end">3/3</text>
+
+<!-- fill in the UI -->
+<rect x="520" y="1426" width="328" height="112" rx="10" fill="#fff" stroke="#6b6b6b" stroke-width="1.8"/>
+<text x="684" y="1462" fill="#1f1f1f" font-size="15" font-weight="700" text-anchor="middle">fill in the UI</text>
+<text x="684" y="1486" fill="#6b6b6b" font-size="11" text-anchor="middle">whitelist validation, then apply</text>
+<text x="684" y="1508" fill="#2f7d5d" font-size="11" font-weight="600" text-anchor="middle">patches land as they arrive — it never waits</text>
+<text x="684" y="1528" fill="#8a8a8a" font-size="10.5" text-anchor="middle">skeleton at 214ms · unfilled slots shimmer</text>
+
+<!-- ================= TIMING PANEL ================= -->
+<rect x="1040" y="1010" width="320" height="300" rx="10" fill="#fff" stroke="#e2e2e2" stroke-width="1.4"/>
+<text x="1200" y="1044" fill="#1f1f1f" font-size="12.5" font-weight="700" text-anchor="middle">WHAT THE JUDGE SEES</text>
+<line x1="1064" y1="1060" x2="1336" y2="1060" stroke="#ececec"/>
+<circle cx="1078" cy="1090" r="6" fill="#2f7d5d"/>
+<text x="1098" y="1095" fill="#2f7d5d" font-size="13.5" font-weight="700">214ms</text>
+<text x="1098" y="1116" fill="#1f1f1f" font-size="11">skeleton + style painted</text>
+<text x="1098" y="1134" fill="#6b6b6b" font-size="10.5">every slot shimmering at final size</text>
+<circle cx="1078" cy="1172" r="6" fill="#6b4fa8"/>
+<text x="1098" y="1177" fill="#6b4fa8" font-size="13.5" font-weight="700">~1.2s</text>
+<text x="1098" y="1198" fill="#1f1f1f" font-size="11">first content slots land</text>
+<text x="1098" y="1216" fill="#6b6b6b" font-size="10.5">layout settles, buttons get labels</text>
+<circle cx="1078" cy="1254" r="6" fill="#9a9a9a"/>
+<text x="1098" y="1259" fill="#8a8a8a" font-size="13.5" font-weight="700">6–8s</text>
+<text x="1098" y="1280" fill="#1f1f1f" font-size="11">last body slot</text>
+<line x1="1064" y1="1292" x2="1336" y2="1292" stroke="#ececec"/>
+<text x="1064" y="1306" fill="#2f7d5d" font-size="10">plan-v1.md:75 wants a reshape under 1.5s</text>
+
+<!-- ================= LEGEND ================= -->
+<rect x="180" y="1586" width="16" height="16" rx="4" fill="#f3f9f6" stroke="#2f7d5d" stroke-width="1.5"/><text x="206" y="1599" fill="#6b6b6b" font-size="11">Jev — ~214ms</text>
+<rect x="360" y="1586" width="16" height="16" rx="4" fill="#f7f4fc" stroke="#6b4fa8" stroke-width="1.5"/><text x="386" y="1599" fill="#6b6b6b" font-size="11">LLM — generative</text>
+<rect x="560" y="1586" width="16" height="16" rx="4" fill="#fff" stroke="#6b6b6b" stroke-width="1.5"/><text x="586" y="1599" fill="#6b6b6b" font-size="11">Code — no model</text>
+<rect x="760" y="1586" width="16" height="16" rx="4" fill="#fdf8ec" stroke="#a67c00" stroke-width="1.5"/><text x="786" y="1599" fill="#6b6b6b" font-size="11">needs a gate</text>
+<rect x="920" y="1586" width="16" height="16" rx="4" fill="#fdf2f4" stroke="#b04a5a" stroke-width="1.5"/><text x="946" y="1599" fill="#6b6b6b" font-size="11">measured, worse than assumed</text>
+<text x="180" y="1636" fill="#9a9a9a" font-size="10">Scores are accuracy or F1 against gold, 3–8 reps. Validated against packages/schema/src/index.ts in m9ssah/htn @ b63c98a. Latency from probes 14–17.</text>
+</svg>
+</div>
+<div class="cards">
+<div class="card"><div class="card-header"><div class="card-dot dot-emerald"></div><h3>Measured</h3></div><ul>
+<li>• schema-valid patch sets <b>8/8</b>, template correct <b>8/8</b></li>
+<li>• cascade losses <b>0</b> · StylePatch across 5 axes <b>100%</b></li>
+<li>• decision layer <b>214ms p50</b>, 8 questions in one call</li>
+<li>• content first token <b>5369 → 1605ms</b> on a lean prompt</li>
+<li>• per-slot cadence <b>~380ms</b>, steady</li>
+<li>• research gate <b>3386 → 1976ms</b> at T=0.40</li>
+</ul></div>
+<div class="card"><div class="card-header"><div class="card-dot dot-rose"></div><h3>Cheapest wins left</h3></div><ul>
+<li>• <b>Emit nulls</b> — two ingredient slots shimmer forever today</li>
+<li>• <b>Emit Buttons early</b> — they were slot 13/13 at 10456ms</li>
+<li>• Keep the content prompt <b>lean and tool-free</b></li>
+<li>• Gate <b>which components must change</b> at 0.78</li>
+<li>• Calibrate <b>templateId</b> — one wrong answer at 0.72</li>
+</ul></div>
+<div class="card"><div class="card-header"><div class="card-dot dot-violet"></div><h3>Still open</h3></div><ul>
+<li>• <b>risk — see open risk</b> was unreadable in your sketch</li>
+<li>• Tail latency: one rep <b>5039ms</b>, one <b>21s</b></li>
+<li>• "what wine goes with this" → <b>0.13</b>, never researched</li>
+<li>• density defaulted to <b>spacious 7/8</b></li>
+<li>• <b>which candidates to investigate</b> only 0.79</li>
+<li>• end-to-end from <b>last word</b> never measured — STT unknown</li>
+</ul></div>
+</div>
+<div class="footer">jev-1.13.0 · api.typesafe.ai · 17 probes · Jev ~$0.09 total · validated against m9ssah/htn @ b63c98a</div>
+</div>
+<script>
+function rect(){const e=document.getElementById('report-container'),r=e.getBoundingClientRect(),p=32;return{x:scrollX+r.left-p,y:scrollY+r.top-p,width:r.width+p*2,height:r.height+p*2,ignoreElements:n=>n.classList&&n.classList.contains('toolbar')}}
+async function shot(){return await html2canvas(document.body,{backgroundColor:'#fafafa',scale:2,...rect()})}
+async function copyAsImage(){const c=await shot();c.toBlob(async b=>{try{await navigator.clipboard.write([new ClipboardItem({'image/png':b})])}catch(e){alert('Clipboard needs a secure context — use PNG.')}})}
+async function downloadPNG(){const c=await shot(),a=document.createElement('a');a.download='jit-ui-architecture.png';a.href=c.toDataURL('image/png');a.click()}
+async function downloadPDF(){const c=await shot(),{jsPDF}=window.jspdf,p=new jsPDF({orientation:c.width>c.height?'l':'p',unit:'px',format:[c.width,c.height]});p.addImage(c.toDataURL('image/png'),'PNG',0,0,c.width,c.height);p.save('jit-ui-architecture.pdf')}
+</script>
+</body></html>

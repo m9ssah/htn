@@ -6,3 +6,7 @@ dist/
 
 # Agent worktrees created by the harness
 .claude/
+
+# Python bytecode from the probe harness
+__pycache__/
+*.pyc

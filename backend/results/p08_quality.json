@@ -1,0 +1,242 @@
+{
+  "cases": [
+    {
+      "case": "button-color",
+      "node": "A: Task Assignment",
+      "level": "L1",
+      "jev_f1": 0.667,
+      "teacher_f1": 1.0,
+      "gap": 0.333,
+      "rubric": 3,
+      "agreement": 0.667,
+      "gold_verdict": "sound",
+      "note": "Jev added agent1_info unnecessarily; button location is unambiguous, no inspection needed."
+    },
+    {
+      "case": "mute-sound",
+      "node": "A: Task Assignment",
+      "level": "L1",
+      "jev_f1": 0.8,
+      "teacher_f1": 1.0,
+      "gap": 0.2,
+      "rubric": 3,
+      "agreement": 0.8,
+      "gold_verdict": "sound",
+      "note": "Jev added agent1_info unnecessarily; setting is straightforward, no inspection needed."
+    },
+    {
+      "case": "add-toggle",
+      "node": "A: Task Assignment",
+      "level": "L2",
+      "jev_f1": 0.8,
+      "teacher_f1": 1.0,
+      "gap": 0.2,
+      "rubric": 2,
+      "agreement": 0.8,
+      "gold_verdict": "sound",
+      "note": "Jev over-selected agent3_styling (toggle is new, nothing existing to restyle) and todo_decomp."
+    },
+    {
+      "case": "hero-image",
+      "node": "A: Task Assignment",
+      "level": "L2",
+      "jev_f1": 0.0,
+      "teacher_f1": 0.8,
+      "gap": 0.8,
+      "rubric": 0,
+      "agreement": 0.0,
+      "gold_verdict": "too_wide",
+      "note": "agent3_styling questionable: banner is new, not a change to an existing element; gold over-includes it."
+    },
+    {
+      "case": "live-dashboard",
+      "node": "A: Task Assignment",
+      "level": "L3",
+      "jev_f1": 0.75,
+      "teacher_f1": 0.889,
+      "gap": 0.139,
+      "rubric": 2,
+      "agreement": 0.857,
+      "gold_verdict": "too_wide",
+      "note": "agent3_styling questionable: dashboard is entirely new, nothing existing being restyled; jev missed agent2_component."
+    },
+    {
+      "case": "profile-page",
+      "node": "A: Task Assignment",
+      "level": "L3",
+      "jev_f1": 0.571,
+      "teacher_f1": 0.0,
+      "gap": -0.571,
+      "rubric": 3,
+      "agreement": 0.0,
+      "gold_verdict": "sound",
+      "note": "Jev omitted read_settings; modifying an existing page requires reading it first. Out-of-scope items correctly excluded by both."
+    },
+    {
+      "case": "make-it-nicer",
+      "node": "A: Task Assignment",
+      "level": "L4",
+      "jev_f1": 0.667,
+      "teacher_f1": 1.0,
+      "gap": 0.333,
+      "rubric": 3,
+      "agreement": 0.667,
+      "gold_verdict": "sound",
+      "note": "Jev added agent1_info unnecessarily; styling-only edit shouldn't need info-gathering."
+    },
+    {
+      "case": "what-to-research",
+      "node": "1: Research Strategy",
+      "level": "L2",
+      "jev_f1": 1.0,
+      "teacher_f1": 1.0,
+      "gap": 0.0,
+      "rubric": 4,
+      "agreement": 1.0,
+      "gold_verdict": "sound",
+      "note": "Exact match; correctly excludes competitors/analytics/payment/db_schema/branding/team_size."
+    },
+    {
+      "case": "sufficient-yes",
+      "node": "1: Research Stop",
+      "level": "L2",
+      "jev_f1": 1.0,
+      "teacher_f1": 1.0,
+      "gap": 0.0,
+      "rubric": 4,
+      "agreement": 1.0,
+      "gold_verdict": "sound",
+      "note": "Correct: no open questions, tradeoffs documented."
+    },
+    {
+      "case": "sufficient-no",
+      "node": "1: Research Stop",
+      "level": "L3",
+      "jev_f1": 1.0,
+      "teacher_f1": 1.0,
+      "gap": 0.0,
+      "rubric": 4,
+      "agreement": 1.0,
+      "gold_verdict": "sound",
+      "note": "Correct: open question exists and blocks the choice."
+    },
+    {
+      "case": "ctx-10",
+      "node": "LLM Gain Context",
+      "level": "L2",
+      "jev_f1": 1.0,
+      "teacher_f1": 1.0,
+      "gap": 0.0,
+      "rubric": 4,
+      "agreement": 1.0,
+      "gold_verdict": "sound",
+      "note": "All 9 build-relevant facts selected; canada correctly excluded as irrelevant."
+    },
+    {
+      "case": "ctx-20",
+      "node": "LLM Gain Context",
+      "level": "L3",
+      "jev_f1": 1.0,
+      "teacher_f1": 1.0,
+      "gap": 0.0,
+      "rubric": 4,
+      "agreement": 1.0,
+      "gold_verdict": "sound",
+      "note": "Correctly ignored 10 added distractor facts, matched same 9 relevant items."
+    },
+    {
+      "case": "all-but-sms",
+      "node": "Update Setting",
+      "level": "L2",
+      "jev_f1": 1.0,
+      "teacher_f1": 1.0,
+      "gap": 0.0,
+      "rubric": 4,
+      "agreement": 1.0,
+      "gold_verdict": "sound",
+      "note": "Notification channels/sound off except sms_enabled; theme/autoplay correctly untouched."
+    },
+    {
+      "case": "quiet-not-dark",
+      "node": "Update Setting",
+      "level": "L3",
+      "jev_f1": 0.4,
+      "teacher_f1": 0.4,
+      "gap": 0.0,
+      "rubric": 4,
+      "agreement": 1.0,
+      "gold_verdict": "too_wide",
+      "note": "push_enabled, email_enabled, digest_weekly wrongly included; 'quieter' means sound, not disabling channels."
+    },
+    {
+      "case": "too-many-emails",
+      "node": "Update Setting",
+      "level": "L4",
+      "jev_f1": 1.0,
+      "teacher_f1": 1.0,
+      "gap": 0.0,
+      "rubric": 4,
+      "agreement": 1.0,
+      "gold_verdict": "sound",
+      "note": "Correctly scoped to email-only settings, left push/sms/sound/theme/autoplay untouched."
+    },
+    {
+      "case": "profile-page",
+      "node": "to-do: Decomposition",
+      "level": "L3",
+      "jev_f1": 0.933,
+      "teacher_f1": 1.0,
+      "gap": 0.067,
+      "rubric": 3,
+      "agreement": 0.933,
+      "gold_verdict": "sound",
+      "note": "Jev omitted read_settings; modifying an existing page requires reading it first. Out-of-scope items correctly excluded by both."
+    }
+  ],
+  "by_node": {
+    "A: Task Assignment": {
+      "jev_f1": 0.608,
+      "teacher_f1": 0.813,
+      "gap": 0.205,
+      "rubric": 2.29,
+      "agreement": 0.542
+    },
+    "1: Research Strategy": {
+      "jev_f1": 1.0,
+      "teacher_f1": 1.0,
+      "gap": 0.0,
+      "rubric": 4,
+      "agreement": 1.0
+    },
+    "1: Research Stop": {
+      "jev_f1": 1.0,
+      "teacher_f1": 1.0,
+      "gap": 0.0,
+      "rubric": 4,
+      "agreement": 1.0
+    },
+    "LLM Gain Context": {
+      "jev_f1": 1.0,
+      "teacher_f1": 1.0,
+      "gap": 0.0,
+      "rubric": 4,
+      "agreement": 1.0
+    },
+    "Update Setting": {
+      "jev_f1": 0.8,
+      "teacher_f1": 0.8,
+      "gap": 0.0,
+      "rubric": 4,
+      "agreement": 1.0
+    },
+    "to-do: Decomposition": {
+      "jev_f1": 0.933,
+      "teacher_f1": 1.0,
+      "gap": 0.067,
+      "rubric": 3,
+      "agreement": 0.933
+    }
+  },
+  "teacher_cost": 1.318,
+  "jev_p50_ms": 199
+}

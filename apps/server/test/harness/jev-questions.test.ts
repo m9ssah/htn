@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildQuestions, buildWireState, ROUTES, TEMPLATE_DESCRIPTIONS } from '../../src/harness/clients/jev-questions.js';
+import {
+  DEVIATION_FACTOR_DESCRIPTIONS,
+  DEVIATION_FACTORS,
+  buildQuestions,
+  buildWireState,
+  ROUTES,
+  TEMPLATE_DESCRIPTIONS,
+} from '../../src/harness/clients/jev-questions.js';
 
 /**
  * Guards against silent drift in the tuned artefact
@@ -9,17 +16,28 @@ import { buildQuestions, buildWireState, ROUTES, TEMPLATE_DESCRIPTIONS } from '.
  * re-running the Python probes, not by editing this test to match.
  */
 describe('buildQuestions', () => {
-  it('asks exactly route, templateId, and the 5 style axes', () => {
+  it('asks exactly route, templateId, the 5 style axes, and P2s 3 gap questions', () => {
     const qs = buildQuestions();
 
     expect(Object.keys(qs).sort()).toEqual(
-      ['density', 'fontPairing', 'motif', 'palette', 'radius', 'route', 'templateId'].sort(),
+      [
+        'density',
+        'deviationFactor',
+        'deviationIngredient',
+        'fontPairing',
+        'motif',
+        'palette',
+        'radius',
+        'route',
+        'templateId',
+        'wantsStyleChange',
+      ].sort(),
     );
   });
 
-  it('every question is a non-empty choice with non-empty option descriptions', () => {
+  it('every question is a non-empty choice or noul with non-empty option descriptions', () => {
     for (const q of Object.values(buildQuestions())) {
-      expect(q.type).toBe('choice');
+      expect(['choice', 'noul']).toContain(q.type);
       expect(q.instructions.length).toBeGreaterThan(0);
       expect(Object.keys(q.criteria).length).toBeGreaterThan(0);
       for (const desc of Object.values(q.criteria)) expect(desc.length).toBeGreaterThan(0);
@@ -32,6 +50,10 @@ describe('buildQuestions', () => {
 
   it('templateId covers all 8 templates', () => {
     expect(Object.keys(TEMPLATE_DESCRIPTIONS)).toHaveLength(8);
+  });
+
+  it('DEVIATION_FACTORS and its question descriptions cannot drift apart', () => {
+    expect(Object.keys(DEVIATION_FACTORS).sort()).toEqual(Object.keys(DEVIATION_FACTOR_DESCRIPTIONS).sort());
   });
 });
 

@@ -4,18 +4,20 @@ import * as https from 'node:https';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import type { Density, FontPairing, Motif, Palette, Radius, TemplateId } from '@jit/schema';
-import type { JevAnswer, JevChoiceAnswer, JevClient, JevState, Route } from '../types.js';
+import type { JevAnswer, JevChoiceAnswer, JevClient, JevNoulAnswer, JevState, Route } from '../types.js';
 import { sleep } from '../signal.js';
 import { readFixture } from './fixtures.js';
 import {
   AXIS_DESCRIPTIONS,
+  DEVIATION_FACTOR_DESCRIPTIONS,
+  DEVIATION_INGREDIENT_DESCRIPTIONS,
   ROUTE_QUESTION,
   ROUTES,
   TEMPLATE_DESCRIPTIONS,
   buildQuestions,
   buildWireState,
 } from './jev-questions.js';
-import type { JevChoiceQuestion } from './jev-questions.js';
+import type { JevChoiceQuestion, JevQuestion } from './jev-questions.js';
 
 const HOST = 'api.typesafe.ai';
 const PATH = '/v1/systemone';
@@ -54,10 +56,16 @@ export type JevWireChoiceAnswer = {
   confidence: number;
   probabilities?: Record<string, number>;
 };
+/** A `noul` answer's wire shape: a bare probability, no confidence field (`backend/jev/client.py`). */
+export type JevWireNoulAnswer = {
+  type: 'noul';
+  noul: number;
+};
+export type JevWireAnswer = JevWireChoiceAnswer | JevWireNoulAnswer;
 export type JevWireResponse = {
   model: string;
   usage?: { input_tokens?: number; output_tokens?: number };
-  answers: Record<string, JevWireChoiceAnswer>;
+  answers: Record<string, JevWireAnswer>;
 };
 
 function parseChoice<T extends string>(raw: JevWireResponse, qid: string, allowed: readonly T[]): JevChoiceAnswer<T> {
@@ -77,6 +85,34 @@ function parseChoice<T extends string>(raw: JevWireResponse, qid: string, allowe
 }
 
 /**
+ * Optional counterpart to `parseChoice` — `wantsStyleChange`,
+ * `deviationIngredient` and `deviationFactor` are absent from the four
+ * recorded fixtures (predate P2), so a missing answer here is not an error.
+ */
+function parseChoiceOptional<T extends string>(
+  raw: JevWireResponse,
+  qid: string,
+  allowed: readonly T[],
+): JevChoiceAnswer<T> | undefined {
+  if (!raw.answers[qid]) return undefined;
+  return parseChoice(raw, qid, allowed);
+}
+
+/** Same optionality as `parseChoiceOptional`, for the `noul` primitive. */
+function parseNoulOptional(raw: JevWireResponse, qid: string): JevNoulAnswer | undefined {
+  const answer = raw.answers[qid];
+  if (!answer) return undefined;
+  if (answer.type !== 'noul') {
+    throw new Error(`Jev response for "${qid}" is not a noul answer (got "${answer.type}")`);
+  }
+  const p = answer.noul;
+  if (typeof p !== 'number' || Number.isNaN(p)) {
+    throw new Error(`Jev returned a non-numeric "${qid}" noul value: "${String(p)}"`);
+  }
+  return { value: p >= 0.5, probability: p, confidence: Math.abs(p - 0.5) * 2 };
+}
+
+/**
  * Turns the raw wire response into a `JevAnswer`, validating every value
  * against the finite option set it was asked with — model output is runtime
  * data, not something TypeScript already checked (docs/orchestration-plan.md
@@ -87,6 +123,9 @@ function parseChoice<T extends string>(raw: JevWireResponse, qid: string, allowe
  * this parsing path too, not just a hand-typed `JevAnswer` fixture.
  */
 export function parseJevResponse(raw: JevWireResponse): JevAnswer {
+  const wantsStyleChange = parseNoulOptional(raw, 'wantsStyleChange');
+  const deviationIngredient = parseChoiceOptional(raw, 'deviationIngredient', Object.keys(DEVIATION_INGREDIENT_DESCRIPTIONS));
+  const deviationFactor = parseChoiceOptional(raw, 'deviationFactor', Object.keys(DEVIATION_FACTOR_DESCRIPTIONS));
   return {
     route: parseChoice(raw, 'route', Object.keys(ROUTES) as Route[]),
     templateId: parseChoice(raw, 'templateId', Object.keys(TEMPLATE_DESCRIPTIONS) as TemplateId[]),
@@ -97,6 +136,12 @@ export function parseJevResponse(raw: JevWireResponse): JevAnswer {
       radius: parseChoice(raw, 'radius', Object.keys(AXIS_DESCRIPTIONS.radius) as Radius[]),
       motif: parseChoice(raw, 'motif', Object.keys(AXIS_DESCRIPTIONS.motif) as Motif[]),
     },
+    // Spread rather than assigned directly — `exactOptionalPropertyTypes`
+    // treats `key: undefined` differently from an absent key, and "absent"
+    // is what "not asked/not answered" should mean here.
+    ...(wantsStyleChange !== undefined ? { wantsStyleChange } : {}),
+    ...(deviationIngredient !== undefined ? { deviationIngredient } : {}),
+    ...(deviationFactor !== undefined ? { deviationFactor } : {}),
     usage: { inputTokens: raw.usage?.input_tokens ?? 0, outputTokens: raw.usage?.output_tokens ?? 0 },
   };
 }
@@ -196,7 +241,7 @@ export class JevHttpClient implements JevClient {
 
   private async evaluate(
     state: JevState,
-    questions: Record<string, JevChoiceQuestion>,
+    questions: Record<string, JevQuestion>,
     signal: AbortSignal,
   ): Promise<JevWireResponse> {
     const body = JSON.stringify({ state: buildWireState(state), model: this.model, questions });
