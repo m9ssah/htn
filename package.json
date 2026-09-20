@@ -16,7 +16,8 @@
     "clean": "rm -rf packages/*/dist apps/*/dist && find . -name '*.tsbuildinfo' -not -path '*/node_modules/*' -delete",
     "dev": "npm run dev -w @jit/device",
     "dataset:generate": "npm run dataset:generate -w @jit/server",
-    "dataset:validate": "npm run dataset:validate -w @jit/server"
+    "dataset:validate": "npm run dataset:validate -w @jit/server",
+    "dataset:schemas": "npm run dataset:schemas -w @jit/server"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

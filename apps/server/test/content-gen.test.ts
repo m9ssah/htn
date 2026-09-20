@@ -200,3 +200,20 @@ describe('validateContentResult', () => {
     expect(outcome.violations.map((v) => v.rule)).toContain('catalog_version_mismatch');
   });
 });
+
+describe('fixtureContentAdapter', () => {
+  it('answers a request shaped like a known scenario, restamped with the caller id', async () => {
+    const { fixtureContentAdapter } = await import('../src/content-gen/fixture-adapter.js');
+    const { request } = SCENARIO_BUILDERS['cookie_recipe']!('en-US', 'caller-picked-this-id');
+    const result = fixtureContentAdapter(request);
+    expect(result.requestId).toBe('caller-picked-this-id');
+    expect(validateContentResult(request, result).valid).toBe(true);
+  });
+
+  it('throws rather than fabricating an answer for an unrecognised shape', async () => {
+    const { fixtureContentAdapter, UnknownFixtureShapeError } = await import('../src/content-gen/fixture-adapter.js');
+    const { request } = SCENARIO_BUILDERS['cookie_recipe']!('en-US', 'r');
+    const unknownShape = { ...request, targets: [request.targets[0]!] };
+    expect(() => fixtureContentAdapter(unknownShape)).toThrow(UnknownFixtureShapeError);
+  });
+});
