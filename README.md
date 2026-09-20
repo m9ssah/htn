@@ -1,4 +1,4 @@
-# JIT UI
+# Just in Time
 
 Transforms interfaces that already exist to match what a user says they need.
 See `CLAUDE.md` for scope, constraints, and the decision log.
