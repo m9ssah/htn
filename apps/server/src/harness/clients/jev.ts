@@ -3,7 +3,7 @@ import * as http from 'node:http';
 import * as https from 'node:https';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import type { Density, FontPairing, Motif, Palette, Radius, TemplateId } from '@jit/schema';
+import type { Density, FontPairing, Layout, Motif, Palette, Radius, TemplateId } from '@jit/schema';
 import type { JevAnswer, JevChoiceAnswer, JevClient, JevNoulAnswer, JevState, Route } from '../types.js';
 import { sleep } from '../signal.js';
 import { readFixture } from './fixtures.js';
@@ -11,6 +11,7 @@ import {
   AXIS_DESCRIPTIONS,
   DEVIATION_FACTOR_DESCRIPTIONS,
   DEVIATION_INGREDIENT_DESCRIPTIONS,
+  LAYOUT_DESCRIPTIONS,
   ROUTE_QUESTION,
   ROUTES,
   TEMPLATE_DESCRIPTIONS,
@@ -124,6 +125,11 @@ function parseNoulOptional(raw: JevWireResponse, qid: string): JevNoulAnswer | u
  */
 export function parseJevResponse(raw: JevWireResponse): JevAnswer {
   const wantsStyleChange = parseNoulOptional(raw, 'wantsStyleChange');
+  // Optional for the same reason as the three below: the four recorded
+  // fixtures predate the question, and replay must keep working.
+  const layout = parseChoiceOptional(raw, 'layout', Object.keys(LAYOUT_DESCRIPTIONS)) as
+    | JevChoiceAnswer<Layout>
+    | undefined;
   const deviationIngredient = parseChoiceOptional(raw, 'deviationIngredient', Object.keys(DEVIATION_INGREDIENT_DESCRIPTIONS));
   const deviationFactor = parseChoiceOptional(raw, 'deviationFactor', Object.keys(DEVIATION_FACTOR_DESCRIPTIONS));
   return {
@@ -139,6 +145,7 @@ export function parseJevResponse(raw: JevWireResponse): JevAnswer {
     // Spread rather than assigned directly — `exactOptionalPropertyTypes`
     // treats `key: undefined` differently from an absent key, and "absent"
     // is what "not asked/not answered" should mean here.
+    ...(layout !== undefined ? { layout } : {}),
     ...(wantsStyleChange !== undefined ? { wantsStyleChange } : {}),
     ...(deviationIngredient !== undefined ? { deviationIngredient } : {}),
     ...(deviationFactor !== undefined ? { deviationFactor } : {}),

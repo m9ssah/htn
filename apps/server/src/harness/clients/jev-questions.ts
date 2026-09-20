@@ -1,4 +1,4 @@
-import type { Density, FontPairing, Motif, Palette, Radius, TemplateId } from '@jit/schema';
+import type { Density, FontPairing, Layout, Motif, Palette, Radius, TemplateId } from '@jit/schema';
 import type { JevState, Route } from '../types.js';
 import { CLASSIC_CHOCOLATE_CHIP } from '../../domain/recipes.js';
 
@@ -47,6 +47,31 @@ export const TEMPLATE_DESCRIPTIONS: Record<TemplateId, string> = {
     + 'picture or a clip of what they are doing and puts it beside the words.',
   generic_answer:
     'A question that wants a factual ANSWER and no change to the task. Not for choosing, not for starting something.',
+};
+
+/**
+ * The shape question.
+ *
+ * Declarative like `TEMPLATE_QUESTION`, for the reason p18b measured: the
+ * hypothetical framing ("which layout would fit?") collapsed answers onto the
+ * blandest option. Each description names what is TRUE OF THE ANSWER rather
+ * than what the layout looks like, because the model is classifying the
+ * content it is about to write, not choosing a design.
+ *
+ * Untuned — no probe has isolated this wording the way p18b/p18c isolated
+ * route and template. Treat it as a starting point and measure before
+ * trusting the exact words.
+ */
+export const LAYOUT_QUESTION = 'What shape does the answer to this take?';
+
+export const LAYOUT_DESCRIPTIONS: Record<Layout, string> = {
+  brief: 'A single short fact or direct answer. One claim, maybe a sentence of support. Nothing to compare, count, or sequence.',
+  comparison: 'Two specific things being set against each other — this versus that, the difference between them, which is better.',
+  steps: 'An ordered procedure. The answer is a sequence of actions to perform in order.',
+  stat_led: 'A number IS the answer — a duration, a temperature, a count, a price, a measurement. Everything else exists to support that number.',
+  media_led: 'Seeing it matters more than reading it. The answer is a picture or a clip of the thing itself.',
+  list_dense: 'Several short items of equal weight — a list of options, ingredients, tips or examples where no one item leads.',
+  split: 'One claim with its evidence, detail or worked reasoning beside it. The answer has a headline and a body that earns it.',
 };
 
 export const ROUTE_QUESTION = 'What is the user trying to do to the interface or the task right now?';
@@ -176,11 +201,12 @@ export const DEVIATION_FACTOR_DESCRIPTIONS: Record<string, string> = {
   other: 'Some other amount, not covered by the choices above',
 };
 
-/** The 10 batched questions `decide` sends in one call — free per p02 (1q 381ms, 32q 362ms). */
+/** The 11 batched questions `decide` sends in one call — free per p02 (1q 381ms, 32q 362ms). */
 export function buildQuestions(): Record<string, JevQuestion> {
   return {
     route: choice(ROUTE_QUESTION, ROUTES),
     templateId: choice(TEMPLATE_QUESTION, TEMPLATE_DESCRIPTIONS),
+    layout: choice(LAYOUT_QUESTION, LAYOUT_DESCRIPTIONS),
     palette: choice(AXIS_QUESTION('palette'), AXIS_DESCRIPTIONS.palette),
     fontPairing: choice(AXIS_QUESTION('fontPairing'), AXIS_DESCRIPTIONS.fontPairing),
     density: choice(AXIS_QUESTION('density'), AXIS_DESCRIPTIONS.density),

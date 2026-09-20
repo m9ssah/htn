@@ -5,6 +5,7 @@ import { applyCommand, resolveCommand } from './domain/commands.js';
 import { DEVIATION_FACTORS } from './harness/clients/jev-questions.js';
 import { CONTACTS } from './seed.js';
 import { stubMediaFinder, type MediaFinder } from './harness/clients/media.js';
+import { stubPolishSource, type PolishSource } from './harness/clients/polish.js';
 import { contextFor, createSession, describeTask, remember, type Session } from './session.js';
 
 export { createSession, type Session } from './session.js';
@@ -40,6 +41,7 @@ import { generate } from './harness/nodes/generate.js';
 import { policy } from './harness/nodes/policy.js';
 import { project } from './harness/nodes/project.js';
 import { style } from './harness/nodes/style.js';
+import { polish } from './harness/nodes/polish.js';
 import type { PatchStream } from './harness/turn.js';
 import type { JevAnswer } from './harness/types.js';
 
@@ -148,13 +150,26 @@ const GraphState = Annotation.Root({
   halted: Annotation<boolean>({ reducer: (_prev, next) => next, default: () => false }),
   jev: Annotation<JevAnswer | null>({ reducer: (_prev, next) => next, default: () => null }),
   templateId: Annotation<TemplateId | null>({ reducer: (_prev, next) => next, default: () => null }),
+  /**
+   * What `paint` actually put up, and in what shape — read by `style` and
+   * `polish`, which run after it. `templateId` alone is not enough: it is
+   * what was DECIDED, and paint's own guards (social, recovery-suppression)
+   * can and do change it before anything reaches the screen.
+   */
+  painted: Annotation<{ templateId: TemplateId; layout?: string } | null>({
+    reducer: (_prev, next) => next,
+    default: () => null,
+  }),
 });
 
 type State = typeof GraphState.State;
 
-export type GraphDeps = { media: MediaFinder };
+export type GraphDeps = { media: MediaFinder; polish: PolishSource };
 
-export function createGraph(session: Session, deps: GraphDeps = { media: stubMediaFinder }): PatchStream {
+export function createGraph(
+  session: Session,
+  deps: GraphDeps = { media: stubMediaFinder, polish: stubPolishSource },
+): PatchStream {
   const graph = new StateGraph(GraphState)
     /**
      * One batched Jev call: route, template, the five style axes and the
@@ -372,13 +387,46 @@ export function createGraph(session: Session, deps: GraphDeps = { media: stubMed
         turn.ctx.sink.emit(composed.content);
         session.currentTemplate = 'show_me';
         noteShown(session, 'show_me');
-        return {};
+        return { painted: { templateId: 'show_me' as TemplateId } };
       }
 
       if (isGeneratedSurface(templateId)) {
         const requestId = `${turn.turnId}-surface`;
         const generationId = `${turn.turnId}-gen`;
-        const composed = composeGenerated(templateId, { requestId, generationId, ...panelOf(session) });
+
+        /**
+         * The SHAPE of the answer, chosen per turn.
+         *
+         * Without this every unscripted question painted one fixed
+         * composition and only the words differed — the device read as a
+         * chatbot because structurally it was one. `message_drafts` has a
+         * shape the task already determines, so only `generic_answer` varies.
+         */
+        const layout = templateId === 'generic_answer' ? state.jev?.layout?.value : undefined;
+
+        /**
+         * `media_led` is the one archetype that cannot be composed from the
+         * utterance alone, so its picture is fetched BEFORE the skeleton is
+         * built: a Media box whose `src` arrives later would either paint
+         * empty or reflow when it landed, and the reservation rule exists to
+         * prevent exactly that.
+         */
+        let media: { url: string; kind: 'video' | 'image' } | null = null;
+        if (layout === 'media_led') {
+          const subject = state.utterance?.trim() || session.task.recipe.name;
+          const cached = session.media?.subject === subject ? session.media : null;
+          media = cached ? cached.hit : await deps.media.find(subject, turn.ctx.signal).catch(() => null);
+          if (!cached) session.media = { subject, hit: media };
+          turn.note('media', { subject, layout, found: media ? `${media.kind}: ${media.url}` : 'nothing' });
+        }
+
+        if (layout) turn.note('layout', { templateId, layout, confidence: state.jev?.layout?.confidence });
+
+        const composed = composeGenerated(
+          templateId,
+          { requestId, generationId, ...panelOf(session) },
+          { ...(layout ? { layout } : {}), media },
+        );
         if (!composed.ok) {
           turn.note('paint-failed', { templateId, reason: composed.reason });
           return { halted: true };
@@ -409,7 +457,7 @@ export function createGraph(session: Session, deps: GraphDeps = { media: stubMed
         }
         for (const warning of filled.out.warnings) turn.note('paint-warning', { warning });
         if (filled.out.content) turn.ctx.sink.emit(filled.out.content);
-        return {};
+        return { painted: { templateId, ...(layout ? { layout } : {}) } };
       }
 
       if (!isProjectedSurface(templateId)) {
@@ -451,7 +499,7 @@ export function createGraph(session: Session, deps: GraphDeps = { media: stubMed
       if (result.out.content) turn.ctx.sink.emit(result.out.content);
       session.currentTemplate = templateId;
       noteShown(session, templateId);
-      return {};
+      return { painted: { templateId } };
     })
 
     /**
@@ -461,8 +509,68 @@ export function createGraph(session: Session, deps: GraphDeps = { media: stubMed
      */
     .addNode('style', async (state: State, config: LangGraphRunnableConfig) => {
       const turn = runtimeOf(config);
-      const result = await runGuarded(style, state.jev!, turn, 'node-crashed');
+      const generated = state.painted ? isGeneratedSurface(state.painted.templateId) : false;
+      const result = await runGuarded(style, { jev: state.jev!, generated }, turn, 'node-crashed');
       if (result.ok && result.out) turn.ctx.sink.emit(result.out);
+      return {};
+    })
+
+    /**
+     * Agent 4. Raw tokens, contrast-checked, emitted last.
+     *
+     * Last because it is the slowest and the least essential: the surface has
+     * already painted, filled and taken its enum theme by the time this call
+     * returns, so a slow or failing designer costs a restyle rather than a
+     * screen. Nothing downstream waits on it.
+     *
+     * Generated surfaces only, for the same reason `style` is ungated only
+     * for them — an answer is new and deserves its own look; a recipe in
+     * progress does not get repainted underneath the person following it.
+     */
+    .addNode('polish', async (state: State, config: LangGraphRunnableConfig) => {
+      const turn = runtimeOf(config);
+      const painted = state.painted;
+      if (!painted || !isGeneratedSurface(painted.templateId)) return {};
+
+      const jev = state.jev!;
+      const theme = {
+        palette: jev.theme.palette.value,
+        fontPairing: jev.theme.fontPairing.value,
+        density: jev.theme.density.value,
+        radius: jev.theme.radius.value,
+        motif: jev.theme.motif.value,
+      };
+      const brief = {
+        utterance: state.utterance ?? '',
+        templateId: painted.templateId,
+        ...(painted.layout ? { layout: painted.layout } : {}),
+        base: theme,
+      };
+
+      // The designer's own failures are caught here rather than thrown: a
+      // styling pass must never take down a turn whose surface is already on
+      // screen and readable.
+      const raw = await deps.polish.design(brief, turn.ctx.signal).catch((err: unknown) => {
+        turn.note('polish-failed', { reason: String(err) });
+        return null;
+      });
+      if (raw === null) return {};
+
+      const result = await runGuarded(polish, { brief, theme, raw }, turn, 'node-crashed');
+      if (!result.ok) return {};
+
+      if (!result.out.ok) {
+        // Loud, per constraint 5 and the contrast policy: a rejected patch
+        // keeps a structured report rather than disappearing.
+        turn.note('polish-rejected', { reason: result.out.reason, failures: result.out.failures });
+        return {};
+      }
+
+      turn.note('polish', {
+        interpretedAs: result.out.patch.interpretedAs,
+        axes: Object.keys(result.out.patch.tokens).length,
+      });
+      turn.ctx.sink.emit(result.out.patch);
       return {};
     })
 
@@ -477,7 +585,8 @@ export function createGraph(session: Session, deps: GraphDeps = { media: stubMed
     // route was understood and a style ask is independent of whether this
     // layer can paint that surface.
     .addConditionalEdges('paint', (state: State) => (state.jev ? 'style' : END), [END, 'style'])
-    .addEdge('style', END)
+    .addEdge('style', 'polish')
+    .addEdge('polish', END)
     .compile();
 
   return graph as unknown as PatchStream;

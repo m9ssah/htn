@@ -16,7 +16,7 @@ import {
  * re-running the Python probes, not by editing this test to match.
  */
 describe('buildQuestions', () => {
-  it('asks exactly route, templateId, the 5 style axes, and P2s 3 gap questions', () => {
+  it('asks exactly route, templateId, layout, the 5 style axes, and P2s 3 gap questions', () => {
     const qs = buildQuestions();
 
     expect(Object.keys(qs).sort()).toEqual(
@@ -25,6 +25,7 @@ describe('buildQuestions', () => {
         'deviationFactor',
         'deviationIngredient',
         'fontPairing',
+        'layout',
         'motif',
         'palette',
         'radius',

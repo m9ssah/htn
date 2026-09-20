@@ -6,6 +6,7 @@ import { OpenAiContentModel, stubContentModel } from './harness/clients/content-
 import { getRealJevClient, stubJevClient } from './harness/clients/jev.js';
 import { realResearchClient } from './harness/clients/research.js';
 import { createMediaFinder } from './harness/clients/media.js';
+import { OpenAiPolishSource, stubPolishSource } from './harness/clients/polish.js';
 import { createGraph, createSession } from './graph.js';
 import { tickTimer } from './session.js';
 import { createSurfaceServer } from './ws-server.js';
@@ -76,13 +77,24 @@ const contentModel = contentModelKey || process.env.JIT_CONTENT_MODEL_URL ? new 
 const hasJevKey = Boolean(process.env.TYPESAFE_API_KEY) || existsSync(join(homedir(), '.config', 'typesafe', 'env'));
 const jev = hasJevKey ? getRealJevClient() : stubJevClient;
 
+/**
+ * Agent 4 only when there is a key to spend.
+ *
+ * Same discipline as the content model above: the stub returns one fixed
+ * token set, so a device running on it restyles identically every turn —
+ * which looks like a working designer until you ask it twice. Named in the
+ * boot log rather than left to be discovered on stage (constraint 5).
+ */
+const polishKey = process.env.JIT_POLISH_KEY ?? process.env.OPENAI_KEY;
+const polishSource = polishKey || process.env.JIT_POLISH_URL ? new OpenAiPolishSource() : stubPolishSource;
+
 const session = createSession();
 
 const server = await createSurfaceServer({
   port,
   host,
   deps: {
-    graph: createGraph(session, { media: createMediaFinder(realResearchClient) }),
+    graph: createGraph(session, { media: createMediaFinder(realResearchClient), polish: polishSource }),
     jev,
     content: stubContentSource,
     contentModel,
@@ -99,9 +111,12 @@ process.stderr.write(
     event: 'listening',
     url: server.url,
     reachable: host === '0.0.0.0' ? 'ON THIS NETWORK — set JIT_HOST=127.0.0.1 to restrict to loopback' : `${host} only`,
-    graph: 'wired: decide -> policy -> paint -> style',
+    graph: 'wired: decide -> policy -> paint -> style -> polish',
     jev: hasJevKey ? 'live' : 'STUB — every utterance routes to generic_answer',
     contentModel: contentModelUrl ? `live: ${contentModelUrl}` : 'STUB — set OPENAI_KEY (or JIT_CONTENT_MODEL_URL) for a real model',
+    polish: polishSource === stubPolishSource
+      ? 'STUB — one fixed token set every turn; set OPENAI_KEY (or JIT_POLISH_URL) for a real designer'
+      : 'live',
     recipe: session.task.recipe.name,
   })}\n`,
 );

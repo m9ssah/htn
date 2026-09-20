@@ -4,6 +4,7 @@ import {
   SurfaceSpecSchema,
   type ContentUpdateV2,
   type JsonValue,
+  type Layout,
   type LeafComponentV2,
   type StructuralComponentV2,
   type StructureUpdateV2,
@@ -1039,11 +1040,15 @@ export type GeneratedKind = 'generic_answer' | 'message_drafts';
 export const isGeneratedSurface = (kind: string): kind is GeneratedKind =>
   kind === 'generic_answer' || kind === 'message_drafts';
 
-export function composeGenerated(kind: GeneratedKind, ids: ProjectedIds): ProjectedResult {
+export function composeGenerated(
+  kind: GeneratedKind,
+  ids: ProjectedIds,
+  options: GeneratedOptions = {},
+): ProjectedResult {
   const builder = new SurfaceBuilder(ids.now, ids.maxHeight ?? DEFAULT_MAX_HEIGHT, ids.enforceHeight ?? false);
   let root: string;
   try {
-    root = kind === 'generic_answer' ? genericAnswer(builder) : messageDrafts(builder);
+    root = kind === 'generic_answer' ? genericAnswer(builder, options) : messageDrafts(builder);
   } catch (err) {
     return { ok: false, reason: `${kind}: ${String(err)}`, warnings: builder.warnings };
   }
@@ -1064,21 +1069,241 @@ export function composeGenerated(kind: GeneratedKind, ids: ProjectedIds): Projec
   };
 }
 
-/** An answer to something nobody scripted. The judge's unplanned question. */
-function genericAnswer(builder: SurfaceBuilder): string {
+/**
+ * What a generated answer may be told beyond its own template.
+ *
+ * `layout` is Jev's typed shape choice; `media` is a picture already fetched
+ * for this turn, which only `media_led` uses.
+ */
+export type GeneratedOptions = {
+  layout?: Layout;
+  media?: { url: string; kind: 'video' | 'image' } | null;
+};
+
+/**
+ * An answer to something nobody scripted. The judge's unplanned question.
+ *
+ * **Seven shapes, not one.** This used to be a single fixed composition —
+ * Label, Heading, Text, three ListItems, Button — emitted for every
+ * unscripted question there has ever been. Only the strings changed, which
+ * is precisely what made the device read as a chatbot with a renderer
+ * attached rather than an interface generated around the question.
+ *
+ * Jev picks the archetype as a typed value (CLAUDE.md constraint 1: a
+ * selection from a finite list, never a tree), and the composition is built
+ * here in TypeScript. The model classifies the SHAPE OF THE ANSWER it is
+ * about to write — a comparison, a number, a procedure — and the surface is
+ * assembled to hold that shape. An answer whose subject is one number leads
+ * with that number; an answer that sets two things against each other paints
+ * two columns. Neither is reachable by swapping words in a fixed frame.
+ *
+ * `brief` is the fallback when Jev did not answer (the recorded fixtures
+ * predate the question) because it is the shape that assumes least: one
+ * claim, briefly supported. Falling back to the richest layout would reserve
+ * boxes the content model was never asked to fill.
+ */
+function genericAnswer(builder: SurfaceBuilder, options: GeneratedOptions = {}): string {
+  switch (options.layout ?? 'brief') {
+    case 'comparison': return answerComparison(builder);
+    case 'steps': return answerSteps(builder);
+    case 'stat_led': return answerStatLed(builder);
+    case 'media_led': return answerMediaLed(builder, options.media ?? null);
+    case 'list_dense': return answerListDense(builder);
+    case 'split': return answerSplit(builder);
+    case 'brief': default: return answerBrief(builder);
+  }
+}
+
+/**
+ * One claim, briefly supported. Deliberately sparse — a short answer that
+ * paints six reserved boxes looks like a long answer that failed to load.
+ */
+function answerBrief(builder: SurfaceBuilder): string {
   builder.leaf({ key: 'kind', type: 'Label', generate: ['text'] });
   builder.leaf({ key: 'title', type: 'Heading', generate: ['text'], fixed: { level: 1 }, lines: 2 });
   builder.leaf({ key: 'body', type: 'Text', generate: ['text'], lines: 3 });
-  // Three points, because a surface that sometimes has two and sometimes four
-  // cannot reserve its own height. An instance with less to say collapses the
-  // spare ones (`ContentPatch` null) rather than leaving them shimmering.
-  for (const n of [1, 2, 3]) {
-    builder.leaf({ key: `point${n}`, type: 'ListItem', generate: ['title'] });
-  }
   builder.leaf({ key: 'action', type: 'Button', generate: ['text'], fixed: { variant: 'primary' }, action: 'acknowledge' });
 
-  builder.container('stack', 'Stack', ['kind', 'title', 'body', 'point1', 'point2', 'point3', 'action']);
+  builder.container('stack', 'Stack', ['kind', 'title', 'body', 'action']);
   builder.container('card', 'Card', ['stack']);
+  return 'card';
+}
+
+/**
+ * Two things set against each other, side by side.
+ *
+ * The root is a `Stack` rather than a `Card` for a depth reason, not a
+ * cosmetic one: the heading has to sit ABOVE the two columns, and
+ * `Card > Stack > Row > Stack > leaf` is five levels against a MAX_DEPTH of
+ * four. Rooting at the Stack spends the level the comparison needs on the
+ * comparison.
+ *
+ * Each side leads with a `Metric`, so the thing being compared is a value the
+ * eye can land on before reading either column.
+ */
+function answerComparison(builder: SurfaceBuilder): string {
+  builder.leaf({ key: 'kind', type: 'Label', generate: ['text'] });
+  builder.leaf({ key: 'title', type: 'Heading', generate: ['text'], fixed: { level: 2 }, lines: 2 });
+
+  for (const side of ['left', 'right'] as const) {
+    builder.leaf({ key: `${side}_value`, type: 'Metric', generate: ['label', 'value', 'delta'] });
+    builder.leaf({ key: `${side}_note`, type: 'Text', generate: ['text'], fixed: { tone: 'muted' }, lines: 3 });
+    builder.container(`${side}_col`, 'Stack', [`${side}_value`, `${side}_note`]);
+  }
+
+  builder.container('row', 'Row', ['left_col', 'right_col']);
+  builder.container('root', 'Stack', ['kind', 'title', 'row']);
+  return 'root';
+}
+
+/**
+ * An ordered procedure.
+ *
+ * Three numbered rows, fixed, because a surface that sometimes has two and
+ * sometimes five cannot reserve its own height — a procedure with less to say
+ * collapses the spare rows through an explicit content `null` rather than
+ * leaving them shimmering. Each row carries a second line, declared at build
+ * time via `hasDetail` so the taller row is a reservation rather than a
+ * reflow when the copy lands.
+ *
+ * Three and not four because two-line rows are expensive: four of them
+ * measured 444px against a 364px stage, which would have put the last step
+ * below a fold that does not scroll. A procedure longer than three steps is
+ * better served by `list_dense`, which trades the second line for rows.
+ */
+function answerSteps(builder: SurfaceBuilder): string {
+  builder.leaf({ key: 'kind', type: 'Label', generate: ['text'] });
+  builder.leaf({ key: 'title', type: 'Heading', generate: ['text'], fixed: { level: 2 }, lines: 1 });
+
+  const rows: string[] = [];
+  for (const n of [1, 2, 3]) {
+    const key = `step${n}`;
+    builder.leaf({
+      key,
+      type: 'ListItem',
+      generate: ['title', 'detail'],
+      // The ordinal is computed here, never asked of the model — constraint 2
+      // applies to a step number exactly as it applies to a quantity.
+      copy: { meta: String(n) },
+      fixed: { hasDetail: true },
+    });
+    rows.push(key);
+  }
+
+  builder.container('stack', 'Stack', ['kind', 'title', ...rows]);
+  builder.container('card', 'Card', ['stack']);
+  return 'card';
+}
+
+/**
+ * A number IS the answer.
+ *
+ * The `Metric` leads and everything else is subordinate to it, which is the
+ * whole point of the archetype: asked how long to chill dough, the device
+ * should show the duration, not a paragraph containing it.
+ *
+ * `Bars` is deliberately absent even though a chart would suit this shape.
+ * It has no content support at all (see `COPY_FIELDS`), so its values would
+ * have to be invented by a language model and painted as fact — exactly what
+ * constraint 2 forbids. A generated surface has no typed domain behind it to
+ * compute them from, so the honest version of this layout has no chart.
+ */
+function answerStatLed(builder: SurfaceBuilder): string {
+  builder.leaf({ key: 'kind', type: 'Label', generate: ['text'] });
+  builder.leaf({ key: 'hero', type: 'Metric', generate: ['label', 'value', 'delta'] });
+  builder.leaf({ key: 'body', type: 'Text', generate: ['text'], lines: 2 });
+  // One supporting row, not two: the `Metric` is expensive (64px) and the
+  // pair measured 387px against a 364px stage. A shape whose point is that
+  // the NUMBER leads can afford to say less underneath it.
+  builder.leaf({ key: 'point1', type: 'ListItem', generate: ['title'] });
+  builder.leaf({ key: 'action', type: 'Button', generate: ['text'], fixed: { variant: 'primary' }, action: 'acknowledge' });
+
+  builder.container('stack', 'Stack', ['kind', 'hero', 'body', 'point1', 'action']);
+  builder.container('card', 'Card', ['stack']);
+  return 'card';
+}
+
+/**
+ * Seeing it matters more than reading it.
+ *
+ * Words on one side, the picture on the other, at the same weight — the same
+ * arrangement `show_me` uses, for the same reason recorded there: an image
+ * squeezed into a single column with body text is not showing anyone
+ * anything.
+ *
+ * When no media was found the surface says so in an `Alert` instead of
+ * painting an empty frame. That is constraint 5: the failure is visible on
+ * the device rather than dressed as a layout choice.
+ */
+function answerMediaLed(builder: SurfaceBuilder, media: { url: string; kind: 'video' | 'image' } | null): string {
+  builder.leaf({ key: 'kind', type: 'Label', generate: ['text'] });
+  builder.leaf({ key: 'title', type: 'Heading', generate: ['text'], fixed: { level: 2 }, lines: 2 });
+  builder.leaf({ key: 'body', type: 'Text', generate: ['text'], lines: 3 });
+  builder.container('left', 'Stack', ['kind', 'title', 'body']);
+
+  if (media) {
+    builder.leaf({ key: 'shot', type: 'Media', generate: ['caption'], fixed: { src: media.url } });
+    builder.container('right', 'Stack', ['shot']);
+  } else {
+    builder.leaf({ key: 'nothing', type: 'Alert', copy: { text: 'No picture found for this.' }, lines: 2 });
+    builder.container('right', 'Stack', ['nothing']);
+    builder.warnings.push('generic_answer/media_led: no media was supplied for a layout that leads with it');
+  }
+
+  builder.container('row', 'Row', ['left', 'right']);
+  builder.container('card', 'Card', ['row']);
+  return 'card';
+}
+
+/**
+ * Several short peers of equal weight.
+ *
+ * No leading body paragraph and no detail lines: the list IS the answer, so
+ * anything above it competes with it. Dropping the second line is what buys
+ * the extra rows — four single-line rows cost less than three two-line ones,
+ * which is what makes this read as a different surface rather than the same
+ * one with more bullets.
+ */
+function answerListDense(builder: SurfaceBuilder): string {
+  builder.leaf({ key: 'kind', type: 'Label', generate: ['text'] });
+  builder.leaf({ key: 'title', type: 'Heading', generate: ['text'], fixed: { level: 2 }, lines: 1 });
+
+  const rows: string[] = [];
+  for (const n of [1, 2, 3, 4]) {
+    const key = `item${n}`;
+    // Ask only for what fits: a dense row is one line, and a `detail` the
+    // renderer has no reserved box for would be written and then dropped.
+    builder.leaf({ key, type: 'ListItem', generate: ['title', 'meta'] });
+    rows.push(key);
+  }
+
+  builder.container('stack', 'Stack', ['kind', 'title', ...rows]);
+  builder.container('card', 'Card', ['stack']);
+  return 'card';
+}
+
+/**
+ * A claim on one side, what earns it on the other.
+ *
+ * The asymmetry is the point: the left column is a headline and its action,
+ * the right is the reasoning. A judge asking "why?" gets a surface whose
+ * shape says "here is the answer, and here is the working", which a single
+ * column cannot express.
+ */
+function answerSplit(builder: SurfaceBuilder): string {
+  builder.leaf({ key: 'kind', type: 'Label', generate: ['text'] });
+  builder.leaf({ key: 'claim', type: 'Heading', generate: ['text'], fixed: { level: 1 }, lines: 3 });
+  builder.leaf({ key: 'action', type: 'Button', generate: ['text'], fixed: { variant: 'primary' }, action: 'acknowledge' });
+  builder.container('left', 'Stack', ['kind', 'claim', 'action']);
+
+  builder.leaf({ key: 'because', type: 'Label', generate: ['text'] });
+  builder.leaf({ key: 'body', type: 'Text', generate: ['text'], lines: 4 });
+  builder.leaf({ key: 'point1', type: 'ListItem', generate: ['title'] });
+  builder.leaf({ key: 'point2', type: 'ListItem', generate: ['title'] });
+  builder.container('right', 'Stack', ['because', 'body', 'point1', 'point2']);
+
+  builder.container('row', 'Row', ['left', 'right']);
+  builder.container('card', 'Card', ['row']);
   return 'card';
 }
 

@@ -18,11 +18,30 @@ import type { JevAnswer, Node } from '../types.js';
  * treated as "no" — the safe default, since emitting an unrequested restyle
  * is the exact failure this gate exists to prevent.
  */
-export const style: Node<JevAnswer, StylePatch | null> = {
+export type StyleInput = {
+  jev: JevAnswer;
+  /**
+   * True when the surface that just painted was GENERATED rather than
+   * projected from task state.
+   *
+   * The gate below exists because restyling a surface nobody asked to
+   * restyle is jarring — but that reasoning only holds for a surface that
+   * PERSISTS. A generated answer is new: it did not exist a moment ago, so
+   * there is nothing to jar, and styling it to its own question is the whole
+   * point of generating it. Keeping the gate on everything is what made
+   * every answer paint in the identical bootstrap theme.
+   *
+   * Projected task surfaces keep the gate. Repainting the recipe in a new
+   * palette mid-bake is the bug p14 found, and it is still a bug.
+   */
+  generated?: boolean;
+};
+
+export const style: Node<StyleInput, StylePatch | null> = {
   name: 'style',
-  async run(jev) {
+  async run({ jev, generated }) {
     try {
-      if (!jev.wantsStyleChange?.value) return null;
+      if (!generated && !jev.wantsStyleChange?.value) return null;
 
       const theme: ThemeEnums = {
         palette: jev.theme.palette.value,

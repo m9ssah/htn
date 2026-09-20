@@ -1,4 +1,4 @@
-import type { ContentGenerationRequestV1, Density, FontPairing, Motif, Palette, Radius, SurfaceUpdate, TemplateId } from '@jit/schema';
+import type { ContentGenerationRequestV1, Density, FontPairing, Layout, Motif, Palette, Radius, SurfaceUpdate, TemplateId } from '@jit/schema';
 
 /**
  * The seam every orchestration node runs behind. Deliberately small: a node is
@@ -163,6 +163,12 @@ export type JevAnswer = {
     radius: JevChoiceAnswer<Radius>;
     motif: JevChoiceAnswer<Motif>;
   };
+  /**
+   * What SHAPE the answer takes — the axis that makes one generated surface
+   * structurally unlike the last. Optional for the same reason as the three
+   * below: the recorded fixtures predate the question.
+   */
+  layout?: JevChoiceAnswer<Layout>;
   /** Does the utterance express a preference about how the interface should
    * LOOK? `style`'s only gate (p14: Jev otherwise picks a theme on every
    * utterance). */

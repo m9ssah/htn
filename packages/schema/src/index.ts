@@ -57,6 +57,38 @@ export type Density = 'compact' | 'normal' | 'spacious';
 export type Radius = 'sharp' | 'soft' | 'round';
 export type Motif = 'none' | 'floral' | 'geometric';
 
+/**
+ * The SHAPE an unscripted answer takes.
+ *
+ * A separate axis from `templateId` on purpose. The template says which
+ * surface is up; this says how that surface is built, and it is what stops
+ * every unscripted question painting the identical Label/Heading/Text/bullets
+ * frame with different words in it — the failure that made the device read as
+ * a chatbot with a renderer attached.
+ *
+ * Constraint 1 holds: Jev selects one ID from a finite list and
+ * `compose/projected.ts` builds the tree. The model never emits a shape.
+ */
+export type Layout =
+  /** A short factual answer: one claim, briefly supported. */
+  | 'brief'
+  /** Two things set against each other, side by side. */
+  | 'comparison'
+  /** An ordered procedure — do this, then this. */
+  | 'steps'
+  /** A number IS the answer; it leads, everything else supports it. */
+  | 'stat_led'
+  /** Seeing it matters more than reading it. */
+  | 'media_led'
+  /** Several short peers of equal weight — a list that is the whole answer. */
+  | 'list_dense'
+  /** A claim on one side, its evidence or detail on the other. */
+  | 'split';
+
+export const LAYOUTS: readonly Layout[] = [
+  'brief', 'comparison', 'steps', 'stat_led', 'media_led', 'list_dense', 'split',
+] as const;
+
 export type ThemeEnums = {
   palette: Palette;
   fontPairing: FontPairing;
