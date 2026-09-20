@@ -51,6 +51,7 @@ export type PolicyRule =
   | 'correct_keep'
   | 'select_mapped'
   | 'select_keep'
+  /** Only the `run` catch-all now -- `choose` no longer freezes a surface. */
   | 'other_keep'
   | 'no_task_reprojected';
 
@@ -123,9 +124,19 @@ function choose(input: PolicyInput): PolicyResult {
 
     case 'other':
     default:
-      return currentTemplate
-        ? { templateId: currentTemplate, rule: 'other_keep' }
-        : { templateId: jevTemplateId, rule: 'honour_jev' };
+      // `other` means the ROUTE question found no bucket -- not that the user
+      // wants nothing. Measured (p22): "ok start baking" routed `other` and
+      // the old `other_keep` froze `item_detail` over Jev's `focus_step`,
+      // the single case where the system scored WORSE than the model, and
+      // the exact ADAPT transition the demo turns on.
+      //
+      // So `other` honours Jev, like `new_task`/`query`. Deliberately NOT
+      // "honour Jev when confident" -- p13/p18/p22 all measured confidence
+      // does not separate right from wrong (wrong at 0.93, right at 0.64),
+      // so a threshold here would be a number that reads as a safeguard
+      // while doing nothing. `decide`'s TASK_REQUIRED reconciliation is what
+      // keeps an unbuildable answer off the screen.
+      return { templateId: jevTemplateId, rule: 'honour_jev' };
   }
 }
 
