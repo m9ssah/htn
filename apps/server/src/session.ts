@@ -30,9 +30,20 @@ export type Session = {
   surface: SurfaceKind | null;
   /** `people_picker` selections, by contact id. */
   chosen: Set<string>;
+  /**
+   * How far through the steps the bowl has actually been filled to.
+   *
+   * `completeStep` puts a step's ingredients in the bowl, and `prev_step`
+   * cannot take them out again — you cannot un-add flour, the same asymmetry
+   * `planScaleUp` is built around. Without this, pressing Back then Next adds
+   * the creaming step's butter and sugars a SECOND time and the bowl silently
+   * drifts off plan. Measured by pressing Back and Next against the live
+   * driver, not reasoned about.
+   */
+  filledTo: number;
 };
 
-export const createSession = (): Session => ({ task: null, surface: null, chosen: new Set() });
+export const createSession = (): Session => ({ task: null, surface: null, chosen: new Set(), filledTo: 0 });
 
 /**
  * The one-line task summary Jev is asked with (`JevState.taskState`).
@@ -85,6 +96,20 @@ export type ActionOutcome =
 const SELECT_PREFIX = 'select_';
 const CHOOSE_PREFIX = 'choose_';
 
+/**
+ * Moves to the next step, putting its ingredients in the bowl ONLY if this
+ * step has not already been walked. Re-walking a step the user stepped back
+ * over moves the cursor and nothing else — what went in is already in.
+ */
+function advance(session: Session, task: TaskState): TaskState {
+  if (task.stepIndex < session.filledTo) {
+    return { ...task, stepIndex: Math.min(task.stepIndex + 1, task.recipe.steps.length) };
+  }
+  const next = completeStep(task);
+  session.filledTo = next.stepIndex;
+  return next;
+}
+
 export function applyAction(session: Session, input: ActionInput): ActionOutcome {
   const { action } = input;
 
@@ -93,6 +118,7 @@ export function applyAction(session: Session, input: ActionInput): ActionOutcome
     const recipe = RECIPES[id];
     if (!recipe) return { ok: false, reason: `no recipe is seeded for "${id}" — nothing to open` };
     session.task = { recipe, scale: 1, stepIndex: 0, inBowl: {} };
+    session.filledTo = 0;
     return { ok: true, surface: 'item_detail', note: `opened ${recipe.name}` };
   }
 
@@ -114,7 +140,7 @@ export function applyAction(session: Session, input: ActionInput): ActionOutcome
       return { ok: true, surface: 'focus_step', note: `step ${task.stepIndex + 1}` };
 
     case 'next_step': {
-      session.task = completeStep(task);
+      session.task = advance(session, task);
       return { ok: true, surface: 'focus_step', note: `step ${session.task.stepIndex + 1}` };
     }
 
@@ -127,7 +153,7 @@ export function applyAction(session: Session, input: ActionInput): ActionOutcome
     }
 
     case 'step_done': {
-      session.task = completeStep(task);
+      session.task = advance(session, task);
       return { ok: true, surface: 'summary_done', note: 'finished' };
     }
 
@@ -142,6 +168,7 @@ export function applyAction(session: Session, input: ActionInput): ActionOutcome
 
     case 'start_over': {
       session.task = { recipe: task.recipe, scale: 1, stepIndex: 0, inBowl: {} };
+      session.filledTo = 0;
       return { ok: true, surface: 'item_detail', note: 'started over' };
     }
 

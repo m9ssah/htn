@@ -1,33 +1,34 @@
+import { createInterface } from 'node:readline';
 import type { ContentUpdateV2, StructureUpdateV2, SurfaceUpdate } from '@jit/schema';
 import { buildGraph, liveComposer, type TurnInput } from './graph.js';
 import { realContentSource } from './harness/clients/content.js';
 import { getRealJevClient } from './harness/clients/jev.js';
 import { createTurnRunner } from './harness/turn.js';
-import { createSession } from './session.js';
+import { createSession, describeTask } from './session.js';
 
 /**
- * The demo driver.
+ * The driver: a terminal in front of the real pipeline.
  *
- *   npm run demo
+ *   npm run demo                 # type whatever you want
+ *   npm run demo -- "bake cookies tonight"   # start with an utterance
  *
- * **Scripted utterances, real pipeline.** The eight beats below are the words
- * and presses a person performs; everything downstream of them is the same
- * graph `npm run serve` runs — live Jev for the route, the style axes and the
- * save gate, the real policy, the real composers, the real turn transport.
- * Nothing here branches on which beat it is in, nothing is canned, and no
- * surface is hardcoded: delete a beat and the rest still work, because each
- * one is a function of the session's typed state.
+ * **There is no script.** Say anything; live Jev routes it, the real policy
+ * decides whether the surface changes, and the real composers build it. Press
+ * anything the painted surface actually offers — the presses are listed after
+ * every turn, straight off the emitted spec, exactly as the hardware rail
+ * reads them. A beat only happens because the model classified an utterance
+ * or because you pressed something that is really on screen.
  *
- * Presses are resolved FROM THE SURFACE that was just painted — `press(/Classic/)`
- * finds the row whose generated copy matches and fires the action that row
- * declares. A hardcoded action name would be a hardcoded flow; reading the
- * action off the spec is what the hardware rail does.
+ * That is the point of the device and the thing a judge will test: nothing
+ * here branches on what step you are supposedly on, so an utterance nobody
+ * anticipated goes through the same five nodes as one that was.
  *
  * Seed data (the recipe, the price table, the pantry, the contacts) is a demo
  * account and is labelled as one in `seed.ts` and `domain/recipes.ts`. The
  * FLOW is not seeded (CLAUDE.md constraint 6).
  *
- * Live Jev costs roughly $0.00006 a call.
+ * Live Jev costs roughly $0.00006 a call. A press costs nothing — a control
+ * must answer within a frame, so it never reaches a model.
  */
 
 const jev = getRealJevClient();
@@ -35,182 +36,219 @@ const session = createSession();
 const graph = buildGraph({ session, composer: liveComposer(jev) });
 const runner = createTurnRunner({ graph, jev, content: realContentSource, logPath: 'turns.jsonl' });
 
-type Outcome = {
-  n: string;
-  label: string;
-  route: string;
-  surface: string;
-  elements: string;
-  ms: number;
-  note: string;
-};
-
-const rows: Outcome[] = [];
 let last: { structure: StructureUpdateV2 | null; content: ContentUpdateV2 | null } = { structure: null, content: null };
 
 const isStructure = (u: SurfaceUpdate): u is StructureUpdateV2 => 'stage' in u && u.stage === 'structure';
 const isContent = (u: SurfaceUpdate): u is ContentUpdateV2 => 'stage' in u && u.stage === 'content';
 
+/* ------------------------------------------------------------------ *
+ * Reading the painted surface
+ * ------------------------------------------------------------------ */
+
+type Press = { index: number; action: string; elementId: string; label: string };
+
 /**
- * `input` is a thunk because a press is resolved from the surface the
- * PREVIOUS beat painted — and because a press that finds nothing must record
- * a row and let the rest of the demo run, not take the process down. A demo
- * that dies on beat 4 tells you less than one that prints eight rows with one
- * of them marked.
+ * Every control the painted surface declares, with the copy that landed on
+ * it. This is `getActions()`'s question, asked of the spec rather than of the
+ * DOM — the rail never inspects the DOM either.
  */
-async function beat(n: string, label: string, input: TurnInput | (() => TurnInput)): Promise<void> {
-  let resolved: TurnInput;
-  try {
-    resolved = typeof input === 'function' ? input() : input;
-  } catch (err) {
-    rows.push({ n, label, route: 'press', surface: '—', elements: '0', ms: 0, note: String((err as Error).message).slice(0, 90) });
-    return;
+function presses(): Press[] {
+  const { structure, content } = last;
+  if (!structure) return [];
+  const out: Press[] = [];
+  for (const [elementId, element] of Object.entries(structure.spec.elements)) {
+    const action = element.on?.press?.action ?? element.on?.range?.action ?? element.on?.toggle?.action;
+    if (!action) continue;
+    const values = content?.values[elementId] ?? {};
+    const label = [values.title, values.text, values.label]
+      .filter((v): v is string => typeof v === 'string' && v !== '')
+      .join(' ');
+    out.push({ index: out.length + 1, action, elementId, label: label || action });
   }
+  return out;
+}
+
+/**
+ * Two lines of the copy that actually landed, so a reader can see the surface
+ * is really there — and, on a projected surface, that every number on it came
+ * out of `domain/` rather than out of a model.
+ *
+ * A projected surface has stable element keys worth leading with; a COMPOSED
+ * one is keyed `node_0…N` by the library, so there is nothing to prefer and
+ * document order is the honest fallback.
+ */
+const SAMPLE_KEYS = ['progress', 'instruction', 'title', 'subtitle', 'diagnosis', 'plan', 'outcome', 'result', 'spend'];
+
+function sample(content: ContentUpdateV2 | null): string[] {
+  if (!content) return [];
+  const line = (value: Record<string, unknown> | undefined): string =>
+    [value?.label, value?.value, value?.text, value?.delta]
+      .filter((v): v is string => typeof v === 'string' && v !== '')
+      .join(' ');
+
+  const preferred = SAMPLE_KEYS.map((key) => line(content.values[key])).filter(Boolean);
+  if (preferred.length > 0) return preferred.slice(0, 2);
+  return Object.values(content.values).map(line).filter(Boolean).slice(0, 2);
+}
+
+/* ------------------------------------------------------------------ *
+ * One turn
+ * ------------------------------------------------------------------ */
+
+async function turn(input: TurnInput): Promise<void> {
   const t0 = performance.now();
-  const turn = runner.say(resolved);
+  const started = runner.say(input);
   const updates: SurfaceUpdate[] = [];
   let error = '';
   try {
-    for await (const update of turn.patches) updates.push(update);
+    for await (const update of started.patches) updates.push(update);
   } catch (err) {
-    error = String((err as Error)?.message ?? err).slice(0, 60);
+    error = String((err as Error)?.message ?? err);
   }
   const ms = Math.round(performance.now() - t0);
 
-  const entries = turn.log.entries;
+  const entries = started.log.entries;
   const jevLine = entries.find((e) => e.kind === 'jev');
-  const structureLine = entries.find((e) => e.kind === 'structure-emitted');
-  const unavailable = entries.find((e) => e.kind === 'structure-unavailable' || e.kind === 'decide-degraded' || e.kind === 'action-refused');
+  const emitted = entries.find((e) => e.kind === 'structure-emitted');
+  // `fault` is included deliberately: a node that THREW files a fault and no
+  // note of its own, so a reader without it sees "no reason recorded" for the
+  // one case that most needs a reason. Found that way, against live Jev.
+  const refused = entries.find(
+    (e) =>
+      e.kind === 'structure-unavailable' ||
+      e.kind === 'decide-degraded' ||
+      e.kind === 'action-refused' ||
+      e.kind === 'input-missing' ||
+      e.kind === 'fault',
+  );
 
   const structure = updates.filter(isStructure).at(-1) ?? null;
   const content = updates.filter(isContent).at(-1) ?? null;
   if (structure) last = { structure, content };
 
-  rows.push({
-    n,
-    label,
-    route: jevLine ? `${String(jevLine.route)}(${Number(jevLine.routeConfidence).toFixed(2)})` : 'press',
-    surface: structureLine ? String(structureLine.surface) : '—',
-    elements: structure ? String(Object.keys(structure.spec.elements).length) : '0',
-    ms,
-    note: error || (unavailable ? `${unavailable.kind}: ${String(unavailable.reason ?? '')}`.slice(0, 58) : sample(structure, content)),
-  });
-}
+  const route = jevLine
+    ? `route ${String(jevLine.route)} ${Number(jevLine.routeConfidence).toFixed(2)}` +
+      `  template ${String(jevLine.templateId)} ${Number(jevLine.templateConfidence).toFixed(2)}` +
+      `  style ${String(jevLine.wantsStyleChange)}  save ${String(jevLine.wantsSaved)}`
+    : 'press — no model call';
+  console.log(`  ${route}`);
 
-/**
- * Two lines of the copy that actually landed, so the numbers on the surface
- * are in the transcript rather than taken on trust. Every one of them was
- * computed in `domain/` — none was produced by a model (constraint 2).
- */
-const SAMPLE_KEYS = ['progress', 'instruction', 'title', 'subtitle', 'diagnosis', 'plan', 'outcome', 'result', 'spend'];
-
-function sample(structure: StructureUpdateV2 | null, content: ContentUpdateV2 | null): string {
-  if (!structure || !content) return '';
-  const lines: string[] = [];
-  for (const key of SAMPLE_KEYS) {
-    const value = content.values[key];
-    if (!value) continue;
-    const parts = [value.label, value.value, value.text, value.delta].filter((v): v is string => typeof v === 'string' && v !== '');
-    if (parts.length > 0) lines.push(parts.join(' '));
-    if (lines.length === 2) break;
+  if (structure && emitted) {
+    console.log(`  surface ${String(emitted.surface)} via ${String(emitted.composer)}  ${Object.keys(structure.spec.elements).length} elements  ${ms}ms`);
+    for (const line of sample(content)) console.log(`    ${line}`);
+  } else {
+    const why = refused ? `${String(refused.node ?? refused.kind)}: ${String(refused.error ?? refused.reason ?? refused.detail ?? '')}` : '';
+    console.log(`  nothing painted (${ms}ms) — ${error || why || 'no reason recorded'}`);
+    console.log('  the surface you had is still up; that is the only safe move when a turn cannot finish');
   }
-  return lines.join('  |  ').slice(0, 104);
-}
 
-/**
- * Fires the action the painted surface declares for the row whose copy
- * matches — the same thing pressing the button would do.
- */
-function press(match: RegExp): TurnInput {
-  const { structure, content } = last;
-  if (!structure || !content) throw new Error(`press(${match}): nothing is on screen`);
-  for (const [elementId, element] of Object.entries(structure.spec.elements)) {
-    const action = element.on?.press?.action ?? element.on?.range?.action;
-    if (!action) continue;
-    const values = content.values[elementId] ?? {};
-    const copy = Object.values(values).filter((v): v is string => typeof v === 'string').join(' ');
-    if (match.test(copy) || match.test(action)) return { action, elementId };
+  const available = presses();
+  if (available.length > 0) {
+    console.log(`  press: ${available.map((p) => `[${p.index}] ${p.label}`).join('  ')}`);
   }
-  const available = Object.entries(structure.spec.elements)
-    .map(([id, e]) => e.on?.press?.action ?? e.on?.range?.action ?? null)
-    .filter((a): a is string => a !== null);
-  throw new Error(`press(${match}): no match on the current surface. Available: ${available.join(', ')}`);
-}
-
-/** True when the painted surface offers this action at all. */
-function offers(action: string): boolean {
-  const structure = last.structure;
-  if (!structure) return false;
-  return Object.values(structure.spec.elements).some((e) => (e.on?.press?.action ?? e.on?.range?.action) === action);
+  console.log(`  task: ${describeTask(session)}    jev $${jev.usd.toFixed(5)} / ${jev.requests} calls`);
 }
 
 /* ------------------------------------------------------------------ *
- * The eight beats
+ * The terminal
  * ------------------------------------------------------------------ */
+
+const HELP = [
+  'Type anything and press enter — it goes to live Jev and through the whole graph.',
+  'Type a number to press that control on the surface you can see.',
+  'Type "2=30" to scrub a fader to a value.',
+  '  :p        list the controls the current surface offers',
+  '  :state    what the session believes the task is',
+  '  :q        quit',
+].join('\n');
 
 try {
   await jev.warmup();
 } catch (err) {
-  process.stderr.write(`jev warmup failed (the first beat will pay the handshake): ${String(err)}\n`);
+  process.stderr.write(`jev warmup failed (the first utterance pays the handshake): ${String(err)}\n`);
 }
 
-await beat('1', '"I want to bake chocolate chip cookies tonight. Something easy."', {
-  utterance: 'I want to bake chocolate chip cookies tonight. Something easy.',
-});
+console.log('JIT UI — live. Nothing below is scripted.\n');
+console.log(HELP);
 
-await beat('2', '(press Classic)', () => press(/Classic/));
-
-await beat('3', '"Add these to my grocery list, and the prices to my spending tracker."', {
-  utterance: 'Add these to my grocery list, and add the prices to my spending tracker.',
-});
-
-// The confirmation surface is a detour off the recipe; getting back to the
-// recipe is a press it offers, not a step the script knows about.
-if (!offers('begin') && offers('back_to_recipe')) await beat('3b', '(press Back to the recipe)', () => press(/^back_to_recipe$/));
-
-await beat('4', '(press Start cooking)', () => press(/^begin$/));
-// One step of actual baking, so the bowl holds something to deviate FROM.
-// Driven by what the step surface offers, not by a step number.
-if (offers('next_step')) await beat('4b', '(press Next)', () => press(/^next_step$/));
-
-await beat('5', '"Wait, I accidentally added twice as much sugar."', {
-  utterance: 'Wait, I accidentally added twice as much sugar.',
-});
-
-await beat('6', '(press Scale up)', () => press(/^apply_fix$/));
-
-// Back to the steps and through to the end — the loop reads the surface each
-// time and stops when the surface stops offering another step.
-if (offers('begin')) await beat('7a', '(press Start cooking)', () => press(/^begin$/));
-let guard = 0;
-while (offers('next_step') && guard < 20) {
-  guard += 1;
-  await beat(`7.${guard}`, '(press Next)', () => press(/^next_step$/));
-}
-if (offers('step_done')) await beat('7', '(press Done)', () => press(/^step_done$/));
-
-await beat('8', '"Who could I give some to?"', { utterance: 'Who could I give some to?' });
-
-/* ------------------------------------------------------------------ *
- * The table
- * ------------------------------------------------------------------ */
-
-const head = `${'#'.padEnd(5)}${'input'.padEnd(66)}${'route'.padEnd(16)}${'surface'.padEnd(15)}${'els'.padEnd(5)}ms`;
-console.log(`\n${head}`);
-console.log('-'.repeat(head.length + 4));
-for (const row of rows) {
-  console.log(
-    row.n.padEnd(5) +
-      row.label.slice(0, 64).padEnd(66) +
-      row.route.padEnd(16) +
-      row.surface.padEnd(15) +
-      row.elements.padEnd(5) +
-      String(row.ms),
-  );
-  if (row.note) console.log(`     ${row.note}`);
+/**
+ * Rehearsal: `npm run demo -- "one thing" "another thing"` feeds each argument
+ * through the SAME path an interactive line takes, one at a time. It is a
+ * convenience for saying several things without typing them, not a script:
+ * nothing about the order influences which surface is chosen, and saying them
+ * in a different order — or saying something else entirely — works the same
+ * way, because the only thing carried between turns is the session's typed
+ * task state.
+ */
+for (const utterance of process.argv.slice(2).map((a) => a.trim()).filter(Boolean)) {
+  console.log(`\n> ${utterance}`);
+  await turn({ utterance });
 }
 
-const painted = rows.filter((r) => r.surface !== '—').length;
-console.log(`\n${painted}/${rows.length} beats painted a surface`);
-console.log(`jev spend  $${jev.usd.toFixed(5)} over ${jev.requests} requests`);
+const rl = createInterface({ input: process.stdin, output: process.stdout, prompt: '\n> ' });
+
+/**
+ * A turn is awaited, and piped stdin reaches EOF while that is happening —
+ * `readline` is then closed and `prompt()` throws `ERR_USE_AFTER_CLOSE`. The
+ * flag is what lets the same driver be typed at interactively and piped into
+ * from a script or a test.
+ */
+let closed = false;
+rl.on('close', () => {
+  closed = true;
+});
+const prompt = (): void => {
+  if (!closed) rl.prompt();
+};
+// Echoed when stdin is not a terminal, so a piped transcript reads back.
+const echo = (line: string): void => {
+  if (!process.stdin.isTTY) console.log(`\n> ${line}`);
+};
+
+prompt();
+
+for await (const raw of rl) {
+  const line = raw.trim();
+  if (!line) {
+    prompt();
+    continue;
+  }
+  echo(line);
+  if (line === ':q' || line === ':quit') break;
+  if (line === ':p') {
+    const available = presses();
+    console.log(available.length === 0 ? '  nothing on screen yet' : available.map((p) => `  [${p.index}] ${p.label}  (${p.action})`).join('\n'));
+    prompt();
+    continue;
+  }
+  if (line === ':state') {
+    console.log(`  ${describeTask(session)}  |  surface ${String(session.surface)}`);
+    prompt();
+    continue;
+  }
+
+  // A bare number is a press; `N=V` scrubs a fader to V. Everything else is
+  // speech — including anything that looks like a command and is not one,
+  // because a device that swallows an utterance it does not recognise is
+  // worse than one that routes it.
+  const control = /^(\d+)(?:\s*=\s*(-?\d+(?:\.\d+)?))?$/.exec(line);
+  if (control) {
+    const chosen = presses().find((p) => p.index === Number(control[1]));
+    if (!chosen) {
+      console.log(`  there is no control ${control[1]} on this surface`);
+      prompt();
+      continue;
+    }
+    const value = control[2] === undefined ? undefined : Number(control[2]);
+    console.log(`  (press ${chosen.label}${value === undefined ? '' : ` = ${value}`})`);
+    await turn({ action: chosen.action, elementId: chosen.elementId, ...(value === undefined ? {} : { value }) });
+  } else {
+    await turn({ utterance: line });
+  }
+  prompt();
+}
+
+rl.close();
+console.log(`\njev spend  $${jev.usd.toFixed(5)} over ${jev.requests} requests`);
 console.log('turn log   turns.jsonl (one JSONL line per turn; grep a turnId for the whole turn)');
+process.exit(0);

@@ -474,3 +474,90 @@ describe('graph: an open-ended surface', () => {
     expect(events.some((e) => e.kind === 'generate-fault')).toBe(true);
   });
 });
+
+describe('graph: the bowl only fills once', () => {
+  /**
+   * Found by pressing Back and then Next against the live driver, not by
+   * reasoning: `completeStep` puts a step's ingredients in the bowl, and
+   * `prev_step` cannot take them out again — you cannot un-add flour. Without
+   * `Session.filledTo` the creaming step's butter and sugars go in a second
+   * time and the bowl silently drifts off plan, which then makes `recovery`
+   * offer a scale-up nobody asked for.
+   */
+  it('stepping back and forward again moves the cursor and nothing else', async () => {
+    const h = await baking();
+    const filled = { ...h.session.task!.inBowl };
+    expect(filled.butter).toBe(1);
+
+    await drain(h.say({ action: 'prev_step', elementId: 'prev' }));
+    await drain(h.say({ action: 'next_step', elementId: 'next' }));
+
+    expect(h.session.task!.inBowl).toEqual(filled);
+    expect(findDeviations(h.session.task!)).toEqual([]);
+  });
+});
+
+describe('graph: every surface is reachable by a real classification', () => {
+  /**
+   * The demo has no script, so a surface that can only be reached by a
+   * hardcoded step is not finished (CLAUDE.md constraint 6). Each projected
+   * surface here is reached the way it is reached live: by what Jev answered,
+   * or by a control the previous surface really offered.
+   *
+   * `message_drafts` and `generic_answer` are composed rather than projected
+   * and are covered by "an open-ended surface" above.
+   */
+  const reach: { surface: string; run: (h: Harness) => Promise<void> }[] = [
+    { surface: 'choice_cards', run: async (h) => { await drain(h.say({ utterance: 'what should I make tonight' })); } },
+    {
+      surface: 'item_detail',
+      run: async (h) => {
+        await drain(h.say({ utterance: 'what should I make tonight' }));
+        await drain(h.say({ action: 'select_classic_choc_chip', elementId: 'option_1' }));
+      },
+    },
+    { surface: 'focus_step', run: async (h) => { await baking2(h); } },
+    {
+      surface: 'summary_done',
+      run: async (h) => {
+        await baking2(h);
+        await drain(h.say({ action: 'step_done', elementId: 'next' }));
+      },
+    },
+    {
+      surface: 'people_picker',
+      run: async (h) => {
+        await baking2(h);
+        await drain(h.say({ action: 'share', elementId: 'share' }));
+      },
+    },
+  ];
+
+  const baking2 = async (h: Harness): Promise<void> => {
+    await drain(h.say({ utterance: 'what should I make tonight' }));
+    await drain(h.say({ action: 'select_classic_choc_chip', elementId: 'option_1' }));
+    await drain(h.say({ action: 'begin', elementId: 'start' }));
+  };
+
+  for (const { surface, run } of reach) {
+    it(`reaches ${surface}`, async () => {
+      const h = harness();
+      await run(h);
+      expect(h.session.surface).toBe(surface);
+    });
+  }
+
+  it('reaches recovery, and grocery_added, without either being a step', async () => {
+    // Both come from a typed Jev answer against whatever is open — `recovery`
+    // from the `correct` route plus a deviation that carries a number,
+    // `grocery_added` from its own `noul`. Neither is positional.
+    const h = await baking();
+    const recovery = startTurn({ utterance: 'that was twice as much sugar' }, offline(h.session, editedJev(fixture('jev/recorded/correct.json'), { deviationFactor: choiceAnswer('2x') })));
+    await drain(recovery);
+    expect(h.session.surface).toBe('recovery');
+
+    const grocery = startTurn({ utterance: 'put that on my list' }, offline(h.session, editedJev(fixture('jev/recorded/new_task.json'), { wantsSaved: noulAnswer(0.9) })));
+    await drain(grocery);
+    expect(h.session.surface).toBe('grocery_added');
+  });
+});

@@ -20,9 +20,25 @@ import type { JevCandidate } from '../contract/compose.js';
  * the catalog identity the hardware rail maps a button to. `jevStructureComposer`
  * refuses `maxUses > 1` for exactly that reason.
  *
- * The pool is bounded so `getActions()` cannot silently return `[]`: at most
- * 4 press/toggle/text elements and at most 1 range, the device's counts.
- * Here that is 3 presses and 1 range.
+ * ---
+ *
+ * **No candidate carries an `on` binding, and none can.** `JIT_CATALOG`
+ * (`packages/renderer/src/catalog.tsx`) is built with `actions: {}` and
+ * declares no events on any component, so `experimental_composeSpec`
+ * validates any `on` against an empty set and throws
+ * `Unknown event press on ListItem` before it asks Jev anything. Measured
+ * against live Jev, not inferred: the first unscripted question through the
+ * composed path crashed on exactly that.
+ *
+ * Projected surfaces are unaffected — they build a `SurfaceSpec` directly and
+ * never pass through the library's catalog validation, which is why the
+ * recipe's buttons work and these cannot.
+ *
+ * The consequence is real and worth naming rather than working around: a
+ * COMPOSED surface has no hardware controls today. `generic_answer` does not
+ * need any — it answers a question. `message_drafts` wants a tone fader and a
+ * draft to pick, and cannot have them until the catalog declares its events;
+ * that is a change in `packages/renderer`, which this workstream does not own.
  *
  * Candidate ids and their content segments are deliberately NOT the element
  * keys the library assigns (`node_0…`) — `rebindComposedSpec` reconciles them,
@@ -48,19 +64,15 @@ export const OPEN_ENDED_CANDIDATES: readonly JevCandidate[] = [
   },
   {
     id: 'draft_a', description: 'One drafted message, with the recipient as its title.', root: false, maxUses: 1,
-    element: { type: 'ListItem', props: { id: 'draft_a', pending: bind('draft_a', 'pending'), reserveLines: 2, title: bind('draft_a', 'title'), detail: bind('draft_a', 'detail'), hasDetail: true, interactive: true }, on: { press: { action: 'pick_draft_a' } } },
+    element: { type: 'ListItem', props: { id: 'draft_a', pending: bind('draft_a', 'pending'), reserveLines: 2, title: bind('draft_a', 'title'), detail: bind('draft_a', 'detail'), hasDetail: true } },
   },
   {
     id: 'draft_b', description: 'A second drafted message, for a different recipient or a different tone.', root: false, maxUses: 1,
-    element: { type: 'ListItem', props: { id: 'draft_b', pending: bind('draft_b', 'pending'), reserveLines: 2, title: bind('draft_b', 'title'), detail: bind('draft_b', 'detail'), hasDetail: true, interactive: true }, on: { press: { action: 'pick_draft_b' } } },
+    element: { type: 'ListItem', props: { id: 'draft_b', pending: bind('draft_b', 'pending'), reserveLines: 2, title: bind('draft_b', 'title'), detail: bind('draft_b', 'detail'), hasDetail: true } },
   },
   {
-    id: 'tone', description: 'A fader for how the drafts should read, from brief to warm.', root: false, maxUses: 1,
-    element: { type: 'Slider', props: { id: 'tone', pending: bind('tone', 'pending'), label: bind('tone', 'label'), minLabel: bind('tone', 'minLabel'), maxLabel: bind('tone', 'maxLabel'), min: 0, max: 2, step: 1, value: 1 }, on: { range: { action: 'set_tone' } } },
-  },
-  {
-    id: 'dismiss', description: 'A single button that returns to what was open before.', root: false, maxUses: 1,
-    element: { type: 'Button', props: { id: 'dismiss', pending: bind('dismiss', 'pending'), text: bind('dismiss', 'text'), variant: 'secondary' }, on: { press: { action: 'back_to_recipe' } } },
+    id: 'note', description: 'One short caveat or aside about the answer.', root: false, maxUses: 1,
+    element: { type: 'Alert', props: { id: 'note', pending: bind('note', 'pending'), reserveLines: 3, text: bind('note', 'text') } },
   },
 ];
 
@@ -76,7 +88,6 @@ export const OPEN_ENDED_INITIAL_STATE: Record<string, unknown> = {
     aside: { pending: true, text: '' },
     draft_a: { pending: true, title: '', detail: '' },
     draft_b: { pending: true, title: '', detail: '' },
-    tone: { pending: true, label: '', minLabel: '', maxLabel: '' },
-    dismiss: { pending: true, text: '' },
+    note: { pending: true, text: '' },
   },
 };
