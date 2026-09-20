@@ -1,0 +1,174 @@
+{
+  "contract": "jit.content.request.v1",
+  "requestId": "surface-42",
+  "catalogVersion": "jit-device.v2",
+  "locale": "en-US",
+  "intent": "Show the selected cookie recipe",
+  "context": {
+    "recipeName": "Classic Chocolate Chip"
+  },
+  "targets": [
+    {
+      "elementId": "title",
+      "component": "Heading",
+      "purpose": "Recipe name",
+      "fields": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true,
+          "constraints": {
+            "minLength": 1,
+            "maxLength": 60,
+            "format": "plain-text"
+          }
+        }
+      ],
+      "fixed": {
+        "level": 1
+      }
+    },
+    {
+      "elementId": "subtitle",
+      "component": "Text",
+      "purpose": "One-line pitch for the recipe",
+      "fields": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true,
+          "constraints": {
+            "minLength": 1,
+            "maxLength": 220,
+            "format": "plain-text"
+          }
+        }
+      ],
+      "fixed": {
+        "tone": "muted"
+      }
+    },
+    {
+      "elementId": "axis",
+      "component": "Slider",
+      "purpose": "Batch-size control label",
+      "fields": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "constraints": {
+            "minLength": 1,
+            "maxLength": 24,
+            "format": "plain-text"
+          }
+        }
+      ],
+      "fixed": {
+        "min": 12,
+        "max": 30,
+        "step": 6,
+        "value": 30,
+        "unit": "cookies"
+      }
+    },
+    {
+      "elementId": "preview",
+      "component": "Media",
+      "purpose": "Alt text for the recipe preview image",
+      "fields": [
+        {
+          "name": "caption",
+          "type": "string",
+          "required": false,
+          "constraints": {
+            "minLength": 1,
+            "maxLength": 40,
+            "format": "plain-text"
+          }
+        }
+      ],
+      "fixed": {
+        "src": "https://example.com/preview.jpg"
+      }
+    },
+    {
+      "elementId": "ing-label",
+      "component": "Label",
+      "purpose": "Ingredients section heading",
+      "fields": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true,
+          "constraints": {
+            "minLength": 1,
+            "maxLength": 24,
+            "format": "plain-text"
+          }
+        }
+      ],
+      "fixed": {}
+    },
+    {
+      "elementId": "ing-1",
+      "component": "ListItem",
+      "purpose": "First ingredient row",
+      "fields": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "constraints": {
+            "minLength": 1,
+            "maxLength": 40,
+            "format": "plain-text"
+          }
+        }
+      ],
+      "fixed": {
+        "meta": "3⅓ cups"
+      }
+    },
+    {
+      "elementId": "ing-2",
+      "component": "ListItem",
+      "purpose": "Second ingredient row",
+      "fields": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "constraints": {
+            "minLength": 1,
+            "maxLength": 40,
+            "format": "plain-text"
+          }
+        }
+      ],
+      "fixed": {
+        "meta": "1⅔ cups"
+      }
+    },
+    {
+      "elementId": "begin",
+      "component": "Button",
+      "purpose": "Primary action: start the recipe",
+      "fields": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true,
+          "constraints": {
+            "minLength": 1,
+            "maxLength": 24,
+            "format": "plain-text"
+          }
+        }
+      ],
+      "fixed": {
+        "variant": "primary"
+      }
+    }
+  ]
+}

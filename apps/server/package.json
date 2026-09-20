@@ -6,6 +6,10 @@
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsc -b",
+    "dataset:generate": "tsx src/content-gen/cli-generate.ts",
+    "dataset:validate": "tsx src/content-gen/cli-validate.ts",
+    "dataset:schemas": "tsx src/content-gen/cli-schemas.ts"
+    "build": "tsc -b",
     "node": "tsc -b && node dist/cli.js",
     "serve": "tsc -b && node dist/server.js",
     "live-jev": "tsc -b && node dist/live-jev.js",
@@ -14,6 +18,11 @@
   "dependencies": {
     "@jit/renderer": "*",
     "@jit/schema": "*",
+    "@jit/tokens": "*",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.13"
     "@jit/tokens": "*",
     "@json-render/core": "file:../../vendor/json-render-core-0.21.0-3ad3818-preview3.tgz",
     "@langchain/langgraph": "^1.4.16",

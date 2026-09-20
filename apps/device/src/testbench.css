@@ -39,7 +39,7 @@
 }
 
 .testbench-header .testbench-eyebrow {
-  color: #6457db;
+  color: var(--sh-accent);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -188,7 +188,7 @@
 .hardware-slider-control input::-webkit-slider-runnable-track {
   height: 5px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #6d5cf6, #3ba8ff);
+  background: var(--sh-accent);
 }
 
 .hardware-slider-control input::-webkit-slider-thumb {
@@ -198,7 +198,7 @@
   appearance: none;
   border: 3px solid #ffffff;
   border-radius: 50%;
-  background: #6d5cf6;
+  background: var(--sh-accent);
   box-shadow: 0 2px 8px rgb(0 0 0 / 32%);
 }
 
@@ -279,7 +279,7 @@
   width: 3px;
   height: 15px;
   border-radius: 2px;
-  background: linear-gradient(#a99fff, #5fcdff);
+  background: var(--sh-accent);
   transform: translateX(-50%) rotate(var(--encoder-angle, -120deg));
   transform-origin: 50% 24px;
   transition: transform 120ms ease;
@@ -316,7 +316,7 @@
 
 .hardware-control button:focus-visible,
 .hardware-slider-control input:focus-visible {
-  outline: 2px solid #8b7cff;
+  outline: 2px solid var(--sh-accent);
   outline-offset: 3px;
 }
 
@@ -353,7 +353,7 @@
 }
 
 .page-tabs button:focus-visible {
-  outline: 2px solid #6d5cf6;
+  outline: 2px solid var(--sh-accent);
   outline-offset: 2px;
 }
 

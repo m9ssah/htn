@@ -1,0 +1,31 @@
+{
+  "contract": "jit.content.result.v1",
+  "requestId": "surface-42",
+  "catalogVersion": "jit-device.v2",
+  "values": {
+    "title": {
+      "text": "Classic Chocolate Chip"
+    },
+    "subtitle": {
+      "text": "A weeknight favourite, ready in 35 minutes."
+    },
+    "preview": {
+      "caption": "finished cookies, cooling rack"
+    },
+    "axis": {
+      "label": "Batch size"
+    },
+    "ing-label": {
+      "text": "Ingredients"
+    },
+    "ing-1": {
+      "title": "Plain flour"
+    },
+    "ing-2": {
+      "title": "Butter"
+    },
+    "begin": {
+      "text": "Start baking"
+    }
+  }
+}
