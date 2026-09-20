@@ -352,13 +352,28 @@ export const RANGE_CONTROL_COUNT = 1;
  * `*-on-surface` exists because most templates render inside a Card, so their
  * text sits on `--jit-surface` rather than `--jit-bg`. Checking only against bg
  * rejects token sets that are perfectly readable where they are actually drawn.
+ *
+ * `fg-on-accent-soft` exists because `Badge` and `Alert` paint on
+ * `--jit-accent-soft`, not `bg` or `surface`. Required via `Surface`'s
+ * `accent-soft`, opt-in the same way `surface` is.
+ *
+ * There is deliberately no `accent-on-accent-soft`. Badge's text used to be
+ * `--jit-accent` on this background, and for `slate` that measured 3.63:1 —
+ * nowhere near the 4.5:1 floor. Darkening `accentSoft` cannot fix this: with
+ * `slate`'s actual accent hue, the ceiling even at pure black is 4.512:1, a
+ * fragile pass that would also flatten the tinted badge to solid black. The
+ * real fix was in the renderer, not the palette — Badge's text now uses `fg`,
+ * which clears AA by a wide margin (13.6–17.6:1) on every palette. Checking a
+ * pairing nothing renders would only force future palettes to satisfy a
+ * constraint their accent hue may make impossible.
  */
 export type ContrastPair =
   | 'fg-on-bg'
   | 'muted-on-bg'
   | 'fg-on-surface'
   | 'muted-on-surface'
-  | 'on-accent-on-accent';
+  | 'on-accent-on-accent'
+  | 'fg-on-accent-soft';
 
 export type ContrastCheck = {
   pair: ContrastPair;
@@ -375,5 +390,12 @@ export type ContrastReport = {
   checks: ContrastCheck[];
 };
 
-/** Which grounds a template actually draws text on. Narrows the required pairs. */
-export type Surface = 'bg' | 'surface';
+/**
+ * Which grounds a template actually draws text on. Narrows the required pairs.
+ *
+ * `accent-soft` is a component ground, not a page ground: it's opt-in, the same
+ * way `surface` is, and a template must declare it if and only if its tree
+ * contains a `Badge` or an `Alert` — enforced in the renderer's template tests,
+ * not left to memory.
+ */
+export type Surface = 'bg' | 'surface' | 'accent-soft';

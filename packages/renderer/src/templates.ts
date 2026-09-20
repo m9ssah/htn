@@ -179,7 +179,9 @@ export const TEMPLATES: Record<TemplateId, Template> = {
   recovery: {
     id: 'recovery',
     maxWidth: 560,
-    surfaces: ['surface'],
+    // 'accent-soft' is required, not just 'surface': the Alert below paints on
+    // --jit-accent-soft, a ground 'surface' does not cover.
+    surfaces: ['surface', 'accent-soft'],
     tree: card(
       { type: 'Label', slot: 'recovery.kind' },
       { type: 'Heading', slot: 'recovery.title', props: { level: 1 }, lines: 1 },
