@@ -287,9 +287,17 @@
   padding: 2px 9px;
   border-radius: 999px;
   background: var(--jit-accent-soft);
-  /* Was var(--jit-accent) — for slate that measured 3.63:1 against
-     accent-soft, and no accentSoft value can fix it without going to solid
-     black (ceiling 4.512:1). fg clears AA by a wide margin on every palette. */
+  /*
+   * Was var(--jit-accent), which measured 3.63:1 on the palette this was
+   * written against — no accentSoft value could fix that without going to
+   * solid black (ceiling 4.512:1).
+   *
+   * The plum palettes that replaced it happen to clear AA on accent too
+   * (5.40:1 at worst), so this is no longer load bearing for the table as it
+   * stands. It stays anyway: `fg` measures 14.0-17.6:1 across all four, and
+   * tying Badge to `accent` would make every future palette's accent hue
+   * answerable to a pairing it has no other reason to satisfy.
+   */
   color: var(--jit-fg);
   font-size: var(--ph-fs);
   font-weight: 700;
