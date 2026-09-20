@@ -109,9 +109,14 @@ is contract-independent.
   dependencies. `CLAUDE.md` lists "introducing a UI framework or any runtime
   dependency in `packages/*`" under "Ask me before", and the device workstream
   did it without that gate. Recorded as fact, not reopened.
-- Structure composition latency is **unmeasured** and wired with a 30s timeout,
-  against a 250ms structure-paint budget. Until measured, the paint-first claim
-  is unverified under the new contract.
+- **`CLAUDE.md` constraint 3's "skeleton under 250ms" is unsatisfiable for
+  model-composed surfaces.** A composition costs two sequential evaluator calls
+  (measured 211-230ms each against the direct endpoint) plus a gateway hop. The
+  owner chose to leave `CLAUDE.md` unamended for now, so this record is the only
+  place the conflict is written down. The honest split, for whenever the spec is
+  revisited: **projected surfaces <=250ms** (achievable, zero model calls);
+  **composed surfaces ~1s target, to be measured rather than asserted.** Do not
+  quote the 250ms figure for a composed surface.
 - The composer runs outside the orchestration's budget caps and abort
   discipline. It has a bare timeout and no spend ceiling.
 
@@ -126,6 +131,16 @@ is contract-independent.
 **Defects inherited with the adopted layer.** These were found by review, not by
 tests, and are not yet fixed:
 
+0. **The composed path cannot receive content at all.** `composeBatch` assigns
+   element keys `node_N` and `structuredClone`s each candidate element without
+   rewriting its `$state` paths (vendored `dist/index.js:3629-3637`). So
+   `deriveContentRequest` keys a target `node_2` while the element still reads
+   `/content/title/text`: content never lands and the shimmer never clears. The
+   same mechanism gives any candidate with `maxUses > 1` duplicated `props.id`,
+   a shared state path and a shared action — three identical rows firing one
+   action. Verified by executing the tarball, not inferred. Invisible to
+   `orchestration.test.ts`, whose fixture hand-picks element ids equal to their
+   state-path segments.
 1. `validateContentResult` throws on the first bad field, so one malformed field
    in one element discards the entire surface's content. The fix is per-element
    isolation: envelope failures stay fatal, element failures isolate, an
@@ -139,6 +154,58 @@ tests, and are not yet fixed:
    literal value.
 4. `Bars` and `Progress` have no `GENERATED_FIELDS` entry and can never receive
    generated content.
+
+## Amendment, same day: the projected composer
+
+Adopted after an architecture review verified the defects above.
+
+A **third `StructureComposer`** is added: `TaskState -> SurfaceSpec`, written in
+TypeScript, with **zero model calls**. It emits the same wire contract the device
+already accepts, so it sits inside "the device is the source of truth" and uses
+the teammate's own seam.
+
+- **Projected surfaces** (recipe/item detail, focus step, recovery, summary done)
+  compose deterministically and paint in ~0ms.
+- **Composed surfaces** (`generic_answer`, `message_drafts`) keep the Jev
+  composer, where open-endedness is the point.
+- Jev keeps route, style and deviation classification in both cases.
+
+The argument that settled it is correctness, not latency. `composeBatch` asks a
+**per-candidate membership question**, so Jev may legitimately omit any single
+candidate — including the "eggs" row of a recipe. **A domain-required element
+must not be omittable by a model.** Determinism is the only way to guarantee it.
+
+This does not weaken constraint 6 ("the flow is never hardcoded"): the composer
+is a projection of typed domain state, not a scripted flow. It must work for a
+recipe nobody scripted — arbitrary ingredient and step counts, a deviation on
+any ingredient — and is tested against shapes other than the seed data.
+
+### Rejected in the same amendment
+
+**Placeholder-spec-first** — painting a cheap local spec immediately and letting
+the composed one replace it. It was proposed to make paint-first independent of
+composer latency, and it does not work: the old skeleton *was* the final
+template, so content shimmered inside fixed geometry, whereas a placeholder
+replaced by a spec whose shape Jev is still choosing is a reflow by
+construction. Two further mechanisms make it worse: the composer's `partial`
+yield puts every child flat under root and `complete` reparents them, a visible
+reorder; and applying a structure update runs `store.update(stateUpdates(spec))`,
+which resets `/content` and wipes anything landed between the two. Decision:
+**do not apply `partial` at all** — telemetry only, single paint at `complete`,
+and use the shell's existing `thinking` mood to cover the gap.
+
+## Additional silent-failure modes found in the adopted layer
+
+- `getActions()` returns `[]` **silently** when press/toggle/text actions exceed
+  4 or ranges exceed 1 (`json-renderer.tsx`, two bare `return []`). The button
+  rail goes dark with no telemetry and no reason. Candidate pools and projected
+  surfaces must bound interactive elements at build time.
+- `stopReason: 'unavailable'` — which Jev returns whenever capabilities cannot
+  fulfil the request — yields a `complete` event with `spec: null`, and the
+  adapter's `if (!event.spec) continue` ends the turn painting nothing and
+  reporting nothing. A constraint 5 violation inside the adopted code.
+- A second structure update for the same generation wipes already-landed
+  content, so any retry or re-compose path hits it.
 
 ## The invariant this decision adds
 
