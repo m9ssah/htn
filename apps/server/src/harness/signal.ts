@@ -13,14 +13,17 @@ export function sleep(ms: number, signal: AbortSignal): Promise<void> {
       reject(signal.reason ?? new Error('aborted'));
       return;
     }
-    const id = setTimeout(resolve, ms);
-    signal.addEventListener(
-      'abort',
-      () => {
-        clearTimeout(id);
-        reject(signal.reason ?? new Error('aborted'));
-      },
-      { once: true },
-    );
+    const onAbort = (): void => {
+      clearTimeout(id);
+      reject(signal.reason ?? new Error('aborted'));
+    };
+    // Removed on normal resolution too, not just on abort (`{ once: true }`
+    // only covers the latter) — otherwise a turn with many chunks leaves one
+    // listener per chunk on the signal for the rest of the turn.
+    const id = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal.addEventListener('abort', onAbort, { once: true });
   });
 }

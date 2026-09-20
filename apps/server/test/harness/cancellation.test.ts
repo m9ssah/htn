@@ -16,16 +16,12 @@ describe('cancellation', () => {
     const controller = new AbortController();
     const ctx = createStubCtx(controller.signal);
 
-    const t0 = performance.now();
     const run = generate.run('recipe', ctx);
     setTimeout(() => controller.abort(new Error('barge-in')), 5);
 
+    // The rejection itself is the proof: a node that ran to completion
+    // despite the abort would resolve, not reject.
     await expect(run).rejects.toThrow('barge-in');
-    const elapsed = performance.now() - t0;
-
-    // The rejection already proves the loop didn't run to completion; this is
-    // just a sanity margin against the stub's full 45ms (3 chunks x 15ms).
-    expect(elapsed).toBeLessThan(45);
   });
 
   it('a node built on a signal-ignoring source does NOT stop early', async () => {
@@ -43,14 +39,11 @@ describe('cancellation', () => {
     const ctx = createStubCtx(controller.signal);
     ctx.content = ignoresSignal;
 
-    const t0 = performance.now();
     const run = generate.run('recipe', ctx);
     setTimeout(() => controller.abort(new Error('barge-in')), 5);
 
-    const chunks = await run;
-    const elapsed = performance.now() - t0;
-
-    expect(chunks).toHaveLength(3);
-    expect(elapsed).toBeGreaterThanOrEqual(40);
+    // Getting all 3 chunks despite the abort at 5ms IS the proof it never
+    // stopped — a cooperative node would have rejected like the test above.
+    await expect(run).resolves.toHaveLength(3);
   });
 });

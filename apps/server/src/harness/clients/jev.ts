@@ -21,10 +21,17 @@ export const stubJevClient: JevClient = {
   },
 };
 
-/** Reads a recorded answer from disk. CI-safe: no network, just a file read. */
+/**
+ * Reads a recorded answer from disk. CI-safe: no network, just a file read.
+ *
+ * Still threads `signal` through — an already-aborted turn must not return an
+ * answer just because reading a fixture is fast. Replay is meant to stand in
+ * for the real client in a cancellation test, not to short-circuit it.
+ */
 export function createReplayJevClient(fixturePath: string): JevClient {
   return {
-    async ask(): Promise<JevAnswer> {
+    async ask(_utterance, signal): Promise<JevAnswer> {
+      await sleep(0, signal);
       return readFixture<JevAnswer>(fixturePath);
     },
   };

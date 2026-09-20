@@ -34,4 +34,34 @@ describe('replay clients', () => {
 
     expect(chunks).toEqual(['Add 2 cups flour', 'Add 1 tsp baking soda', 'Add a pinch of salt']);
   });
+
+  /**
+   * A replay client is meant to stand in for the real one in a cancellation
+   * test (P3's done-when includes exactly that). If it ignored `signal`, it
+   * would be the p19b failure mode itself: a node that keeps running after
+   * everyone stopped listening — just with a fixture instead of a socket.
+   */
+  it('createReplayJevClient rejects if the signal is already aborted', async () => {
+    const client = createReplayJevClient(fixture('jev/example.json'));
+    const controller = new AbortController();
+    controller.abort(new Error('barge-in'));
+
+    await expect(client.ask('anything', controller.signal)).rejects.toThrow('barge-in');
+  });
+
+  it('createReplayContentSource stops yielding once the signal is aborted', async () => {
+    const source = createReplayContentSource(fixture('content/example.json'));
+    const controller = new AbortController();
+    const chunks: string[] = [];
+
+    const run = (async () => {
+      for await (const chunk of source.stream('anything', controller.signal)) {
+        chunks.push(chunk);
+        controller.abort(new Error('barge-in')); // abort after the first chunk
+      }
+    })();
+
+    await expect(run).rejects.toThrow('barge-in');
+    expect(chunks).toEqual(['Add 2 cups flour']); // not all 3 — it stopped
+  });
 });

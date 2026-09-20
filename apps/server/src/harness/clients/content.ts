@@ -25,12 +25,23 @@ export const stubContentSource: ContentSource = {
   },
 };
 
-/** Reads a recorded chunk list from disk. CI-safe: no network, just a file read. */
+/**
+ * Reads a recorded chunk list from disk. CI-safe: no network, just a file
+ * read.
+ *
+ * Checks `signal` between chunks like the stub does — a replay source that
+ * ignored it would be the exact failure mode this file's `signal` doc warns
+ * about (p19b: a node that never checks keeps running after everyone has
+ * stopped listening), just with a fixture standing in for the network call.
+ */
 export function createReplayContentSource(fixturePath: string): ContentSource {
   return {
-    async *stream(): AsyncGenerator<string> {
+    async *stream(_prompt, signal): AsyncGenerator<string> {
       const chunks = readFixture<string[]>(fixturePath);
-      for (const chunk of chunks) yield chunk;
+      for (const chunk of chunks) {
+        await sleep(0, signal);
+        yield chunk;
+      }
     },
   };
 }
