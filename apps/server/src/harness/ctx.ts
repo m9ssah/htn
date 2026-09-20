@@ -4,11 +4,11 @@ import { stubContentSource } from './clients/content.js';
 import { createMemorySinkStore } from './clients/sink.js';
 
 /** A `Ctx` wired to the stub clients — no network, no key, deterministic. */
-export function createStubCtx(signal: AbortSignal, turnId = 'stub-turn'): Ctx {
+export function createStubCtx(signal: AbortSignal): Ctx {
   return {
     jev: stubJevClient,
     content: stubContentSource,
-    sink: createMemorySinkStore().forTurn(turnId),
+    sink: createMemorySinkStore().forTurn('stub-turn'),
     signal,
     now: () => performance.now(),
     telemetry: () => {},

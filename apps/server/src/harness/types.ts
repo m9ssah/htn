@@ -70,8 +70,10 @@ export interface ContentSource {
 }
 
 /**
- * `emit` is synchronous by type, not by convention — a later phase cannot
- * `await` it even by accident.
+ * `emit` returns `void`, so it cannot do I/O. TypeScript will still let a
+ * caller write `await sink.emit(p)` — `await` on a `void` is legal — but an
+ * awaited `void` costs one microtask, never a filesystem or socket round trip.
+ * That is the property that actually matters here:
  *
  * `p19c`/`p19d` measured that a node error reaching a stream controller
  * (`controller.error()`) resets its queue, discarding chunks enqueued but not

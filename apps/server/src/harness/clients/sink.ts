@@ -1,4 +1,3 @@
-import { appendFileSync } from 'node:fs';
 import type { Patch } from '@jit/schema';
 import type { PatchSink, PatchSinkStore } from '../types.js';
 
@@ -27,38 +26,6 @@ export function createMemorySinkStore(): PatchSinkStore & { readonly patches: re
           if (turnId !== current) return; // a later forTurn moved "current" on
           patches.push(patch);
         },
-      };
-    },
-  };
-}
-
-/**
- * Buffers patches in memory and writes one JSONL file per `flush()` call —
- * this is the sink-side "replay" implementation: a recorded turn log that a
- * later phase can read back as a fixture.
- *
- * `emit` itself does no I/O, per the measured requirement that it stay
- * synchronous (`types.ts`'s `PatchSink` doc). The caller is responsible for
- * calling `flush()` in a `finally`, so an abort or crash still writes what was
- * buffered.
- */
-export function createRecordingSinkStore(filePath: string): PatchSinkStore {
-  let current: string | null = null;
-  let buffer: string[] = [];
-  const flush = (): void => {
-    if (buffer.length === 0) return;
-    appendFileSync(filePath, buffer.join('\n') + '\n');
-    buffer = [];
-  };
-  return {
-    forTurn(turnId: string): PatchSink & { flush(): void } {
-      current = turnId;
-      return {
-        emit(patch: Patch): void {
-          if (turnId !== current) return;
-          buffer.push(JSON.stringify({ turnId, patch }));
-        },
-        flush,
       };
     },
   };
