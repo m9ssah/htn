@@ -1,0 +1,43 @@
+utterance                                 route     jev says        conf  system shows    expected
+----------------------------------------------------------------------------------------------------------------------
+I want to bake chocolate chip cookies to  new_task  x focus_step    0.48  v choice_cards      choice_cards
+lets make some cookies tonight            new_task  x focus_step    0.49  v choice_cards      choice_cards
+what should I make for dessert            query     v choice_cards  0.93  v choice_cards      choice_cards
+show me the recipe                        query     x focus_step    0.65  x focus_step        item_detail
+what are the ingredients                  query     x generic_answer0.93  x generic_answer    item_detail
+actually make it three times the batch    refine    v item_detail   0.91  v item_detail       item_detail
+ok start baking                           other     v focus_step    0.97  x item_detail       focus_step
+what do I do now                          query     x generic_answer0.35  x generic_answer    focus_step
+next step                                 other     v focus_step    0.76  v focus_step        focus_step
+I accidentally added twice as much sugar  correct   v recovery      0.98  v recovery          recovery
+I put in way too much flour               correct   v recovery      0.99  v recovery          recovery
+who could I give some to                  query     v people_picker 0.85  v people_picker     people_picker
+who lives closest to me                   query     x generic_answer0.67  x generic_answer    people_picker
+make it easier to read                    refine    v focus_step    0.64  v focus_step        focus_step
+how long do I boil an egg                 query     v generic_answer0.99  v generic_answer    generic_answer
+
+Jev's templateId alone : 9/15
+What the system shows  : 10/15
+templateId confidence below 0.60: 3/15
+spend $0.00115 over 15 requests
+
+THREE FAILURE MODES
+
+1. Policy destroys a correct answer. "ok start baking": Jev said focus_step at
+   0.97, policy overrode it to item_detail because route was `other` ->
+   `other_keep`, which keeps the current surface unconditionally. The only case
+   where the system does WORSE than the model.
+
+2. Questions about the OPEN TASK fall to generic_answer. "what are the
+   ingredients" (0.93), "what do I do now" (0.35), "who lives closest to me"
+   (0.67). Jev reads them as general-knowledge questions rather than "project
+   the task already open". A criteria problem, not a model failure.
+
+3. Confidence does not separate right from wrong. Wrong at 0.93, right at 0.64.
+   Matches p13/p18, which is why policy never consults confidence -- and why
+   thresholding cannot fix this.
+
+TypeSafe has NO fine-tuning endpoint: /v1/fine_tuning/jobs -> 404, /v1/models -> 200.
+Jev is a fixed judgment model, so "fine-tuning" here can only mean overfitting the
+question text and criteria -- which p18b/p18c already measured as the real lever
+(templateId 1/7 -> 9/9 on wording alone).
