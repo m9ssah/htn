@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createStubCtx } from '../../../src/harness/ctx.js';
-import { project } from '../../../src/harness/nodes/project.js';
+import { project, type ProjectInput } from '../../../src/harness/nodes/project.js';
 import { applyDeviation, completeStep, setYield, type TaskState } from '../../../src/domain/recipe.js';
 import { CLASSIC_CHOCOLATE_CHIP } from '../../../src/domain/recipes.js';
 import { CHOICE_OPTIONS, CONTACTS } from '../../../src/seed.js';
@@ -9,99 +9,108 @@ const ctx = createStubCtx(new AbortController().signal);
 
 const fresh = (): TaskState => ({ recipe: CLASSIC_CHOCOLATE_CHIP, scale: 1, stepIndex: 0, inBowl: {} });
 
+const run = (input: Omit<ProjectInput, 'requestId' | 'generationId'>) =>
+  project.run({ requestId: 'req-1', generationId: 'gen-1', ...input }, ctx);
+
+/** The content a given element received, or `undefined` if it is not on the surface. */
+const copy = (
+  result: Awaited<ReturnType<typeof run>>,
+  elementId: string,
+): Record<string, unknown> | undefined => result.content?.values[elementId];
+
 describe('project — item_detail', () => {
-  it('fills title/subtitle/axis and folds the 9th ingredient into the 8th row rather than dropping it', async () => {
-    const { patch, warnings } = await project.run({ state: fresh(), templateId: 'item_detail' }, ctx);
+  it('fills title/subtitle/batch and names the 9th ingredient rather than dropping it', async () => {
+    const result = await run({ state: fresh(), templateId: 'item_detail' });
 
-    expect(patch.slots['item_detail.title']).toEqual({ kind: 'Heading', text: 'Classic Chocolate Chip' });
-    expect(patch.slots['item_detail.axis']).toMatchObject({ kind: 'Slider', unit: 'cookies', value: 18 });
+    expect(copy(result, 'title')).toEqual({ text: 'Classic Chocolate Chip' });
+    expect(result.structure?.spec.elements.batch?.props).toMatchObject({ unit: 'cookies', value: 18 });
 
-    // 9 ingredients, 8 reserved rows: constraint 5 forbids silently dropping
-    // one, so the 8th row must visibly carry both the 8th AND 9th ingredient.
-    const line8 = patch.slots['item_detail.line8'];
-    expect(line8).not.toBeNull();
-    expect((line8 as { title: string }).title).toContain('Salt');
-    expect(warnings.some((w) => w.includes('overflowed'))).toBe(true);
+    // 9 ingredients, 8 rows: constraint 5 forbids silently dropping one, so
+    // the 8th row must visibly carry both the 8th AND 9th ingredient.
+    const last = copy(result, 'ing_7');
+    expect(last?.title).toBe('+2 more ingredients');
+    expect(String(last?.detail)).toContain('Salt');
+    expect(result.warnings.some((w) => w.includes('did not fit'))).toBe(true);
   });
 
-  it('never leaves a reserved line slot as "pending" (undefined) — project is a one-shot patch', async () => {
-    const { patch } = await project.run({ state: fresh(), templateId: 'item_detail' }, ctx);
-    const lineSlots = [
-      'item_detail.line1',
-      'item_detail.line2',
-      'item_detail.line3',
-      'item_detail.line4',
-      'item_detail.line5',
-      'item_detail.line6',
-      'item_detail.line7',
-      'item_detail.line8',
-    ] as const;
+  it('never leaves a bound element without content — a one-shot surface has nothing pending', async () => {
+    const result = await run({ state: fresh(), templateId: 'item_detail' });
 
-    for (const slot of lineSlots) {
-      expect(patch.slots[slot]).not.toBeUndefined();
-    }
+    const bound = Object.entries(result.structure!.spec.elements)
+      .filter(([, element]) => 'pending' in element.props)
+      .map(([key]) => key);
+    expect(bound.length).toBeGreaterThan(0);
+    for (const key of bound) expect(result.content?.values[key]).toBeDefined();
   });
 
-  it('is total: an empty-ingredient recipe does not throw, and every line collapses to null', async () => {
+  it('is total: an empty-ingredient recipe produces a surface with no rows and a warning', async () => {
     const empty: TaskState = { recipe: { ...CLASSIC_CHOCOLATE_CHIP, ingredients: [] }, scale: 1, stepIndex: 0, inBowl: {} };
 
-    const { patch } = await project.run({ state: empty, templateId: 'item_detail' }, ctx);
+    const result = await run({ state: empty, templateId: 'item_detail' });
 
-    expect(patch.slots['item_detail.line1']).toBeNull();
-    expect(patch.slots['item_detail.line8']).toBeNull();
+    expect(result.structure).not.toBeNull();
+    expect(Object.keys(result.structure!.spec.elements).filter((k) => k.startsWith('ing_'))).toEqual([]);
+    expect(result.warnings.some((w) => w.includes('no ingredients'))).toBe(true);
   });
 });
 
 describe('project — focus_step', () => {
   it('shows the current step and hides prev on the first step', async () => {
-    const { patch } = await project.run({ state: fresh(), templateId: 'focus_step' }, ctx);
+    const result = await run({ state: fresh(), templateId: 'focus_step' });
 
-    expect(patch.slots['focus_step.instruction']).toEqual({ kind: 'Heading', text: 'Cream the butter and sugars' });
-    expect(patch.slots['focus_step.prev']).toBeNull();
-    expect(patch.slots['focus_step.next']).not.toBeNull();
-    expect(patch.slots['focus_step.done']).toBeNull();
+    expect(copy(result, 'instruction')).toEqual({ text: 'Cream the butter and sugars' });
+    expect(result.structure?.spec.elements.prev).toBeUndefined();
+    expect(copy(result, 'next')).toEqual({ text: 'Next' });
   });
 
   it('shows done instead of next on the last step, and prev once past the first', async () => {
     const state: TaskState = { ...fresh(), stepIndex: CLASSIC_CHOCOLATE_CHIP.steps.length - 1 };
 
-    const { patch } = await project.run({ state, templateId: 'focus_step' }, ctx);
+    const result = await run({ state, templateId: 'focus_step' });
 
-    expect(patch.slots['focus_step.prev']).not.toBeNull();
-    expect(patch.slots['focus_step.next']).toBeNull();
-    expect(patch.slots['focus_step.done']).not.toBeNull();
+    expect(result.structure?.spec.elements.prev).toBeDefined();
+    expect(copy(result, 'next')).toEqual({ text: 'Done' });
+    expect(result.structure?.spec.elements.next?.on?.press?.action).toBe('finish');
   });
 
   it('is total: a stepIndex past the end does not throw', async () => {
     const state: TaskState = { ...fresh(), stepIndex: 999 };
 
-    const { patch, warnings } = await project.run({ state, templateId: 'focus_step' }, ctx);
+    const result = await run({ state, templateId: 'focus_step' });
 
-    expect(patch.slots['focus_step.instruction']).toEqual({ kind: 'Heading', text: 'All steps complete' });
-    expect(warnings.length).toBeGreaterThan(0);
+    expect(copy(result, 'instruction')).toEqual({ text: 'All steps complete' });
+    expect(result.warnings.length).toBeGreaterThan(0);
+  });
+
+  it('reports what is actually in the bowl, not what was planned', async () => {
+    const result = await run({ state: completeStep(fresh()), templateId: 'focus_step' });
+
+    const bowl = String(copy(result, 'bowl')?.text);
+    expect(bowl).toContain('1 cup butter');
+    expect(bowl).toContain('¾ cups caster sugar');
   });
 });
 
 describe('project — recovery', () => {
-  it('diagnoses the worst deviation already present in the TaskState and recommends scaling up', async () => {
+  it('diagnoses the worst deviation already in the TaskState and recommends scaling up', async () => {
     let state = setYield(fresh(), 30);
     state = completeStep(state);
     state = completeStep(state);
     state = applyDeviation(state, 'caster_sugar', 2); // over-addition — scalable
 
-    const { patch, warnings } = await project.run({ state, templateId: 'recovery' }, ctx);
+    const result = await run({ state, templateId: 'recovery' });
 
-    expect(patch.slots['recovery.title']).toEqual({ kind: 'Heading', text: 'Caster sugar looks off' });
-    expect(patch.slots['recovery.primary']).toEqual({ kind: 'Button', text: 'Scale up to 60' });
-    expect(patch.slots['recovery.outcome']).toEqual({ kind: 'Metric', label: 'New cookies', value: '60', delta: '+30' });
+    expect(copy(result, 'title')).toEqual({ text: 'Caster sugar looks off' });
+    expect(copy(result, 'fix')).toEqual({ text: 'Scale up to 60' });
+    expect(copy(result, 'outcome')).toEqual({ label: 'New cookies', value: '60', delta: 'you planned for 30' });
     // The topup text is what makes this the recovery beat's actual content —
     // ingredients already caught up to the new scale (caster_sugar, the
     // deviation itself) must not appear; ones that still need more must.
-    const planText = (patch.slots['recovery.plan'] as { text: string }).text;
+    const planText = String(copy(result, 'plan')?.text);
     expect(planText).toContain('Scale the whole batch to 60 cookies');
     expect(planText).toContain('more butter');
     expect(planText).not.toContain('caster sugar');
-    expect(warnings).toEqual([]);
+    expect(result.warnings).toEqual([]);
   });
 
   it('applies a Jev-supplied ingredient+factor choice locally when the TaskState has not been corrected yet', async () => {
@@ -110,79 +119,131 @@ describe('project — recovery', () => {
     state = completeStep(state);
     // NOT applying the deviation to `state` itself — project must derive it.
 
-    const { patch } = await project.run(
-      { state, templateId: 'recovery', deviation: { ingredientId: 'caster_sugar', factor: '2x' } },
-      ctx,
-    );
+    const result = await run({
+      state,
+      templateId: 'recovery',
+      deviation: { ingredientId: 'caster_sugar', factor: '2x' },
+    });
 
-    expect(patch.slots['recovery.title']).toEqual({ kind: 'Heading', text: 'Caster sugar looks off' });
+    expect(copy(result, 'title')).toEqual({ text: 'Caster sugar looks off' });
   });
 
-  it('an under-addition cannot be scaled away — collapses the primary button rather than duplicating "Start over"', async () => {
+  it('an under-addition cannot be scaled away — drops the fix button rather than duplicating "Start over"', async () => {
     let state = setYield(fresh(), 30);
     state = completeStep(state);
     state = completeStep(state);
     state = applyDeviation(state, 'caster_sugar', 0.5); // under-addition
 
-    const { patch } = await project.run({ state, templateId: 'recovery' }, ctx);
+    const result = await run({ state, templateId: 'recovery' });
 
-    expect(patch.slots['recovery.primary']).toBeNull();
-    expect(patch.slots['recovery.secondary']).toEqual({ kind: 'Button', text: 'Start over' });
+    expect(result.structure?.spec.elements.fix).toBeUndefined();
+    expect(copy(result, 'restart')).toEqual({ text: 'Start over' });
   });
 
   it('a deviation factor of "other" cannot be computed and is skipped with a warning, not a throw', async () => {
-    const state = fresh();
+    const result = await run({
+      state: fresh(),
+      templateId: 'recovery',
+      deviation: { ingredientId: 'caster_sugar', factor: 'other' },
+    });
 
-    const { patch, warnings } = await project.run(
-      { state, templateId: 'recovery', deviation: { ingredientId: 'caster_sugar', factor: 'other' } },
-      ctx,
-    );
-
-    expect(patch.slots['recovery.title']).toEqual({ kind: 'Heading', text: 'Nothing to correct' });
-    expect(warnings.some((w) => w.includes('other'))).toBe(true);
+    expect(copy(result, 'title')).toEqual({ text: 'Nothing to correct' });
+    expect(result.warnings.some((w) => w.includes('other'))).toBe(true);
   });
 
   it('is total: no deviation anywhere still renders a neutral surface with a warning, not a throw', async () => {
-    const { patch, warnings } = await project.run({ state: fresh(), templateId: 'recovery' }, ctx);
+    const result = await run({ state: fresh(), templateId: 'recovery' });
 
-    expect(patch.slots['recovery.title']).toEqual({ kind: 'Heading', text: 'Nothing to correct' });
-    expect(warnings.some((w) => w.includes('no deviation'))).toBe(true);
+    expect(copy(result, 'title')).toEqual({ text: 'Nothing to correct' });
+    expect(result.warnings.some((w) => w.includes('deviates'))).toBe(true);
   });
 });
 
 describe('project — summary_done / choice_cards / people_picker', () => {
-  it('summary_done reports the current yield', async () => {
-    const { patch } = await project.run({ state: setYield(fresh(), 36), templateId: 'summary_done' }, ctx);
+  it('summary_done reports the current yield and what it cost', async () => {
+    const result = await run({ state: setYield(fresh(), 36), templateId: 'summary_done' });
 
-    expect(patch.slots['summary_done.result']).toEqual({ kind: 'Metric', label: 'Yield', value: '36 cookies' });
+    expect(copy(result, 'result')).toEqual({ label: 'Made', value: '36 cookies' });
+    expect(copy(result, 'spend')).toEqual({ label: 'Ingredients', value: '$10.98', delta: '9 items' });
   });
 
   it('choice_cards projects the 3 seeded demo options — clearly seed data, not derived', async () => {
-    const { patch, warnings } = await project.run({ state: fresh(), templateId: 'choice_cards' }, ctx);
+    const result = await run({ state: fresh(), templateId: 'choice_cards' });
 
     expect(CHOICE_OPTIONS).toHaveLength(3);
-    expect(patch.slots['choice_cards.option1']).toMatchObject({ kind: 'ListItem', title: CHOICE_OPTIONS[0]?.title });
-    expect(patch.slots['choice_cards.option3']).toMatchObject({ kind: 'ListItem', title: CHOICE_OPTIONS[2]?.title });
-    expect(warnings).toEqual([]);
+    expect(copy(result, 'option_0')).toMatchObject({ title: CHOICE_OPTIONS[0]?.title });
+    expect(copy(result, 'option_2')).toMatchObject({ title: CHOICE_OPTIONS[2]?.title });
+    expect(result.warnings).toEqual([]);
   });
 
   it('people_picker projects the seeded demo contacts', async () => {
-    const { patch, warnings } = await project.run({ state: fresh(), templateId: 'people_picker' }, ctx);
+    const result = await run({ state: fresh(), templateId: 'people_picker' });
 
     expect(CONTACTS).toHaveLength(3);
-    expect(patch.slots['people_picker.person1']).toEqual({ kind: 'ListItem', title: CONTACTS[0]?.name });
-    expect(patch.slots['people_picker.confirm']).toEqual({ kind: 'Button', text: 'Send messages' });
-    expect(warnings).toEqual([]);
+    expect(copy(result, 'person_0')).toEqual({ title: CONTACTS[0]?.name });
+    expect(copy(result, 'confirm')).toEqual({ text: 'Send messages' });
+    expect(result.warnings).toEqual([]);
   });
 });
 
-describe('project — out of scope templates', () => {
-  it('message_drafts and generic_answer are generated, not projected: empty patch + a warning, never a throw', async () => {
-    const drafts = await project.run({ state: fresh(), templateId: 'message_drafts' }, ctx);
-    const answer = await project.run({ state: fresh(), templateId: 'generic_answer' }, ctx);
+describe('project — out of scope surfaces', () => {
+  it('message_drafts and generic_answer are generated, not projected: no surface + a warning, never a throw', async () => {
+    const drafts = await run({ state: fresh(), templateId: 'message_drafts' });
+    const answer = await run({ state: fresh(), templateId: 'generic_answer' });
 
-    expect(drafts.patch.slots).toEqual({});
+    expect(drafts.structure).toBeNull();
+    expect(drafts.content).toBeNull();
     expect(drafts.warnings[0]).toContain('generated, not projected');
-    expect(answer.patch.slots).toEqual({});
+    expect(answer.structure).toBeNull();
+  });
+});
+
+describe('project — never throws', () => {
+  const broken: ReadonlyArray<[string, TaskState]> = [
+    ['a NaN scale', { ...fresh(), scale: Number.NaN }],
+    ['an infinite scale', { ...fresh(), scale: Number.POSITIVE_INFINITY }],
+    ['a negative step index', { ...fresh(), stepIndex: -4 }],
+    ['a bowl naming ingredients the recipe does not have', { ...fresh(), inBowl: { unobtainium: 3 } }],
+    [
+      'a recipe with no steps and no ingredients',
+      { recipe: { ...CLASSIC_CHOCOLATE_CHIP, ingredients: [], steps: [] }, scale: 1, stepIndex: 0, inBowl: {} },
+    ],
+    [
+      'a recipe whose fields are the wrong types',
+      {
+        recipe: {
+          ...CLASSIC_CHOCOLATE_CHIP,
+          baseYield: 'lots' as unknown as number,
+          yieldUnit: null as unknown as string,
+          ingredients: [null as unknown as (typeof CLASSIC_CHOCOLATE_CHIP)['ingredients'][number]],
+        },
+        scale: 1,
+        stepIndex: 0,
+        inBowl: {},
+      },
+    ],
+  ];
+
+  for (const [name, state] of broken) {
+    for (const templateId of ['item_detail', 'focus_step', 'recovery', 'summary_done'] as const) {
+      it(`${templateId} with ${name}: returns a result, and says why when there is no surface`, async () => {
+        const result = await run({ state, templateId });
+        // Either a surface, or no surface AND a stated reason. Never a throw,
+        // and never a plausible-looking empty screen.
+        if (result.structure === null) {
+          expect(result.content).toBeNull();
+          expect(result.warnings.join(' ')).toMatch(/project:/);
+        } else {
+          expect(result.content).not.toBeNull();
+        }
+      });
+    }
+  }
+
+  it('a state that is not a state at all is reported, not thrown', async () => {
+    const result = await run({ state: null as unknown as TaskState, templateId: 'item_detail' });
+
+    expect(result.structure).toBeNull();
+    expect(result.warnings.join(' ')).toContain('project:');
   });
 });
