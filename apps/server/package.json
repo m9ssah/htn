@@ -8,6 +8,7 @@
     "build": "tsc -b",
     "node": "tsc -b && node dist/cli.js",
     "serve": "tsc -b && node dist/server.js",
+    "demo": "tsc -b && node dist/demo.js",
     "live-jev": "tsc -b && node dist/live-jev.js",
     "record-jev-fixtures": "tsc -b && node dist/record-fixtures.js"
   },

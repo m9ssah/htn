@@ -124,6 +124,7 @@ function parseNoulOptional(raw: JevWireResponse, qid: string): JevNoulAnswer | u
  */
 export function parseJevResponse(raw: JevWireResponse): JevAnswer {
   const wantsStyleChange = parseNoulOptional(raw, 'wantsStyleChange');
+  const wantsSaved = parseNoulOptional(raw, 'wantsSaved');
   const deviationIngredient = parseChoiceOptional(raw, 'deviationIngredient', Object.keys(DEVIATION_INGREDIENT_DESCRIPTIONS));
   const deviationFactor = parseChoiceOptional(raw, 'deviationFactor', Object.keys(DEVIATION_FACTOR_DESCRIPTIONS));
   return {
@@ -140,6 +141,7 @@ export function parseJevResponse(raw: JevWireResponse): JevAnswer {
     // treats `key: undefined` differently from an absent key, and "absent"
     // is what "not asked/not answered" should mean here.
     ...(wantsStyleChange !== undefined ? { wantsStyleChange } : {}),
+    ...(wantsSaved !== undefined ? { wantsSaved } : {}),
     ...(deviationIngredient !== undefined ? { deviationIngredient } : {}),
     ...(deviationFactor !== undefined ? { deviationFactor } : {}),
     usage: { inputTokens: raw.usage?.input_tokens ?? 0, outputTokens: raw.usage?.output_tokens ?? 0 },

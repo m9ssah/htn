@@ -163,6 +163,10 @@ export type JevAnswer = {
    * LOOK? `style`'s only gate (p14: Jev otherwise picks a theme on every
    * utterance). */
   wantsStyleChange?: JevNoulAnswer;
+  /** Does the utterance ask for what is open to be saved, listed or tracked?
+   * The gate for the server-side `grocery_added` surface, which is not a
+   * `TemplateId` and therefore cannot be reached through `templateId`. */
+  wantsSaved?: JevNoulAnswer;
   /** `correct`-route only: which of the current recipe's ingredients the
    * utterance was about. */
   deviationIngredient?: JevChoiceAnswer<string>;
