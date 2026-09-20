@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jev Agent Architecture Diagram</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'JetBrains Mono', monospace; background: #020617; min-height: 100vh; padding: 2rem; color: white; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header { margin-bottom: 2rem; }
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+    .pulse-dot { width: 12px; height: 12px; background: #22d3ee; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
+    .diagram-container { background: rgba(15, 23, 42, 0.5); border-radius: 1rem; border: 1px solid #1e293b; padding: 1.5rem; overflow-x: auto; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.5rem; }
+    .card { background: rgba(15, 23, 42, 0.5); border: 1px solid #1e293b; border-radius: 0.75rem; padding: 1rem; }
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-emerald { background: #34d399; } .dot-violet { background: #a78bfa; } .dot-rose { background: #fb7185; }
+    .card h3 { font-size: 0.8125rem; font-weight: 600; }
+    .card ul { list-style: none; }
+    .card li { color: #94a3b8; font-size: 0.6875rem; line-height: 1.7; }
+    .card li b { color: #e2e8f0; font-weight: 600; }
+    .footer { margin-top: 1.5rem; color: #475569; font-size: 0.6875rem; text-align: center; }
+    .toolbar { position: relative; margin-left: auto; display: flex; align-items: center; gap: .5rem; }
+    .toolbar-actions { display: none; gap: .5rem; }
+    .toolbar-actions.open { display: flex; }
+    .toolbar button { font-family: inherit; font-size: .6875rem; color: #94a3b8; background: rgba(15,23,42,.8); border: 1px solid #1e293b; border-radius: .5rem; padding: .35rem .6rem; cursor: pointer; }
+    .toolbar button:hover { color: #e2e8f0; border-color: #334155; }
+    @media print { .toolbar { display: none !important; } }
+  </style>
+</head>
+<body>
+<div class="container" id="report-container">
+  <div class="header">
+    <div class="header-row">
+      <div class="pulse-dot"></div>
+      <h1>Jev Agent Architecture</h1>
+      <div class="toolbar">
+        <div class="toolbar-actions" id="toolbarActions">
+          <button onclick="copyAsImage()">📋 Copy</button>
+          <button onclick="downloadPNG()">🖼️ PNG</button>
+          <button onclick="downloadPDF()">📄 PDF</button>
+        </div>
+        <button class="toolbar-toggle" onclick="document.getElementById('toolbarActions').classList.toggle('open')">⋯</button>
+      </div>
+    </div>
+    <p class="subtitle">Strong model generates · Jev judges · Code executes — every assignment measured across 12 probes</p>
+  </div>
+
+  <div class="diagram-container">
+  <svg viewBox="0 0 1020 1230" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+      </pattern>
+      <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+      </marker>
+      <marker id="arrowfast" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/>
+      </marker>
+      <marker id="arrowslow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/>
+      </marker>
+    </defs>
+    <rect width="1020" height="1230" fill="url(#grid)"/>
+
+    <!-- ARROWS FIRST (painted behind boxes) -->
+    <line x1="510" y1="68" x2="510" y2="96" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <line x1="510" y1="300" x2="510" y2="326" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <path d="M 440 368 L 220 368 L 220 404" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowfast)"/>
+    <path d="M 580 368 L 800 368 L 800 404" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowslow)"/>
+    <path d="M 800 496 L 800 520 L 510 520 L 510 546" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowslow)"/>
+    <path d="M 220 466 L 220 700 L 160 700 L 160 776" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowfast)"/>
+    <line x1="510" y1="732" x2="510" y2="776" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <line x1="320" y1="642" x2="368" y2="642" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <line x1="558" y1="642" x2="606" y2="642" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <path d="M 765 690 L 765 706 L 205 706 L 205 676" fill="none" stroke="#fb923c" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrowhead)"/>
+    <line x1="160" y1="872" x2="160" y2="900" stroke="#64748b" stroke-width="1.2"/>
+    <line x1="390" y1="872" x2="390" y2="900" stroke="#64748b" stroke-width="1.2"/>
+    <line x1="625" y1="872" x2="625" y2="900" stroke="#64748b" stroke-width="1.2"/>
+    <line x1="870" y1="872" x2="870" y2="900" stroke="#64748b" stroke-width="1.2"/>
+    <line x1="160" y1="900" x2="870" y2="900" stroke="#64748b" stroke-width="1.2"/>
+    <line x1="510" y1="900" x2="510" y2="934" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <line x1="510" y1="990" x2="510" y2="1028" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+    <!-- 1. USER REQUEST -->
+    <rect x="410" y="24" width="200" height="44" rx="6" fill="#0f172a"/>
+    <rect x="410" y="24" width="200" height="44" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="510" y="52" fill="white" font-size="12" font-weight="600" text-anchor="middle">user request</text>
+
+    <!-- 2. JEV DECISION LAYER -->
+    <rect x="70" y="96" width="880" height="204" rx="8" fill="#0f172a"/>
+    <rect x="70" y="96" width="880" height="204" rx="8" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="510" y="122" fill="#34d399" font-size="12" font-weight="700" text-anchor="middle">STAGE 1 · JEV DECISION LAYER — ONE BATCHED CALL</text>
+    <text x="510" y="139" fill="#94a3b8" font-size="9" text-anchor="middle">~200-350ms · ~$0.00003 · every enumerable judgment, asked speculatively and in parallel</text>
+    <line x1="100" y1="152" x2="920" y2="152" stroke="#1e293b" stroke-width="1"/>
+    <text x="110" y="174" fill="#e2e8f0" font-size="10">routing — which paths are needed?</text>
+    <text x="470" y="174" fill="#fb7185" font-size="9" font-weight="600">⚠ 0.54 — see open risk</text>
+    <text x="110" y="194" fill="#e2e8f0" font-size="10">research — which candidates to investigate?</text>
+    <text x="470" y="194" fill="#34d399" font-size="9" font-weight="600">1.00</text>
+    <text x="110" y="214" fill="#e2e8f0" font-size="10">research — does the candidate list cover this?</text>
+    <text x="470" y="214" fill="#34d399" font-size="9" font-weight="600">flags gaps at 0.06</text>
+    <text x="110" y="234" fill="#e2e8f0" font-size="10">research — do we already know enough?</text>
+    <text x="470" y="234" fill="#34d399" font-size="9" font-weight="600">1.00</text>
+    <text x="110" y="254" fill="#e2e8f0" font-size="10">context — which facts go to the strong model?</text>
+    <text x="470" y="254" fill="#34d399" font-size="9" font-weight="600">1.00 @ 20 items</text>
+    <text x="590" y="174" fill="#e2e8f0" font-size="10">UI — which layout / skeleton?</text>
+    <text x="855" y="174" fill="#34d399" font-size="9" font-weight="600">1.00</text>
+    <text x="590" y="194" fill="#e2e8f0" font-size="10">UI — which component?</text>
+    <text x="855" y="194" fill="#fbbf24" font-size="9" font-weight="600">G 0.95</text>
+    <text x="590" y="214" fill="#e2e8f0" font-size="10">UI — palette / font / density?</text>
+    <text x="855" y="214" fill="#fbbf24" font-size="9" font-weight="600">G</text>
+    <text x="590" y="234" fill="#e2e8f0" font-size="10">which components must change?</text>
+    <text x="855" y="234" fill="#fbbf24" font-size="9" font-weight="600">G 0.78</text>
+    <text x="590" y="254" fill="#e2e8f0" font-size="10">meta — does this need generation?</text>
+    <text x="855" y="254" fill="#34d399" font-size="9" font-weight="600">✓</text>
+    <text x="510" y="284" fill="#64748b" font-size="8" text-anchor="middle">questions are free — 1 question 381ms · 32 questions 362ms · 200 options 366ms</text>
+
+    <!-- 3. GATE -->
+    <rect x="400" y="326" width="220" height="42" rx="6" fill="#0f172a"/>
+    <rect x="400" y="326" width="220" height="42" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+    <text x="510" y="343" fill="white" font-size="11" font-weight="600" text-anchor="middle">confidence ≥ 0.60 ?</text>
+    <text x="510" y="359" fill="#94a3b8" font-size="8" text-anchor="middle">no wrong answer exceeded 0.55</text>
+
+    <!-- 4a. FAST PATH -->
+    <rect x="60" y="404" width="320" height="62" rx="6" fill="#0f172a"/>
+    <rect x="60" y="404" width="320" height="62" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="220" y="426" fill="white" font-size="11" font-weight="600" text-anchor="middle">FAST PATH</text>
+    <text x="220" y="443" fill="#94a3b8" font-size="9" text-anchor="middle">all ≥0.60, nothing generative</text>
+    <text x="220" y="458" fill="#34d399" font-size="9" font-weight="600" text-anchor="middle">~250-400ms total</text>
+
+    <!-- 4b. STRONG MODEL -->
+    <rect x="640" y="404" width="320" height="92" rx="6" fill="#0f172a"/>
+    <rect x="640" y="404" width="320" height="92" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="800" y="426" fill="white" font-size="11" font-weight="600" text-anchor="middle">STRONG MODEL · one call</text>
+    <text x="800" y="443" fill="#94a3b8" font-size="9" text-anchor="middle">generative OR any confidence &lt; 0.60</text>
+    <text x="800" y="459" fill="#94a3b8" font-size="8" text-anchor="middle">fed ONLY Jev's selected context</text>
+    <text x="800" y="474" fill="#94a3b8" font-size="8" text-anchor="middle">keywords · markup · CSS · hex · copy · to-do</text>
+    <text x="800" y="489" fill="#a78bfa" font-size="9" font-weight="600" text-anchor="middle">~1.4-1.8s</text>
+
+    <!-- 5. SEARCH LOOP REGION -->
+    <rect x="60" y="546" width="890" height="170" rx="12" fill="none" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="8,4"/>
+    <text x="80" y="570" fill="#fb923c" font-size="10" font-weight="700">STAGE 2 · SEARCH &amp; FETCH LOOP — LLM generates, Jev judges</text>
+    <text x="80" y="585" fill="#64748b" font-size="8">the strong-model call sits OUTSIDE the loop and is cached per request type</text>
+
+    <rect x="90" y="600" width="230" height="76" rx="6" fill="#0f172a"/>
+    <rect x="90" y="600" width="230" height="76" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="205" y="624" fill="white" font-size="11" font-weight="600" text-anchor="middle">keywords / queries</text>
+    <text x="205" y="641" fill="#94a3b8" font-size="9" text-anchor="middle">STRONG MODEL</text>
+    <text x="205" y="661" fill="#a78bfa" font-size="8" text-anchor="middle">~1.4s · ONCE · cached</text>
+
+    <rect x="368" y="600" width="190" height="76" rx="6" fill="#0f172a"/>
+    <rect x="368" y="600" width="190" height="76" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="463" y="624" fill="white" font-size="11" font-weight="600" text-anchor="middle">run search / fetch</text>
+    <text x="463" y="641" fill="#94a3b8" font-size="9" text-anchor="middle">CODE — no model</text>
+
+    <rect x="606" y="590" width="318" height="100" rx="6" fill="#0f172a"/>
+    <rect x="606" y="590" width="318" height="100" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="765" y="610" fill="white" font-size="11" font-weight="600" text-anchor="middle">JEV · one call over N results · ~250ms</text>
+    <text x="620" y="630" fill="#e2e8f0" font-size="9">relevant?  per result</text>
+    <text x="905" y="630" fill="#34d399" font-size="9" font-weight="600" text-anchor="end">1.00</text>
+    <text x="620" y="647" fill="#e2e8f0" font-size="9">current + authoritative?</text>
+    <text x="905" y="647" fill="#34d399" font-size="9" font-weight="600" text-anchor="end">0.89</text>
+    <text x="620" y="664" fill="#e2e8f0" font-size="9">do the results conflict?</text>
+    <text x="905" y="664" fill="#34d399" font-size="9" font-weight="600" text-anchor="end">0.97</text>
+    <text x="620" y="681" fill="#e2e8f0" font-size="9">search again?</text>
+    <text x="905" y="681" fill="#34d399" font-size="9" font-weight="600" text-anchor="end">3/3</text>
+
+    <!-- 6. EXECUTION -->
+    <text x="60" y="762" fill="#94a3b8" font-size="10" font-weight="700">STAGE 3 · EXECUTION — decide (model) vs do (code)</text>
+
+    <rect x="60" y="776" width="200" height="96" rx="6" fill="#0f172a"/>
+    <rect x="60" y="776" width="200" height="96" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="160" y="798" fill="white" font-size="11" font-weight="600" text-anchor="middle">Make UI</text>
+    <text x="160" y="816" fill="#34d399" font-size="9" text-anchor="middle">J · which skeleton? 1.00</text>
+    <text x="160" y="832" fill="#a78bfa" font-size="9" text-anchor="middle">S · markup / copy</text>
+    <text x="160" y="852" fill="#64748b" font-size="8" text-anchor="middle">C · fill template, insert</text>
+
+    <rect x="290" y="776" width="200" height="96" rx="6" fill="#0f172a"/>
+    <rect x="290" y="776" width="200" height="96" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="390" y="798" fill="white" font-size="11" font-weight="600" text-anchor="middle">Grab data</text>
+    <text x="390" y="816" fill="#34d399" font-size="9" text-anchor="middle">J · filter results 1.00</text>
+    <text x="390" y="832" fill="#94a3b8" font-size="8" text-anchor="middle">via Stage 2 loop</text>
+    <text x="390" y="852" fill="#64748b" font-size="8" text-anchor="middle">C · run the fetch</text>
+
+    <rect x="520" y="776" width="210" height="96" rx="6" fill="#0f172a"/>
+    <rect x="520" y="776" width="210" height="96" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+    <text x="625" y="798" fill="white" font-size="11" font-weight="600" text-anchor="middle">Update UI components</text>
+    <text x="625" y="816" fill="#fbbf24" font-size="9" text-anchor="middle">J+G · which change? 0.78</text>
+    <text x="625" y="832" fill="#fb7185" font-size="8" text-anchor="middle">weakest live node</text>
+    <text x="625" y="852" fill="#64748b" font-size="8" text-anchor="middle">C · apply prop / visibility</text>
+
+    <rect x="780" y="776" width="180" height="96" rx="6" fill="#0f172a"/>
+    <rect x="780" y="776" width="180" height="96" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="870" y="798" fill="white" font-size="11" font-weight="600" text-anchor="middle">image generation</text>
+    <text x="870" y="816" fill="#a78bfa" font-size="9" text-anchor="middle">S · the prompt</text>
+    <text x="870" y="832" fill="#94a3b8" font-size="8" text-anchor="middle">generative</text>
+    <text x="870" y="852" fill="#64748b" font-size="8" text-anchor="middle">C · insert the &lt;img&gt;</text>
+
+    <!-- 7. WHITELIST -->
+    <rect x="300" y="934" width="420" height="56" rx="6" fill="#0f172a"/>
+    <rect x="300" y="934" width="420" height="56" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <text x="510" y="956" fill="white" font-size="11" font-weight="600" text-anchor="middle">WHITELIST VALIDATION — CODE</text>
+    <text x="510" y="973" fill="#94a3b8" font-size="8" text-anchor="middle">reject malformed / out-of-scope payloads · plan-v1.md:98 step 21</text>
+
+    <!-- 8. TOUCH COMPONENT -->
+    <rect x="360" y="1028" width="300" height="50" rx="6" fill="#0f172a"/>
+    <rect x="360" y="1028" width="300" height="50" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="510" y="1049" fill="white" font-size="11" font-weight="600" text-anchor="middle">Touch the component</text>
+    <text x="510" y="1066" fill="#94a3b8" font-size="8" text-anchor="middle">CODE — the actual DOM mutation, no model</text>
+
+    <!-- LEGEND (outside all boundaries) -->
+    <text x="60" y="1126" fill="#94a3b8" font-size="10" font-weight="700">LEGEND</text>
+    <rect x="60" y="1140" width="14" height="14" rx="3" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="82" y="1151" fill="#94a3b8" font-size="9">Jev — judgment, ~200ms</text>
+    <rect x="250" y="1140" width="14" height="14" rx="3" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="272" y="1151" fill="#94a3b8" font-size="9">Strong model — generative, ~1.5s</text>
+    <rect x="510" y="1140" width="14" height="14" rx="3" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="532" y="1151" fill="#94a3b8" font-size="9">Code — no model</text>
+    <rect x="680" y="1140" width="14" height="14" rx="3" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+    <text x="702" y="1151" fill="#94a3b8" font-size="9">Jev + gate (G)</text>
+    <rect x="830" y="1140" width="14" height="14" rx="3" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+    <text x="852" y="1151" fill="#94a3b8" font-size="9">Guard / risk</text>
+    <text x="60" y="1178" fill="#64748b" font-size="8">Scores are F1 or accuracy against gold labels, 3-8 repetitions per case. G = escalate to the strong model below 0.60 confidence.</text>
+  </svg>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-header"><div class="card-dot dot-emerald"></div><h3>What Jev owns</h3></div>
+      <ul>
+        <li>• <b>1.00</b> — choose the UI / skeleton</li>
+        <li>• <b>1.00</b> — filter fetched search results</li>
+        <li>• <b>1.00</b> — context selection @ 20 items</li>
+        <li>• <b>1.00</b> — what to research, enough yet?</li>
+        <li>• <b>0.97 / 0.89</b> — conflict, recency</li>
+        <li>• <b>0.95</b> — component decision (gated)</li>
+        <li>• <b>0.92</b> — filter a to-do list</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-dot dot-violet"></div><h3>What only the strong model can do</h3></div>
+      <ul>
+        <li>• Jev has <b>no generative output</b></li>
+        <li>• keywords and search queries</li>
+        <li>• candidate lists of any kind</li>
+        <li>• markup, CSS values, hex codes, copy</li>
+        <li>• writing the to-do list</li>
+        <li>• image generation</li>
+        <li>• <b>routing</b> — until the gate test runs</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-dot dot-rose"></div><h3>Open risk &amp; next step</h3></div>
+      <ul>
+        <li>• Task assignment: <b>0.54</b> agreement, rubric 2.29/4</li>
+        <li>• It was asked about <b>7 agents at once</b></li>
+        <li>• Its confidence separation was <b>never measured</b></li>
+        <li>• If it gates like the rest: <b>1.6s → 250ms</b></li>
+        <li>• ~1 hour of work, highest value left</li>
+        <li>• Then: reframe Update UI (0.78)</li>
+        <li>• Unmeasured: multi-node compounding</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">
+    Measured 2026-09-19 · jev-1.13.0 via api.typesafe.ai · 12 probes, ~$1.75 total · warm p50 152ms, p95 210ms · ceiling ~32,700 input tokens
+  </div>
+</div>
+<script>
+function captureRect(){const el=document.getElementById('report-container');const r=el.getBoundingClientRect();const p=32;return{x:window.scrollX+r.left-p,y:window.scrollY+r.top-p,width:r.width+p*2,height:r.height+p*2,ignoreElements:(e)=>e.classList&&e.classList.contains('toolbar')};}
+async function shot(){return await html2canvas(document.body,{backgroundColor:'#020617',scale:2,...captureRect()});}
+async function copyAsImage(){const c=await shot();c.toBlob(async(b)=>{try{await navigator.clipboard.write([new ClipboardItem({'image/png':b})]);}catch(e){alert('Clipboard needs a secure context. Use PNG instead.');}});}
+async function downloadPNG(){const c=await shot();const a=document.createElement('a');a.download='jev-architecture.png';a.href=c.toDataURL('image/png');a.click();}
+async function downloadPDF(){const c=await shot();const{jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:c.width>c.height?'l':'p',unit:'px',format:[c.width,c.height]});pdf.addImage(c.toDataURL('image/png'),'PNG',0,0,c.width,c.height);pdf.save('jev-architecture.pdf');}
+</script>
+</body>
+</html>

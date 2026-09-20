@@ -1,0 +1,446 @@
+{
+  "rows": [
+    {
+      "node": "Component Decision",
+      "level": "L1",
+      "case": "one-of-5-exclusive",
+      "pass_rate": 1.0,
+      "score": 0.967,
+      "p50_ms": 294,
+      "stable": true,
+      "detail": "picked=radio_group conf=0.97 mass=0.98",
+      "n_questions": 1
+    },
+    {
+      "node": "Component Decision",
+      "level": "L1",
+      "case": "notifications-on-off",
+      "pass_rate": 1.0,
+      "score": 1.0,
+      "p50_ms": 188,
+      "stable": true,
+      "detail": "picked=toggle conf=1.00 mass=1.00",
+      "n_questions": 1
+    },
+    {
+      "node": "Component Decision",
+      "level": "L1",
+      "case": "one-of-200-countries",
+      "pass_rate": 1.0,
+      "score": 1.0,
+      "p50_ms": 196,
+      "stable": true,
+      "detail": "picked=combobox conf=0.93 mass=1.00",
+      "n_questions": 1
+    },
+    {
+      "node": "Component Decision",
+      "level": "L2",
+      "case": "multi-20-interests",
+      "pass_rate": 1.0,
+      "score": 1.0,
+      "p50_ms": 211,
+      "stable": true,
+      "detail": "picked=checkbox_group conf=0.56 mass=1.00",
+      "n_questions": 1
+    },
+    {
+      "node": "Component Decision",
+      "level": "L2",
+      "case": "plan-compare",
+      "pass_rate": 1.0,
+      "score": 0.93,
+      "p50_ms": 261,
+      "stable": true,
+      "detail": "picked=cards conf=0.92 mass=0.93",
+      "n_questions": 1
+    },
+    {
+      "node": "Component Decision",
+      "level": "L2",
+      "case": "2-opts-mobile",
+      "pass_rate": 1.0,
+      "score": 0.98,
+      "p50_ms": 167,
+      "stable": true,
+      "detail": "picked=segmented conf=0.97 mass=0.98",
+      "n_questions": 1
+    },
+    {
+      "node": "Component Decision",
+      "level": "L3",
+      "case": "5-opts-long-desc",
+      "pass_rate": 1.0,
+      "score": 0.98,
+      "p50_ms": 189,
+      "stable": true,
+      "detail": "picked=radio_group conf=0.97 mass=0.98",
+      "n_questions": 1
+    },
+    {
+      "node": "Component Decision",
+      "level": "L3",
+      "case": "long-list-a11y",
+      "pass_rate": 1.0,
+      "score": 0.687,
+      "p50_ms": 195,
+      "stable": true,
+      "detail": "picked=combobox conf=0.61 mass=0.64",
+      "n_questions": 1
+    },
+    {
+      "node": "Component Decision",
+      "level": "L4",
+      "case": "12-options-ambiguous",
+      "pass_rate": 1.0,
+      "score": 1.0,
+      "p50_ms": 233,
+      "stable": true,
+      "detail": "picked=select conf=0.55 mass=1.00",
+      "n_questions": 1
+    },
+    {
+      "node": "Task Assignment",
+      "level": "L1",
+      "case": "button-color",
+      "pass_rate": 1.0,
+      "score": 1.0,
+      "p50_ms": 191,
+      "stable": true,
+      "detail": "acc=1.00 P=1.00 R=1.00 fp=0 fn=0 ",
+      "n_questions": 7
+    },
+    {
+      "node": "Task Assignment",
+      "level": "L1",
+      "case": "toggle-setting",
+      "pass_rate": 0.0,
+      "score": 0.857,
+      "p50_ms": 273,
+      "stable": true,
+      "detail": "acc=0.86 P=0.67 R=1.00 fp=1 fn=0 +component_decision",
+      "n_questions": 7
+    },
+    {
+      "node": "Task Assignment",
+      "level": "L2",
+      "case": "settings-page",
+      "pass_rate": 0.0,
+      "score": 0.714,
+      "p50_ms": 241,
+      "stable": true,
+      "detail": "acc=0.71 P=0.83 R=0.83 fp=1 fn=1 +styling -functional_action",
+      "n_questions": 7
+    },
+    {
+      "node": "Task Assignment",
+      "level": "L3",
+      "case": "live-dashboard",
+      "pass_rate": 0.0,
+      "score": 0.714,
+      "p50_ms": 155,
+      "stable": true,
+      "detail": "acc=0.71 P=1.00 R=0.67 fp=0 fn=2 -styling -functional_action",
+      "n_questions": 7
+    },
+    {
+      "node": "Task Assignment",
+      "level": "L4",
+      "case": "make-it-nicer",
+      "pass_rate": 0.0,
+      "score": 0.81,
+      "p50_ms": 171,
+      "stable": false,
+      "detail": "acc=0.86 P=0.67 R=1.00 fp=1 fn=0 +ui_generation",
+      "n_questions": 7
+    },
+    {
+      "node": "Context Selection",
+      "level": "L2",
+      "case": "pool-10",
+      "pass_rate": 0.0,
+      "score": 0.9,
+      "p50_ms": 176,
+      "stable": true,
+      "detail": "acc=0.90 P=1.00 R=0.86 fp=0 fn=1 -twelve_controls",
+      "n_questions": 10
+    },
+    {
+      "node": "Context Selection",
+      "level": "L3",
+      "case": "pool-15",
+      "pass_rate": 0.0,
+      "score": 0.933,
+      "p50_ms": 176,
+      "stable": true,
+      "detail": "acc=0.93 P=1.00 R=0.88 fp=0 fn=1 -twelve_controls",
+      "n_questions": 15
+    },
+    {
+      "node": "Context Selection",
+      "level": "L3",
+      "case": "pool-20",
+      "pass_rate": 0.0,
+      "score": 0.95,
+      "p50_ms": 226,
+      "stable": true,
+      "detail": "acc=0.95 P=1.00 R=0.89 fp=0 fn=1 -twelve_controls",
+      "n_questions": 20
+    },
+    {
+      "node": "Functional Action",
+      "level": "L1",
+      "case": "turn-off",
+      "pass_rate": 1.0,
+      "score": 0.997,
+      "p50_ms": 179,
+      "stable": true,
+      "detail": "picked=disable_all conf=0.99 mass=1.00",
+      "n_questions": 1
+    },
+    {
+      "node": "Functional Action",
+      "level": "L2",
+      "case": "push-not-email",
+      "pass_rate": 1.0,
+      "score": 1.0,
+      "p50_ms": 198,
+      "stable": true,
+      "detail": "picked=disable_push_only conf=1.00 mass=1.00",
+      "n_questions": 1
+    },
+    {
+      "node": "Functional Action",
+      "level": "L3",
+      "case": "until-tomorrow",
+      "pass_rate": 1.0,
+      "score": 0.977,
+      "p50_ms": 215,
+      "stable": true,
+      "detail": "picked=snooze_temporary conf=0.97 mass=0.97",
+      "n_questions": 1
+    },
+    {
+      "node": "Functional Action",
+      "level": "L3",
+      "case": "push-off-confirm",
+      "pass_rate": 1.0,
+      "score": 1.0,
+      "p50_ms": 209,
+      "stable": true,
+      "detail": "picked=disable_push_only conf=1.00 mass=1.00",
+      "n_questions": 1
+    },
+    {
+      "node": "Functional Action",
+      "level": "L4",
+      "case": "quiet-please",
+      "pass_rate": 0.0,
+      "score": 0.56,
+      "p50_ms": 195,
+      "stable": true,
+      "detail": "picked=other conf=0.36 mass=0.53",
+      "n_questions": 1
+    },
+    {
+      "node": "Settings Update",
+      "level": "L1",
+      "case": "mute-sound",
+      "pass_rate": 1.0,
+      "score": 1.0,
+      "p50_ms": 175,
+      "stable": true,
+      "detail": "acc=1.00 P=1.00 R=1.00 fp=0 fn=0 ",
+      "n_questions": 6
+    },
+    {
+      "node": "Settings Update",
+      "level": "L2",
+      "case": "push-only",
+      "pass_rate": 1.0,
+      "score": 1.0,
+      "p50_ms": 183,
+      "stable": true,
+      "detail": "acc=1.00 P=1.00 R=1.00 fp=0 fn=0 ",
+      "n_questions": 6
+    },
+    {
+      "node": "Settings Update",
+      "level": "L3",
+      "case": "all-but-sms",
+      "pass_rate": 1.0,
+      "score": 1.0,
+      "p50_ms": 156,
+      "stable": true,
+      "detail": "acc=1.00 P=1.00 R=1.00 fp=0 fn=0 ",
+      "n_questions": 6
+    },
+    {
+      "node": "Settings Update",
+      "level": "L4",
+      "case": "too-many-emails",
+      "pass_rate": 1.0,
+      "score": 1.0,
+      "p50_ms": 163,
+      "stable": true,
+      "detail": "acc=1.00 P=1.00 R=1.00 fp=0 fn=0 ",
+      "n_questions": 6
+    },
+    {
+      "node": "Research Strategy",
+      "level": "L2",
+      "case": "darkmode-filter",
+      "pass_rate": 1.0,
+      "score": 1.0,
+      "p50_ms": 184,
+      "stable": true,
+      "detail": "acc=1.00 P=1.00 R=1.00 fp=0 fn=0 ",
+      "n_questions": 12
+    },
+    {
+      "node": "Research Strategy",
+      "level": "L3",
+      "case": "darkmode-priority",
+      "pass_rate": 0.0,
+      "score": 0.917,
+      "p50_ms": 182,
+      "stable": false,
+      "detail": "acc=0.92 P=0.88 R=1.00 fp=1 fn=0 +branding",
+      "n_questions": 12
+    },
+    {
+      "node": "Research Stop",
+      "level": "L2",
+      "case": "enough-info",
+      "pass_rate": 0.0,
+      "score": 0.343,
+      "p50_ms": 196,
+      "stable": true,
+      "detail": "p=0.33 gold=True",
+      "n_questions": 1
+    },
+    {
+      "node": "Research Stop",
+      "level": "L3",
+      "case": "missing-critical",
+      "pass_rate": 1.0,
+      "score": 0.95,
+      "p50_ms": 278,
+      "stable": true,
+      "detail": "p=0.05 gold=False",
+      "n_questions": 1
+    },
+    {
+      "node": "Task Decomposition",
+      "level": "L3",
+      "case": "profile-page-filter",
+      "pass_rate": 0.667,
+      "score": 0.972,
+      "p50_ms": 168,
+      "stable": false,
+      "detail": "acc=1.00 P=1.00 R=1.00 fp=0 fn=0 ",
+      "n_questions": 12
+    },
+    {
+      "node": "Styling",
+      "level": "L1",
+      "case": "blue-to-green",
+      "pass_rate": 0.0,
+      "score": 0.347,
+      "p50_ms": 216,
+      "stable": true,
+      "detail": "p=0.35 gold=True",
+      "n_questions": 1
+    },
+    {
+      "node": "Styling",
+      "level": "L3",
+      "case": "cta-prominent",
+      "pass_rate": 0.0,
+      "score": 0.433,
+      "p50_ms": 218,
+      "stable": true,
+      "detail": "picked=accent_color conf=0.46 mass=0.45",
+      "n_questions": 1
+    },
+    {
+      "node": "Styling",
+      "level": "L4",
+      "case": "modern-scannable",
+      "pass_rate": 1.0,
+      "score": 0.897,
+      "p50_ms": 249,
+      "stable": true,
+      "detail": "p=0.10 gold=False",
+      "n_questions": 1
+    }
+  ],
+  "summary": {
+    "Component Decision": {
+      "cases": 9,
+      "pass_rate": 1.0,
+      "score": 0.949,
+      "p50_ms": 196,
+      "first_fail_level": "-none-"
+    },
+    "Task Assignment": {
+      "cases": 5,
+      "pass_rate": 0.2,
+      "score": 0.819,
+      "p50_ms": 191,
+      "first_fail_level": "L1"
+    },
+    "Context Selection": {
+      "cases": 3,
+      "pass_rate": 0.0,
+      "score": 0.928,
+      "p50_ms": 176,
+      "first_fail_level": "L2"
+    },
+    "Functional Action": {
+      "cases": 5,
+      "pass_rate": 0.8,
+      "score": 0.907,
+      "p50_ms": 198,
+      "first_fail_level": "L4"
+    },
+    "Settings Update": {
+      "cases": 4,
+      "pass_rate": 1.0,
+      "score": 1.0,
+      "p50_ms": 169,
+      "first_fail_level": "-none-"
+    },
+    "Research Strategy": {
+      "cases": 2,
+      "pass_rate": 0.5,
+      "score": 0.959,
+      "p50_ms": 183,
+      "first_fail_level": "L3"
+    },
+    "Research Stop": {
+      "cases": 2,
+      "pass_rate": 0.5,
+      "score": 0.646,
+      "p50_ms": 237,
+      "first_fail_level": "L2"
+    },
+    "Task Decomposition": {
+      "cases": 1,
+      "pass_rate": 0.667,
+      "score": 0.972,
+      "p50_ms": 168,
+      "first_fail_level": "L3"
+    },
+    "Styling": {
+      "cases": 3,
+      "pass_rate": 0.333,
+      "score": 0.559,
+      "p50_ms": 218,
+      "first_fail_level": "L1"
+    }
+  },
+  "reps": 3,
+  "requests": 102,
+  "usd": 0.00223
+}

@@ -1,0 +1,218 @@
+[
+  {
+    "probe": "questions_per_request",
+    "dim": "1 questions",
+    "ok": true,
+    "latency_s": 0.414,
+    "input_tokens": 313,
+    "note": ""
+  },
+  {
+    "probe": "questions_per_request",
+    "dim": "4 questions",
+    "ok": true,
+    "latency_s": 0.312,
+    "input_tokens": 364,
+    "note": ""
+  },
+  {
+    "probe": "questions_per_request",
+    "dim": "8 questions",
+    "ok": true,
+    "latency_s": 0.488,
+    "input_tokens": 432,
+    "note": ""
+  },
+  {
+    "probe": "questions_per_request",
+    "dim": "16 questions",
+    "ok": true,
+    "latency_s": 0.341,
+    "input_tokens": 574,
+    "note": ""
+  },
+  {
+    "probe": "questions_per_request",
+    "dim": "32 questions",
+    "ok": true,
+    "latency_s": 0.461,
+    "input_tokens": 862,
+    "note": ""
+  },
+  {
+    "probe": "questions_per_request",
+    "dim": "33 questions",
+    "ok": true,
+    "latency_s": 0.437,
+    "input_tokens": 880,
+    "note": ""
+  },
+  {
+    "probe": "questions_per_request",
+    "dim": "40 questions",
+    "ok": true,
+    "latency_s": 0.329,
+    "input_tokens": 1006,
+    "note": ""
+  },
+  {
+    "probe": "questions_per_request",
+    "dim": "64 questions",
+    "ok": true,
+    "latency_s": 0.52,
+    "input_tokens": 1438,
+    "note": ""
+  },
+  {
+    "probe": "options_per_choice",
+    "dim": "3 options",
+    "ok": true,
+    "latency_s": 0.351,
+    "input_tokens": 343,
+    "note": "picked=canada correct=True conf=1.00"
+  },
+  {
+    "probe": "options_per_choice",
+    "dim": "10 options",
+    "ok": true,
+    "latency_s": 0.445,
+    "input_tokens": 462,
+    "note": "picked=canada correct=True conf=1.00"
+  },
+  {
+    "probe": "options_per_choice",
+    "dim": "25 options",
+    "ok": true,
+    "latency_s": 0.555,
+    "input_tokens": 745,
+    "note": "picked=canada correct=True conf=1.00"
+  },
+  {
+    "probe": "options_per_choice",
+    "dim": "50 options",
+    "ok": true,
+    "latency_s": 0.746,
+    "input_tokens": 1220,
+    "note": "picked=canada correct=True conf=1.00"
+  },
+  {
+    "probe": "options_per_choice",
+    "dim": "100 options",
+    "ok": true,
+    "latency_s": 0.435,
+    "input_tokens": 2170,
+    "note": "picked=canada correct=True conf=0.99"
+  },
+  {
+    "probe": "options_per_choice",
+    "dim": "200 options",
+    "ok": true,
+    "latency_s": 0.476,
+    "input_tokens": 4268,
+    "note": "picked=canada correct=True conf=0.99"
+  },
+  {
+    "probe": "score_levels",
+    "dim": "2 levels",
+    "ok": true,
+    "latency_s": 0.393,
+    "input_tokens": 303,
+    "note": "score=0.75"
+  },
+  {
+    "probe": "score_levels",
+    "dim": "3 levels",
+    "ok": true,
+    "latency_s": 0.336,
+    "input_tokens": 313,
+    "note": "score=1.67"
+  },
+  {
+    "probe": "score_levels",
+    "dim": "5 levels",
+    "ok": true,
+    "latency_s": 0.359,
+    "input_tokens": 333,
+    "note": "score=2.18"
+  },
+  {
+    "probe": "score_levels",
+    "dim": "10 levels",
+    "ok": true,
+    "latency_s": 0.467,
+    "input_tokens": 383,
+    "note": "score=2.85"
+  },
+  {
+    "probe": "score_levels",
+    "dim": "20 levels",
+    "ok": false,
+    "latency_s": 0.352,
+    "input_tokens": 0,
+    "note": "{\"detail\":\"Too many score levels. Must have at most 10 levels.\"}"
+  },
+  {
+    "probe": "state_size",
+    "dim": "~1 KiB",
+    "ok": true,
+    "latency_s": 0.395,
+    "input_tokens": 446,
+    "note": ""
+  },
+  {
+    "probe": "state_size",
+    "dim": "~4 KiB",
+    "ok": true,
+    "latency_s": 0.455,
+    "input_tokens": 915,
+    "note": ""
+  },
+  {
+    "probe": "state_size",
+    "dim": "~16 KiB",
+    "ok": true,
+    "latency_s": 0.527,
+    "input_tokens": 2784,
+    "note": ""
+  },
+  {
+    "probe": "state_size",
+    "dim": "~32 KiB",
+    "ok": true,
+    "latency_s": 0.523,
+    "input_tokens": 5276,
+    "note": ""
+  },
+  {
+    "probe": "state_size",
+    "dim": "~64 KiB",
+    "ok": true,
+    "latency_s": 0.555,
+    "input_tokens": 10260,
+    "note": ""
+  },
+  {
+    "probe": "state_size",
+    "dim": "~128 KiB",
+    "ok": true,
+    "latency_s": 0.841,
+    "input_tokens": 20235,
+    "note": ""
+  },
+  {
+    "probe": "state_size",
+    "dim": "~256 KiB",
+    "ok": false,
+    "latency_s": 0.699,
+    "input_tokens": 0,
+    "note": "{\"detail\":{\"error_type\":\"max_tokens_exceeded\"}}"
+  },
+  {
+    "probe": "latency_floor",
+    "dim": "12x minimal",
+    "ok": true,
+    "latency_s": 0.368,
+    "input_tokens": 0,
+    "note": "min=0.324 p50=0.368 max=0.506"
+  }
+]

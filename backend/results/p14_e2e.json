@@ -1,0 +1,177 @@
+{
+  "cases": [
+    {
+      "utterance": "what should I make tonight",
+      "gold_template": "choice_cards",
+      "template": "choice_cards",
+      "template_conf": 0.36,
+      "theme": {
+        "palette": "slate",
+        "fontPairing": "system",
+        "density": "normal",
+        "radius": "round",
+        "motif": "none"
+      },
+      "needs_research": 0.41,
+      "gold_research": false,
+      "needs_generation": 0.85,
+      "latency_s": 0.491,
+      "n_questions": 8,
+      "n_slots": 6,
+      "valid": true,
+      "errors": []
+    },
+    {
+      "utterance": "show me the whole recipe",
+      "gold_template": "recipe_overview",
+      "template": "recipe_overview",
+      "template_conf": 1.0,
+      "theme": {
+        "palette": "contrast",
+        "fontPairing": "editorial",
+        "density": "normal",
+        "radius": "sharp",
+        "motif": "none"
+      },
+      "needs_research": 0.81,
+      "gold_research": false,
+      "needs_generation": 0.59,
+      "latency_s": 0.222,
+      "n_questions": 8,
+      "n_slots": 13,
+      "valid": true,
+      "errors": []
+    },
+    {
+      "utterance": "ok what's the next step",
+      "gold_template": "focus_step",
+      "template": "focus_step",
+      "template_conf": 0.92,
+      "theme": {
+        "palette": "slate",
+        "fontPairing": "system",
+        "density": "normal",
+        "radius": "sharp",
+        "motif": "none"
+      },
+      "needs_research": 0.64,
+      "gold_research": false,
+      "needs_generation": 0.62,
+      "latency_s": 0.317,
+      "n_questions": 8,
+      "n_slots": 8,
+      "valid": true,
+      "errors": []
+    },
+    {
+      "utterance": "I burnt the sauce",
+      "gold_template": "recovery",
+      "template": "recovery",
+      "template_conf": 1.0,
+      "theme": {
+        "palette": "mono",
+        "fontPairing": "system",
+        "density": "normal",
+        "radius": "sharp",
+        "motif": "none"
+      },
+      "needs_research": 0.23,
+      "gold_research": false,
+      "needs_generation": 0.52,
+      "latency_s": 0.141,
+      "n_questions": 8,
+      "n_slots": 8,
+      "valid": true,
+      "errors": []
+    },
+    {
+      "utterance": "make it high contrast, I can't read this",
+      "gold_template": "generic_answer",
+      "template": "generic_answer",
+      "template_conf": 0.35,
+      "theme": {
+        "palette": "contrast",
+        "fontPairing": "system",
+        "density": "spacious",
+        "radius": "sharp",
+        "motif": "none"
+      },
+      "needs_research": 0.13,
+      "gold_research": false,
+      "needs_generation": 0.38,
+      "latency_s": 0.214,
+      "n_questions": 8,
+      "n_slots": 6,
+      "valid": true,
+      "errors": []
+    },
+    {
+      "utterance": "who should I invite on Friday",
+      "gold_template": "people_picker",
+      "template": "people_picker",
+      "template_conf": 0.99,
+      "theme": {
+        "palette": "slate",
+        "fontPairing": "system",
+        "density": "normal",
+        "radius": "round",
+        "motif": "none"
+      },
+      "needs_research": 0.84,
+      "gold_research": false,
+      "needs_generation": 0.81,
+      "latency_s": 0.17,
+      "n_questions": 8,
+      "n_slots": 6,
+      "valid": true,
+      "errors": []
+    },
+    {
+      "utterance": "is this recipe actually healthy",
+      "gold_template": "generic_answer",
+      "template": "generic_answer",
+      "template_conf": 0.67,
+      "theme": {
+        "palette": "slate",
+        "fontPairing": "system",
+        "density": "normal",
+        "radius": "sharp",
+        "motif": "none"
+      },
+      "needs_research": 0.87,
+      "gold_research": true,
+      "needs_generation": 0.67,
+      "latency_s": 0.183,
+      "n_questions": 8,
+      "n_slots": 6,
+      "valid": true,
+      "errors": []
+    },
+    {
+      "utterance": "how does this device work",
+      "gold_template": "generic_answer",
+      "template": "generic_answer",
+      "template_conf": 0.92,
+      "theme": {
+        "palette": "slate",
+        "fontPairing": "mono",
+        "density": "normal",
+        "radius": "round",
+        "motif": "none"
+      },
+      "needs_research": 0.8,
+      "gold_research": false,
+      "needs_generation": 0.87,
+      "latency_s": 0.214,
+      "n_questions": 8,
+      "n_slots": 6,
+      "valid": true,
+      "errors": []
+    }
+  ],
+  "template_acc": 1.0,
+  "research_acc": 0.5,
+  "schema_valid": 1.0,
+  "e2e_success": 1.0,
+  "jev_p50_ms": 214
+}

@@ -1,0 +1,128 @@
+{
+  "state": {
+    "utterance": "I put in too much sugar",
+    "currentTemplate": "focus_step",
+    "taskState": "step 3 of 6, flour+butter in bowl"
+  },
+  "response": {
+    "model": "jev-1.13.0",
+    "answers": {
+      "route": {
+        "type": "choice",
+        "choice": "correct",
+        "confidence": 0.99,
+        "probabilities": {
+          "correct": 0.99,
+          "new_task": 0.01,
+          "query": 0,
+          "select": 0,
+          "refine": 0,
+          "other": 0
+        }
+      },
+      "templateId": {
+        "type": "choice",
+        "choice": "recovery",
+        "confidence": 0.96,
+        "probabilities": {
+          "people_picker": 0,
+          "recovery": 0.97,
+          "item_detail": 0,
+          "choice_cards": 0,
+          "message_drafts": 0,
+          "generic_answer": 0.02,
+          "focus_step": 0.01,
+          "summary_done": 0
+        }
+      },
+      "palette": {
+        "type": "choice",
+        "choice": "contrast",
+        "confidence": 0.34,
+        "probabilities": {
+          "slate": 0.28,
+          "rose": 0.12,
+          "contrast": 0.51,
+          "mono": 0.09
+        }
+      },
+      "fontPairing": {
+        "type": "choice",
+        "choice": "system",
+        "confidence": 0.53,
+        "probabilities": {
+          "geometric": 0.19,
+          "editorial": 0.03,
+          "mono": 0.14,
+          "system": 0.64
+        }
+      },
+      "density": {
+        "type": "choice",
+        "choice": "normal",
+        "confidence": 0.61,
+        "probabilities": {
+          "compact": 0.18,
+          "spacious": 0.08,
+          "normal": 0.74
+        }
+      },
+      "radius": {
+        "type": "choice",
+        "choice": "soft",
+        "confidence": 0.16,
+        "probabilities": {
+          "round": 0.42,
+          "soft": 0.44,
+          "sharp": 0.14
+        }
+      },
+      "motif": {
+        "type": "choice",
+        "choice": "none",
+        "confidence": 0.99,
+        "probabilities": {
+          "none": 0.99,
+          "floral": 0.01,
+          "geometric": 0
+        }
+      },
+      "wantsStyleChange": {
+        "type": "noul",
+        "noul": 0.02
+      },
+      "deviationIngredient": {
+        "type": "choice",
+        "choice": "caster_sugar",
+        "confidence": 0.89,
+        "probabilities": {
+          "caster_sugar": 0.9,
+          "eggs": 0,
+          "brown_sugar": 0.1,
+          "flour": 0,
+          "salt": 0,
+          "butter": 0,
+          "vanilla": 0,
+          "baking_soda": 0,
+          "choc_chips": 0
+        }
+      },
+      "deviationFactor": {
+        "type": "choice",
+        "choice": "other",
+        "confidence": 0.38,
+        "probabilities": {
+          "half": 0,
+          "1.5x": 0.42,
+          "3x": 0,
+          "2x": 0.07,
+          "other": 0.51
+        }
+      }
+    },
+    "usage": {
+      "input_tokens": 1520,
+      "output_tokens": 525
+    }
+  }
+}

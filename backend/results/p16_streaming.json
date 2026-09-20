@@ -1,0 +1,60 @@
+{
+  "template": "recipe_overview",
+  "n_slots": 13,
+  "first_token_ms": 5935,
+  "slots": [
+    [
+      "recipe_overview.title",
+      6320
+    ],
+    [
+      "recipe_overview.yield",
+      6624
+    ],
+    [
+      "recipe_overview.batch",
+      7029
+    ],
+    [
+      "recipe_overview.ingredientsLabel",
+      7284
+    ],
+    [
+      "recipe_overview.ingredient1",
+      7796
+    ],
+    [
+      "recipe_overview.ingredient2",
+      7875
+    ],
+    [
+      "recipe_overview.ingredient3",
+      8232
+    ],
+    [
+      "recipe_overview.ingredient4",
+      8597
+    ],
+    [
+      "recipe_overview.ingredient5",
+      9051
+    ],
+    [
+      "recipe_overview.ingredient6",
+      9370
+    ],
+    [
+      "recipe_overview.ingredient7",
+      9832
+    ],
+    [
+      "recipe_overview.ingredient8",
+      10190
+    ],
+    [
+      "recipe_overview.start",
+      10456
+    ]
+  ],
+  "total_ms": 11326
+}

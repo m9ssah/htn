@@ -1,0 +1,268 @@
+{
+  "rows": [
+    {
+      "node": "A: Task Assignment",
+      "level": "L1",
+      "case": "button-color",
+      "pass_rate": 0,
+      "score": 0.857,
+      "p50_ms": 258,
+      "detail": "P=0.50 R=1.00 +agent1_info",
+      "n_q": 7
+    },
+    {
+      "node": "A: Task Assignment",
+      "level": "L1",
+      "case": "mute-sound",
+      "pass_rate": 0,
+      "score": 0.857,
+      "p50_ms": 180,
+      "detail": "P=0.67 R=1.00 +agent1_info",
+      "n_q": 7
+    },
+    {
+      "node": "A: Task Assignment",
+      "level": "L2",
+      "case": "add-toggle",
+      "pass_rate": 0,
+      "score": 0.714,
+      "p50_ms": 238,
+      "detail": "P=0.67 R=1.00 +agent3_styling +todo_decomp",
+      "n_q": 7
+    },
+    {
+      "node": "A: Task Assignment",
+      "level": "L2",
+      "case": "hero-image",
+      "pass_rate": 0,
+      "score": 0.286,
+      "p50_ms": 319,
+      "detail": "P=0.00 R=0.00 +agent1_info -agent2_component -agent3_styling -image_gen",
+      "n_q": 7
+    },
+    {
+      "node": "A: Task Assignment",
+      "level": "L3",
+      "case": "live-dashboard",
+      "pass_rate": 0,
+      "score": 0.714,
+      "p50_ms": 254,
+      "detail": "P=1.00 R=0.60 -agent2_component -agent3_styling",
+      "n_q": 7
+    },
+    {
+      "node": "A: Task Assignment",
+      "level": "L3",
+      "case": "profile-page",
+      "pass_rate": 0,
+      "score": 0.714,
+      "p50_ms": 227,
+      "detail": "P=1.00 R=0.60 -functional_action -update_setting",
+      "n_q": 7
+    },
+    {
+      "node": "A: Task Assignment",
+      "level": "L4",
+      "case": "make-it-nicer",
+      "pass_rate": 0,
+      "score": 0.857,
+      "p50_ms": 158,
+      "detail": "P=0.50 R=1.00 +agent1_info",
+      "n_q": 7
+    },
+    {
+      "node": "1: Research Strategy",
+      "level": "L2",
+      "case": "what-to-research",
+      "pass_rate": 1,
+      "score": 1.0,
+      "p50_ms": 196,
+      "detail": "P=1.00 R=1.00 ",
+      "n_q": 12
+    },
+    {
+      "node": "1: Research Stop",
+      "level": "L2",
+      "case": "sufficient-yes",
+      "pass_rate": 1,
+      "score": 1.0,
+      "p50_ms": 145,
+      "detail": "P=1.00 R=1.00 ",
+      "n_q": 2
+    },
+    {
+      "node": "1: Research Stop",
+      "level": "L3",
+      "case": "sufficient-no",
+      "pass_rate": 1,
+      "score": 1.0,
+      "p50_ms": 223,
+      "detail": "P=1.00 R=1.00 ",
+      "n_q": 2
+    },
+    {
+      "node": "2: Component Decision",
+      "level": "L2",
+      "case": "volume-0-100",
+      "pass_rate": 1,
+      "score": 1.0,
+      "p50_ms": 242,
+      "detail": "picked=slider conf=1.00",
+      "n_q": 1
+    },
+    {
+      "node": "2: Component Decision",
+      "level": "L2",
+      "case": "pick-birthday",
+      "pass_rate": 1,
+      "score": 1.0,
+      "p50_ms": 171,
+      "detail": "picked=date_picker conf=1.00",
+      "n_q": 1
+    },
+    {
+      "node": "2: Component Decision",
+      "level": "L3",
+      "case": "5-opts-2-visible",
+      "pass_rate": 0.667,
+      "score": 0.383,
+      "p50_ms": 196,
+      "detail": "picked=select conf=0.31",
+      "n_q": 1
+    },
+    {
+      "node": "2: Component Decision",
+      "level": "L3",
+      "case": "multi-200-a11y",
+      "pass_rate": 1,
+      "score": 0.867,
+      "p50_ms": 245,
+      "detail": "picked=multi_select conf=0.85",
+      "n_q": 1
+    },
+    {
+      "node": "2: Component Decision",
+      "level": "L4",
+      "case": "rate-satisfaction",
+      "pass_rate": 1,
+      "score": 0.96,
+      "p50_ms": 197,
+      "detail": "picked=radio_group conf=0.39",
+      "n_q": 1
+    },
+    {
+      "node": "LLM Gain Context",
+      "level": "L2",
+      "case": "ctx-10",
+      "pass_rate": 1,
+      "score": 1.0,
+      "p50_ms": 199,
+      "detail": "P=1.00 R=1.00 ",
+      "n_q": 10
+    },
+    {
+      "node": "LLM Gain Context",
+      "level": "L3",
+      "case": "ctx-20",
+      "pass_rate": 1,
+      "score": 1.0,
+      "p50_ms": 213,
+      "detail": "P=1.00 R=1.00 ",
+      "n_q": 20
+    },
+    {
+      "node": "Update Setting",
+      "level": "L2",
+      "case": "all-but-sms",
+      "pass_rate": 1,
+      "score": 1.0,
+      "p50_ms": 176,
+      "detail": "P=1.00 R=1.00 ",
+      "n_q": 7
+    },
+    {
+      "node": "Update Setting",
+      "level": "L3",
+      "case": "quiet-not-dark",
+      "pass_rate": 0,
+      "score": 0.571,
+      "p50_ms": 203,
+      "detail": "P=1.00 R=0.25 -push_enabled -email_enabled -digest_weekly",
+      "n_q": 7
+    },
+    {
+      "node": "Update Setting",
+      "level": "L4",
+      "case": "too-many-emails",
+      "pass_rate": 0,
+      "score": 0.857,
+      "p50_ms": 188,
+      "detail": "P=1.00 R=0.50 -digest_weekly",
+      "n_q": 7
+    },
+    {
+      "node": "to-do: Decomposition",
+      "level": "L3",
+      "case": "profile-page",
+      "pass_rate": 0,
+      "score": 0.923,
+      "p50_ms": 174,
+      "detail": "P=1.00 R=0.88 -read_settings",
+      "n_q": 13
+    }
+  ],
+  "summary": {
+    "A: Task Assignment": {
+      "cases": 7,
+      "exact": 0,
+      "per_judgment": 0.714,
+      "p50_ms": 238,
+      "first_fail": "L1"
+    },
+    "1: Research Strategy": {
+      "cases": 1,
+      "exact": 1,
+      "per_judgment": 1.0,
+      "p50_ms": 196,
+      "first_fail": "-none-"
+    },
+    "1: Research Stop": {
+      "cases": 2,
+      "exact": 1,
+      "per_judgment": 1.0,
+      "p50_ms": 184,
+      "first_fail": "-none-"
+    },
+    "2: Component Decision": {
+      "cases": 5,
+      "exact": 0.933,
+      "per_judgment": 0.842,
+      "p50_ms": 197,
+      "first_fail": "L3"
+    },
+    "LLM Gain Context": {
+      "cases": 2,
+      "exact": 1,
+      "per_judgment": 1.0,
+      "p50_ms": 206,
+      "first_fail": "-none-"
+    },
+    "Update Setting": {
+      "cases": 3,
+      "exact": 0.333,
+      "per_judgment": 0.809,
+      "p50_ms": 188,
+      "first_fail": "L3"
+    },
+    "to-do: Decomposition": {
+      "cases": 1,
+      "exact": 0,
+      "per_judgment": 0.923,
+      "p50_ms": 174,
+      "first_fail": "L3"
+    }
+  },
+  "reps": 3,
+  "requests": 63,
+  "usd": 0.00205
+}

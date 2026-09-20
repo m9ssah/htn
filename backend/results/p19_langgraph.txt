@@ -1,0 +1,129 @@
+node: v26.4.0
+langgraph: 1.4.16
+date: 2026-09-19
+
+=== p19_langgraph_stream ===
+
+=== A. happy path (Q1 escape-early, Q2 per-patch overhead) ===
+    210ms  custom  skeleton  +1ms
+    210ms  custom  style  +1ms
+    594ms  custom  content slot_1 +0ms
+    975ms  custom  content slot_2 +0ms
+   1356ms  custom  content slot_3 +1ms
+   1736ms  custom  content slot_4 +0ms
+   2118ms  custom  content slot_5 +0ms
+   2500ms  custom  content slot_6 +1ms
+   2882ms  custom  content slot_7 +0ms
+   3264ms  custom  content slot_8 +0ms
+   3647ms  custom  content slot_9 +0ms
+   4029ms  custom  content slot_10 +0ms
+   4412ms  custom  content slot_11 +1ms
+   4793ms  custom  content slot_12 +0ms
+   5175ms  custom  content slot_13 +0ms
+  -> 15 chunks, error=no
+
+=== B. generate throws at slot 7 (Q3 partial survival) ===
+    204ms  custom  skeleton  +1ms
+    204ms  custom  style  +1ms
+    586ms  custom  content slot_1 +1ms
+    968ms  custom  content slot_2 +0ms
+   1349ms  custom  content slot_3 +0ms
+   1731ms  custom  content slot_4 +0ms
+   2113ms  custom  content slot_5 +0ms
+   2495ms  custom  content slot_6 +1ms
+  THREW at 2882ms: generate exploded at slot 7
+  -> 8 chunks, error=yes
+
+=== C. writer inside async generator (Q4) ===
+    105ms  custom  nested 1 +1ms
+    205ms  custom  nested 2 +0ms
+    308ms  custom  nested 3 +0ms
+  -> 3 chunks, error=no
+
+=== D. fan-out decide||style, both then generate (Q5 concurrency) ===
+    204ms  custom  skeleton  +1ms
+    204ms  custom  style  +1ms
+    255ms  custom  style2  +0ms
+    459ms  custom  content slot_1 +0ms
+    661ms  custom  content slot_2 +1ms
+    861ms  custom  content slot_3 +0ms
+  -> 6 chunks, error=no
+
+=== E. consumer lags 300ms/chunk (Q6 backpressure) ===
+    205ms  custom  skeleton  +1ms
+    508ms  custom  style  +304ms
+    813ms  custom  content slot_1 +505ms
+   1115ms  custom  content slot_2 +705ms
+   1414ms  custom  content slot_3 +904ms
+   1716ms  custom  content slot_4 +1104ms
+   2018ms  custom  content slot_5 +1305ms
+  -> 7 chunks, error=no
+
+=== F. streamMode:['custom','updates'] (Q7 telemetry channel) ===
+    205ms  custom  skeleton  +1ms
+    205ms  custom  style  +1ms
+    207ms  updates {"mode":"updates","got":207,"decide":{"template":"item_detai  
+    309ms  custom  content slot_1 +0ms
+    420ms  custom  content slot_2 +10ms
+    424ms  updates {"mode":"updates","got":424,"generate":{"done":["generate"]}  
+  -> 6 chunks, error=no
+
+=== G. baseline, no consumer lag ===
+    209ms  custom  skeleton  +0ms
+    312ms  custom  content slot_1 +0ms
+    414ms  custom  content slot_2 +1ms
+    516ms  custom  content slot_3 +0ms
+    616ms  custom  content slot_4 +0ms
+    718ms  custom  content slot_5 +1ms
+  -> 6 chunks, error=no
+
+=== H. consumer lags 300ms/chunk -- compare wroteAt, not got ===
+    205ms  custom  skeleton  +2ms
+    506ms  custom  content slot_1 +197ms
+    808ms  custom  content slot_2 +398ms
+   1108ms  custom  content slot_3 +597ms
+   1411ms  custom  content slot_4 +798ms
+   1711ms  custom  content slot_5 +996ms
+  -> 6 chunks, error=no
+
+=== p19b_langgraph_cancel ===
+
+=== I. consumer `break`s out of the for-await ===
+  consumer got 4: skeleton@168ms content1@371ms content2@572ms content3@775ms
+  error: none
+  slots emitted at loop exit (776ms): 3
+  slots emitted 2.5s later:       10  <-- NODE KEPT RUNNING, tokens leaked
+  leaked: slot4@974ms slot5@1177ms slot6@1379ms slot7@1581ms slot8@1782ms slot9@1985ms slot10@2187ms
+
+=== J. AbortController.abort() on the config signal ===
+  consumer got 4: skeleton@155ms content1@358ms content2@560ms content3@763ms
+  error: AbortError: This operation was aborted
+  slots emitted at loop exit (765ms): 3
+  slots emitted 2.5s later:       10  <-- NODE KEPT RUNNING, tokens leaked
+  leaked: slot4@963ms slot5@1165ms slot6@1365ms slot7@1568ms slot8@1769ms slot9@1970ms slot10@2170ms
+
+=== K. explicit iterator .return() ===
+  consumer got 4: skeleton@156ms content1@362ms content2@564ms content3@764ms
+  error: none
+  slots emitted at loop exit (765ms): 3
+  slots emitted 2.5s later:       10  <-- NODE KEPT RUNNING, tokens leaked
+  leaked: slot4@967ms slot5@1169ms slot6@1370ms slot7@1572ms slot8@1774ms slot9@1975ms slot10@2176ms
+    [node] aborted at slot 4, 762ms
+
+=== L. node threads config.signal into its own await ===
+  consumer got 4: skeleton@152ms content1@355ms content2@559ms content3@762ms
+  error: AbortError: This operation was aborted
+  slots emitted at loop exit (762ms): 3
+  slots emitted 2.5s later:       3  <-- node stopped on time
+
+=== q3 under consumer lag (the condition p19 Q3 did not combine) ===
+  consumer lag   0ms -> delivered 6/6 [1,2,3,4,5,6]  err=yes  
+  consumer lag  50ms -> delivered 6/6 [1,2,3,4,5,6]  err=yes  
+  consumer lag 150ms -> delivered 3/6 [1,2,3]  err=yes  <-- LOST 3
+  consumer lag 300ms -> delivered 2/6 [1,2]  err=yes  <-- LOST 4
+
+=== q3 FIX: catch inside node, return normally ===
+  lag   0ms -> 6/6 [1,2,3,4,5,6] fault-patch=yes threw=no <-- all preserved
+  lag 150ms -> 6/6 [1,2,3,4,5,6] fault-patch=yes threw=no <-- all preserved
+  lag 300ms -> 6/6 [1,2,3,4,5,6] fault-patch=yes threw=no <-- all preserved
+  lag 600ms -> 6/6 [1,2,3,4,5,6] fault-patch=yes threw=no <-- all preserved

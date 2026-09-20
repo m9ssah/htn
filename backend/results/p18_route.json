@@ -1,0 +1,258 @@
+[
+  {
+    "utterance": "what should I make tonight",
+    "currentTemplate": null,
+    "taskState": "nothing started",
+    "gold": "new_task",
+    "picked": "new_task",
+    "correct": true,
+    "stable": true,
+    "conf": 0.467,
+    "modes": {
+      "new_task": 3
+    },
+    "template": "generic_answer",
+    "template_stable": true,
+    "p50_ms": 190
+  },
+  {
+    "utterance": "actually let's do something else",
+    "currentTemplate": "item_detail",
+    "taskState": "cookie recipe open, nothing in bowl",
+    "gold": "new_task",
+    "picked": "new_task",
+    "correct": true,
+    "stable": true,
+    "conf": 1.0,
+    "modes": {
+      "new_task": 3
+    },
+    "template": "generic_answer",
+    "template_stable": true,
+    "p50_ms": 222
+  },
+  {
+    "utterance": "who should I invite on Friday",
+    "currentTemplate": "item_detail",
+    "taskState": "cookie recipe open",
+    "gold": "new_task",
+    "picked": "new_task",
+    "correct": true,
+    "stable": true,
+    "conf": 0.503,
+    "modes": {
+      "new_task": 3
+    },
+    "template": "people_picker",
+    "template_stable": true,
+    "p50_ms": 322
+  },
+  {
+    "utterance": "make it high contrast, I can't read this",
+    "currentTemplate": "item_detail",
+    "taskState": "cookie recipe open",
+    "gold": "refine",
+    "picked": "refine",
+    "correct": true,
+    "stable": true,
+    "conf": 1.0,
+    "modes": {
+      "refine": 3
+    },
+    "template": "focus_step",
+    "template_stable": true,
+    "p50_ms": 201
+  },
+  {
+    "utterance": "make the text bigger",
+    "currentTemplate": "focus_step",
+    "taskState": "step 2 of 6",
+    "gold": "refine",
+    "picked": "refine",
+    "correct": true,
+    "stable": true,
+    "conf": 1.0,
+    "modes": {
+      "refine": 3
+    },
+    "template": "focus_step",
+    "template_stable": true,
+    "p50_ms": 205
+  },
+  {
+    "utterance": "show me fewer steps at a time",
+    "currentTemplate": "focus_step",
+    "taskState": "step 2 of 6",
+    "gold": "refine",
+    "picked": "refine",
+    "correct": true,
+    "stable": true,
+    "conf": 1.0,
+    "modes": {
+      "refine": 3
+    },
+    "template": "focus_step",
+    "template_stable": true,
+    "p50_ms": 668
+  },
+  {
+    "utterance": "I put in too much sugar",
+    "currentTemplate": "focus_step",
+    "taskState": "step 3 of 6, flour+butter in bowl",
+    "gold": "correct",
+    "picked": "correct",
+    "correct": true,
+    "stable": true,
+    "conf": 0.99,
+    "modes": {
+      "correct": 3
+    },
+    "template": "recovery",
+    "template_stable": true,
+    "p50_ms": 213
+  },
+  {
+    "utterance": "I burnt the sauce",
+    "currentTemplate": "focus_step",
+    "taskState": "step 5 of 6",
+    "gold": "correct",
+    "picked": "correct",
+    "correct": true,
+    "stable": true,
+    "conf": 1.0,
+    "modes": {
+      "correct": 3
+    },
+    "template": "recovery",
+    "template_stable": true,
+    "p50_ms": 269
+  },
+  {
+    "utterance": "actually it was three times, not twice",
+    "currentTemplate": "recovery",
+    "taskState": "over-added sugar 2x, fix proposed",
+    "gold": "correct",
+    "picked": "correct",
+    "correct": true,
+    "stable": true,
+    "conf": 1.0,
+    "modes": {
+      "correct": 3
+    },
+    "template": "recovery",
+    "template_stable": true,
+    "p50_ms": 237
+  },
+  {
+    "utterance": "the second one",
+    "currentTemplate": "choice_cards",
+    "taskState": "3 recipe options on screen",
+    "gold": "select",
+    "picked": "select",
+    "correct": true,
+    "stable": true,
+    "conf": 1.0,
+    "modes": {
+      "select": 3
+    },
+    "template": "choice_cards",
+    "template_stable": false,
+    "p50_ms": 188
+  },
+  {
+    "utterance": "the chocolate chip one",
+    "currentTemplate": "choice_cards",
+    "taskState": "3 recipe options on screen",
+    "gold": "select",
+    "picked": "select",
+    "correct": true,
+    "stable": true,
+    "conf": 1.0,
+    "modes": {
+      "select": 3
+    },
+    "template": "item_detail",
+    "template_stable": true,
+    "p50_ms": 210
+  },
+  {
+    "utterance": "yeah that one",
+    "currentTemplate": "people_picker",
+    "taskState": "3 contacts on screen",
+    "gold": "select",
+    "picked": "select",
+    "correct": true,
+    "stable": true,
+    "conf": 1.0,
+    "modes": {
+      "select": 3
+    },
+    "template": "people_picker",
+    "template_stable": true,
+    "p50_ms": 226
+  },
+  {
+    "utterance": "how long does it bake",
+    "currentTemplate": "item_detail",
+    "taskState": "cookie recipe open",
+    "gold": "query",
+    "picked": "query",
+    "correct": true,
+    "stable": true,
+    "conf": 1.0,
+    "modes": {
+      "query": 3
+    },
+    "template": "generic_answer",
+    "template_stable": true,
+    "p50_ms": 220
+  },
+  {
+    "utterance": "is this recipe actually healthy",
+    "currentTemplate": "item_detail",
+    "taskState": "cookie recipe open",
+    "gold": "query",
+    "picked": "query",
+    "correct": true,
+    "stable": true,
+    "conf": 1.0,
+    "modes": {
+      "query": 3
+    },
+    "template": "generic_answer",
+    "template_stable": true,
+    "p50_ms": 239
+  },
+  {
+    "utterance": "how does this device work",
+    "currentTemplate": "item_detail",
+    "taskState": "cookie recipe open",
+    "gold": "query",
+    "picked": "query",
+    "correct": true,
+    "stable": true,
+    "conf": 0.873,
+    "modes": {
+      "query": 3
+    },
+    "template": "generic_answer",
+    "template_stable": true,
+    "p50_ms": 211
+  },
+  {
+    "utterance": "what's the weather like tomorrow",
+    "currentTemplate": "item_detail",
+    "taskState": "cookie recipe open",
+    "gold": "query",
+    "picked": "new_task",
+    "correct": false,
+    "stable": true,
+    "conf": 0.547,
+    "modes": {
+      "new_task": 3
+    },
+    "template": "generic_answer",
+    "template_stable": true,
+    "p50_ms": 250
+  }
+]
