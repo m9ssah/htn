@@ -25,6 +25,8 @@ if (!node) {
  */
 const INPUT_BUILDERS: Record<string, (argv: string[]) => unknown> = {
   decide: (argv) => ({ utterance: argv.join(' '), currentTemplate: null, taskState: '' }),
+  // npm run node -- generate <message_drafts|generic_answer> <utterance...>
+  generate: ([templateId, ...rest]) => ({ templateId, utterance: rest.join(' ') }),
 };
 const input = (INPUT_BUILDERS[nodeName ?? ''] ?? ((argv: string[]) => argv.join(' ')))(rest);
 const controller = new AbortController();
