@@ -1,0 +1,25 @@
+p19e — re-measures p19c/p19d against the version P4 actually ships
+(@langchain/langgraph 1.4.16, Node v26.4.0, macOS arm64), to put a number on
+what `runGuarded` (apps/server/src/harness/graph-runtime.ts) buys.
+
+Six writes, then a throw at slot 7.
+  guarded=false — the error reaches the LangGraph stream controller.
+  guarded=true  — caught inside the node wrapper, returns normally (p19d's fix).
+
+guarded=false lag=  0ms  delivered 2/6  threw=true
+guarded=false lag=150ms  delivered 1/6  threw=true
+guarded=false lag=300ms  delivered 1/6  threw=true
+guarded=true  lag=  0ms  delivered 6/6  threw=false
+guarded=true  lag=150ms  delivered 6/6  threw=false
+guarded=true  lag=300ms  delivered 6/6  threw=false
+
+Note the unguarded 0ms row: p19c measured 6/6 there and this measures 2/6.
+The difference is that p19c's node awaited a 50ms sleep between writes, so a
+zero-lag consumer had drained the queue before the throw; here the six writes
+are synchronous, which is what a real node emitting a burst of slots looks
+like. The honest reading is that the unguarded path's survival depends on
+consumer timing in a way nobody controls — which is the argument for the
+guard, not against the earlier number.
+
+Reproduce: node backend/probes/p19e_guard_loss.mjs (from the repo root, so
+@langchain/langgraph resolves).

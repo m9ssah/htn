@@ -60,7 +60,31 @@ export type Event =
       node: string;
       ms: number;
       error: unknown;
+    }
+  | {
+      /**
+       * P4's addition, and the second use of the widening `node` was written
+       * for. The graph wrapper catches every node failure and returns
+       * normally (p19d — an exception reaching the stream controller discards
+       * every chunk enqueued but not yet read), so `timed()`'s throw-path
+       * telemetry fires but nothing else would say the turn degraded. This
+       * is that record. Same base fields (`node`/`ms`/`error`) as the other
+       * two, so `events[0]?.ms`-style call sites keep working.
+       */
+      kind: 'fault';
+      node: string;
+      ms: number;
+      error: unknown;
+      reason: FaultReason;
     };
+
+/**
+ * `decide-degraded` is the plan's named telemetry for "the route is
+ * unknown" — the current surface stays, nothing new is painted (done-when
+ * 5). `node-crashed` is any other node failing; the surface keeps whatever
+ * already landed. `aborted` is a barge-in, which is not a failure.
+ */
+export type FaultReason = 'decide-degraded' | 'node-crashed' | 'aborted';
 
 /**
  * The 5-way route + `other`, upstream of the template answer
@@ -193,5 +217,18 @@ export interface PatchSink {
  * turn, which is why this is named as an action, not a lookup.
  */
 export interface PatchSinkStore {
-  beginTurn(turnId: string): PatchSink;
+  /**
+   * `signal` is the turn's `AbortSignal` and closes a hole the epoch alone
+   * cannot: the epoch only advances when the NEXT turn begins, and a barge-in
+   * precedes that by an unbounded interval (the user may simply stop
+   * talking). For that whole window an aborted turn's sink was still live.
+   * With the signal bound here, `emit` becomes a no-op the instant the turn
+   * is cancelled — for every node at once, including ones that never consult
+   * `Ctx.signal` themselves (p19b measured that such nodes keep running).
+   *
+   * Optional so a test or CLI with no turn to cancel can still open a sink.
+   * Dropped patches still reach `onDrop` — silence would convert a visible
+   * bug into an invisible one (constraint 5).
+   */
+  beginTurn(turnId: string, signal?: AbortSignal): PatchSink;
 }
