@@ -11,6 +11,8 @@
     "dataset:schemas": "tsx src/content-gen/cli-schemas.ts"
   },
   "dependencies": {
+    "@json-render/core": "file:../../vendor/json-render-core-0.21.0-3ad3818-preview3.tgz",
+    "@jit/renderer": "*",
     "@jit/schema": "*",
     "@jit/tokens": "*",
     "zod": "^4.6.5"
