@@ -9,6 +9,7 @@ import { sleep } from '../signal.js';
 import { readFixture } from './fixtures.js';
 import {
   AXIS_DESCRIPTIONS,
+  BATCH_FACTOR_DESCRIPTIONS,
   DEVIATION_FACTOR_DESCRIPTIONS,
   DEVIATION_INGREDIENT_DESCRIPTIONS,
   ROUTE_QUESTION,
@@ -125,6 +126,7 @@ function parseNoulOptional(raw: JevWireResponse, qid: string): JevNoulAnswer | u
 export function parseJevResponse(raw: JevWireResponse): JevAnswer {
   const wantsStyleChange = parseNoulOptional(raw, 'wantsStyleChange');
   const wantsSaved = parseNoulOptional(raw, 'wantsSaved');
+  const batchFactor = parseChoiceOptional(raw, 'batchFactor', Object.keys(BATCH_FACTOR_DESCRIPTIONS));
   const deviationIngredient = parseChoiceOptional(raw, 'deviationIngredient', Object.keys(DEVIATION_INGREDIENT_DESCRIPTIONS));
   const deviationFactor = parseChoiceOptional(raw, 'deviationFactor', Object.keys(DEVIATION_FACTOR_DESCRIPTIONS));
   return {
@@ -142,6 +144,7 @@ export function parseJevResponse(raw: JevWireResponse): JevAnswer {
     // is what "not asked/not answered" should mean here.
     ...(wantsStyleChange !== undefined ? { wantsStyleChange } : {}),
     ...(wantsSaved !== undefined ? { wantsSaved } : {}),
+    ...(batchFactor !== undefined ? { batchFactor } : {}),
     ...(deviationIngredient !== undefined ? { deviationIngredient } : {}),
     ...(deviationFactor !== undefined ? { deviationFactor } : {}),
     usage: { inputTokens: raw.usage?.input_tokens ?? 0, outputTokens: raw.usage?.output_tokens ?? 0 },

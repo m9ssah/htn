@@ -32,6 +32,7 @@ describe('buildQuestions', () => {
         'templateId',
         'wantsStyleChange',
         'wantsSaved',
+        'batchFactor',
       ].sort(),
     );
   });

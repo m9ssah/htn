@@ -561,3 +561,80 @@ describe('graph: every surface is reachable by a real classification', () => {
     expect(h.session.surface).toBe('grocery_added');
   });
 });
+
+describe('graph: "actually make it three times the batch"', () => {
+  const refineBy = (bucket: string): JevClient =>
+    editedJev(fixture('jev/recorded/refine.json'), { batchFactor: choiceAnswer(bucket, 1) });
+
+  /**
+   * The demo's most likely unscripted sentence, and the one the route criteria
+   * were re-tuned for. Routing it correctly is not enough on its own: `refine`
+   * is `refine_keep`, so the surface re-projects — and if nothing carries the
+   * amount, a judge says it and watches 18 cookies stay 18.
+   *
+   * The amount arrives as a BUCKET and `setYield` computes from it, which is
+   * the same split as the recovery beat. Measured live at `batchFactor: 3x`,
+   * confidence 1.00.
+   */
+  it('rescales the whole recipe from a typed bucket', async () => {
+    const h = harness();
+    await drain(h.say({ utterance: 'what should I make tonight' }));
+    await drain(h.say({ action: 'select_classic_choc_chip', elementId: 'option_1' }));
+    expect(currentYield(h.session.task!)).toBe(18);
+
+    const turn = startTurn({ utterance: 'actually make it three times the batch' }, offline(h.session, refineBy('3x')));
+    const out = await drain(turn);
+
+    expect(currentYield(h.session.task!)).toBe(54);
+    // Every number on the surface moved with it, computed in `domain/`.
+    const content = ContentUpdateSchema.parse(out.filter(isContent)[0]);
+    expect(content.values.subtitle?.text).toContain('54 cookies');
+  });
+
+  /**
+   * Most refines are not about the amount. `unchanged` is a real option for
+   * exactly that reason — without it the model must pick a multiplier every
+   * time, which is the failure `wantsStyleChange` exists to prevent (p14).
+   * Measured live: "make this easier to read from far away" comes back
+   * `unchanged` at 0.97.
+   */
+  it('leaves the batch alone when the refine is about the look', async () => {
+    const h = harness();
+    await drain(h.say({ utterance: 'what should I make tonight' }));
+    await drain(h.say({ action: 'select_classic_choc_chip', elementId: 'option_1' }));
+
+    await drain(startTurn({ utterance: 'make this easier to read from far away' }, offline(h.session, refineBy('unchanged'))));
+
+    expect(currentYield(h.session.task!)).toBe(18);
+  });
+
+  /**
+   * `setYield` moves `scale` and the bowl does not move with it, so rescaling
+   * mid-bake would make everything already added read as a deviation and hand
+   * the user a recovery beat they did not cause. Same asymmetry as
+   * `planScaleUp`: you cannot un-add flour.
+   */
+  it('refuses to rescale once anything is in the bowl, and says why', async () => {
+    const h = await baking();
+    const before = currentYield(h.session.task!);
+
+    const turn = startTurn({ utterance: 'actually make it half' }, offline(h.session, refineBy('half')));
+    await drain(turn);
+
+    expect(currentYield(h.session.task!)).toBe(before);
+    expect(findDeviations(h.session.task!)).toEqual([]);
+    const policy = turn.log.entries.find((e) => e.kind === 'policy');
+    expect(JSON.stringify(policy?.warnings)).toContain('already in the bowl');
+  });
+
+  /** `other` carries no number by construction, so there is nothing to compute with. */
+  it('ignores a bucket that carries no number', async () => {
+    const h = harness();
+    await drain(h.say({ utterance: 'what should I make tonight' }));
+    await drain(h.say({ action: 'select_classic_choc_chip', elementId: 'option_1' }));
+
+    await drain(startTurn({ utterance: 'make it a weird amount' }, offline(h.session, refineBy('other'))));
+
+    expect(currentYield(h.session.task!)).toBe(18);
+  });
+});

@@ -7,14 +7,14 @@ import { policy } from './harness/nodes/policy.js';
 import { style } from './harness/nodes/style.js';
 import { applyJevDeviation, project } from './harness/nodes/project.js';
 import { contentGeneratorFrom } from './harness/clients/content-gen.js';
-import { DEVIATION_FACTORS } from './harness/clients/jev-questions.js';
+import { BATCH_FACTORS, DEVIATION_FACTORS } from './harness/clients/jev-questions.js';
 import type { Ctx, JevAnswer, JevState } from './harness/types.js';
 import { isProjectedSurface, type SurfaceKind } from './compose/projected.js';
 import { OPEN_ENDED_CANDIDATES, OPEN_ENDED_INITIAL_STATE } from './compose/candidates.js';
 import { jevEvaluator, jevStructureComposer, type StructureComposer } from './contract/compose.js';
 import { contentUpdateFrom, deriveContentRequest, validateContentResult } from './contract/content.js';
 import { applyAction, describeTask, type ActionInput, type Session } from './session.js';
-import { findDeviations, type TaskState } from './domain/recipe.js';
+import { currentYield, findDeviations, setYield, type TaskState } from './domain/recipe.js';
 import { JevHttpClient } from './harness/clients/jev.js';
 
 /**
@@ -151,6 +151,34 @@ function correctedTask(task: TaskState | null, jev: JevAnswer | null, warnings: 
   return applyJevDeviation(task, { ingredientId, factor }, warnings);
 }
 
+/**
+ * "Actually make it three times the batch."
+ *
+ * A deliberate change to the plan is a `refine`, and the amount comes back as
+ * a BUCKET (`batchFactor`); `setYield` turns it into every number on screen
+ * (constraint 2 — the model classifies, code computes).
+ *
+ * **Refused once anything is in the bowl.** `setYield` moves `scale`, and the
+ * bowl does not move with it: rescaling mid-bake would make every ingredient
+ * already added read as a deviation and hand the user a recovery beat they
+ * did not cause. That is the same asymmetry `planScaleUp` is built around —
+ * you cannot un-add flour — so the honest answer is to say so, not to produce
+ * a recipe nobody can follow.
+ */
+function rescaled(task: TaskState | null, jev: JevAnswer, notes: string[]): TaskState | null {
+  if (!task || jev.route.value !== 'refine') return task;
+  const bucket = jev.batchFactor?.value;
+  const factor = bucket === undefined ? undefined : BATCH_FACTORS[bucket];
+  if (factor === undefined || factor === null || factor === 1) return task;
+  if (Object.keys(task.inBowl).length > 0) {
+    notes.push(`refine: cannot rescale to ${bucket} — ${Object.keys(task.inBowl).length} ingredient(s) are already in the bowl`);
+    return task;
+  }
+  const target = Math.round(currentYield(task) * factor);
+  notes.push(`refine: ${bucket} — ${currentYield(task)} -> ${target} ${task.recipe.yieldUnit}`);
+  return setYield(task, target);
+}
+
 /* ------------------------------------------------------------------ *
  * The graph
  * ------------------------------------------------------------------ */
@@ -204,6 +232,11 @@ export function buildGraph(deps: GraphDeps): PatchStream {
       templateConfidence: round2(jev.templateId.confidence),
       wantsStyleChange: jev.wantsStyleChange?.value ?? null,
       wantsSaved: jev.wantsSaved?.value ?? null,
+      deviationIngredient: jev.deviationIngredient?.value ?? null,
+      deviationFactor: jev.deviationFactor?.value ?? null,
+      deviationFactorConfidence: jev.deviationFactor ? round2(jev.deviationFactor.confidence) : null,
+      batchFactor: jev.batchFactor?.value ?? null,
+      batchFactorConfidence: jev.batchFactor ? round2(jev.batchFactor.confidence) : null,
       inputTokens: jev.usage.inputTokens,
     });
     return { jev, intent: input.utterance };
@@ -257,6 +290,7 @@ export function buildGraph(deps: GraphDeps): PatchStream {
     const warnings: string[] = [];
     const corrected = correctedTask(session.task, jev, warnings);
     const hasDeviation = corrected !== null && findDeviations(corrected).length > 0;
+    const next = rescaled(corrected, jev, warnings);
 
     const result = await runGuarded(
       policy,
@@ -278,7 +312,7 @@ export function buildGraph(deps: GraphDeps): PatchStream {
     const surface: SurfaceKind = saved ? 'grocery_added' : result.out.templateId;
 
     turn.note('policy', { rule: result.out.rule, templateId: result.out.templateId, surface, hasDeviation, ...(warnings.length ? { warnings } : {}) });
-    return { surface, task: corrected };
+    return { surface, task: next };
   };
 
   /**

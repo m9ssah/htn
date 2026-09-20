@@ -127,6 +127,49 @@ describe('the real graph over the websocket', () => {
     expect(content.generationId).toBe(structure.generationId);
   });
 
+
+  /**
+   * The path the device actually uses, which nothing had ever executed:
+   * `{type:'action'}` -> `parseClientMessage` -> `runner.say({action,...})` ->
+   * `buildGraph`'s input wrapping -> the `act` node -> a projected surface.
+   *
+   * `ws-server.test.ts`'s action case drives a synthetic one-node graph, and
+   * the tests above only send utterances, so every link between the wire's
+   * `action` frame and a real state transition was untested. A press is how a
+   * judge selects a recipe.
+   */
+  it('runs a press from the wire through the real graph and paints the result', async () => {
+    const s = await boot(createReplayJevClient(NEW_TASK));
+    const client = connect(s.url);
+    await client.open;
+
+    client.socket.send(JSON.stringify({ type: 'utterance', text: 'what should I make tonight' }));
+    const first = (await client.waitFor((f) => f.type === 'turn-end')) as Extract<ServerMessage, { type: 'turn-end' }>;
+    expect(first.outcome).toBe('ok');
+
+    client.socket.send(JSON.stringify({ type: 'action', action: 'select_classic_choc_chip', elementId: 'option_1' }));
+    const second = (await client.waitFor((f) => f.type === 'turn-end' && f.turnId !== first.turnId)) as Extract<ServerMessage, { type: 'turn-end' }>;
+
+    expect(second.outcome).toBe('ok');
+    // No `error` frame: the server no longer refuses control events.
+    expect(client.frames.some((f) => f.type === 'error')).toBe(false);
+
+    const painted = updates(client.frames).filter((u) => u.turnId === second.turnId);
+    expect(painted).toHaveLength(2);
+    const structure = StructureUpdateSchema.parse(painted[0]!.update);
+    const content = ContentUpdateSchema.parse(painted[1]!.update);
+
+    // The recipe really opened: the surface carries the batch fader and the
+    // start button that `item_detail` declares, and its copy is the seeded
+    // recipe's, computed in `domain/`.
+    const actions = Object.values(structure.spec.elements)
+      .map((e) => e.on?.press?.action ?? e.on?.range?.action)
+      .filter(Boolean);
+    expect(actions).toContain('set_amount');
+    expect(actions).toContain('begin');
+    expect(content.values.subtitle?.text).toContain('18 cookies');
+  });
+
   /**
    * Barge-in over the wire. `decide` is slowed so the second utterance
    * genuinely lands mid-turn — with the projected path at well under a
