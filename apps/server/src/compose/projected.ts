@@ -22,6 +22,7 @@ import {
   type TaskState,
 } from '../domain/recipe.js';
 import { formatDuration, readTimer, timerFor } from '../domain/timer.js';
+import { createBudget, estimateSpecHeight, GAP_PX, leafHeight, type HeightBudget } from './height.js';
 import type { ChoiceOption, Contact } from '../seed.js';
 import type { StructureComposer } from '../contract/compose.js';
 
@@ -132,11 +133,53 @@ class SurfaceBuilder {
   readonly warnings: string[] = [];
 
   /**
-   * Injected rather than read from `Date.now()` inside a surface, so a timer's
-   * rendered output is a function of its inputs and a test can assert the
-   * screen at a chosen instant.
+   * The panel's remaining vertical space. Every `leaf` spends from it, so a
+   * template can ask `canFit` before committing to another row instead of
+   * discovering the overflow on the device (see `./height.ts`).
    */
-  constructor(readonly now: number = Date.now()) {}
+  readonly budget: HeightBudget;
+
+  /**
+   * `now` is injected rather than read from `Date.now()` inside a surface, so
+   * a timer's rendered output is a function of its inputs and a test can
+   * assert the screen at a chosen instant.
+   */
+  /**
+   * `enforce` decides whether the budget may actually drop rows, and defaults
+   * to off. Measuring is always safe; TRIMMING changes what is on screen, and
+   * on this panel a strict budget leaves `item_detail` with zero ingredient
+   * rows — so which surfaces may shrink, and to what, is a decision for
+   * whoever owns the demo rather than a default.
+   */
+  constructor(
+    readonly now: number = Date.now(),
+    maxHeight: number = DEFAULT_MAX_HEIGHT,
+    private readonly enforce: boolean = false,
+  ) {
+    this.budget = createBudget(maxHeight);
+  }
+
+  /** How many of `total` rows may be shown. The cap, unless enforcing. */
+  rowCapacity(total: number, unenforced: number, cap: number, rowHeight: number, foldHeight: number, tail: number): number {
+    if (!this.enforce) return unenforced;
+    for (let n = Math.min(cap, total); n >= 0; n -= 1) {
+      const folds = n < total;
+      const count = n + (folds ? 1 : 0);
+      const height = n * rowHeight + (folds ? foldHeight : 0) + GAP_PX * Math.max(0, count - 1);
+      if (count === 0 || this.budget.fits(height, tail)) return Math.max(n, Math.min(MIN_ROWS, total));
+    }
+    return Math.min(MIN_ROWS, total);
+  }
+
+  /** True unless enforcement is on and the component would not fit. */
+  mayAdd(height: number, tail = 0): boolean {
+    return !this.enforce || this.budget.fits(height, tail);
+  }
+
+  /** Would one more component of this shape still fit on the panel? */
+  canFit(type: LeafComponentV2, options: { lines?: number; hasDetail?: boolean } = {}): boolean {
+    return this.budget.fits(leafHeight(type, options));
+  }
 
   container(key: string, type: StructuralComponentV2, children?: string[]): this {
     this.elements[key] = { type, props: {}, ...(children ? { children } : {}) };
@@ -164,6 +207,13 @@ class SurfaceBuilder {
     // leaf with nothing to fill in never gets one.
     if (bound.length > 0) props.pending = { $state: pointer(item.key, 'pending') };
     for (const field of bound) props[field] = { $state: pointer(item.key, field) };
+
+    // Spend before recording, so `canFit` is answered against what is
+    // actually on the surface rather than what a template intended.
+    this.budget.spend(leafHeight(item.type, {
+      ...(item.lines !== undefined ? { lines: item.lines } : {}),
+      ...(item.fixed?.['hasDetail'] === true ? { hasDetail: true } : {}),
+    }));
 
     this.elements[item.key] = {
       type: item.type,
@@ -318,6 +368,16 @@ export const ITEM_DETAIL_FIXED_ELEMENTS = 7;
 export const MAX_SURFACE_ELEMENTS = MAX_ELEMENTS;
 /** How many of a step's additions get their own row. */
 const MAX_STEP_DETAILS = 3;
+/**
+ * The budget folds rows to fit the panel, but never to nothing.
+ *
+ * `item_detail`'s header alone (title, yield line, batch slider, label) plus
+ * its primary button is 229px of a 262px content budget, so a strict budget
+ * leaves room for zero ingredients — a recipe screen with no ingredients on
+ * it, which is a worse answer than one that overflows. Below this floor the
+ * surface keeps its rows and the overflow is reported instead.
+ */
+const MIN_ROWS = 3;
 
 /**
  * The action vocabulary these surfaces emit. **Nothing dispatches on these
@@ -383,21 +443,36 @@ function ingredientRows(state: TaskState, builder: SurfaceBuilder): string[] {
     return key;
   };
 
-  if (ingredients.length <= MAX_INGREDIENT_ROWS) return ingredients.map(row);
+  /**
+   * The row cap was an ELEMENT budget (the renderer refuses past 24). The
+   * panel imposes a tighter one: twelve rows is 612px against a 364px stage.
+   * `capacity` is the largest count that still leaves room for the fold row
+   * and the primary action.
+   */
+  const capacity = builder.rowCapacity(
+    ingredients.length,
+    ingredients.length <= MAX_INGREDIENT_ROWS ? ingredients.length : MAX_INGREDIENT_ROWS - 1,
+    MAX_INGREDIENT_ROWS,
+    leafHeight('ListItem', { hasDetail: true }),
+    leafHeight('ListItem', { hasDetail: true }),
+    leafHeight('Button'),
+  );
 
-  const shown = ingredients.slice(0, MAX_INGREDIENT_ROWS - 1).map(row);
-  const rest = ingredients.slice(MAX_INGREDIENT_ROWS - 1);
+  if (ingredients.length <= capacity) return ingredients.map(row);
+
+  const shown = ingredients.slice(0, capacity).map(row);
+  const rest = ingredients.slice(capacity);
   builder.leaf({
-    key: `ing_${MAX_INGREDIENT_ROWS - 1}`,
+    key: `ing_${capacity}`,
     type: 'ListItem',
     copy: { title: `+${rest.length} more ingredients`, detail: rest.map((i) => i.name).join(', ') },
     fixed: { hasDetail: true },
   });
   builder.warnings.push(
-    `item_detail: ${rest.length} ingredient(s) did not fit the ${MAX_INGREDIENT_ROWS} rows and are ` +
+    `item_detail: ${rest.length} ingredient(s) did not fit the panel and are ` +
       `named on the final row instead: ${rest.map((i) => i.name).join(', ')}`,
   );
-  return [...shown, `ing_${MAX_INGREDIENT_ROWS - 1}`];
+  return [...shown, `ing_${capacity}`];
 }
 
 /**
@@ -483,7 +558,15 @@ function itemDetail(state: TaskState, builder: SurfaceBuilder): string {
   builder.leaf({ key: 'ingredients_label', type: 'Label', copy: { text: 'Ingredients' } });
   const rows = ingredientRows(state, builder);
   if (rows.length === 0) builder.warnings.push('item_detail: the recipe has no ingredients to show');
-  const costKeys = costBreakdown(state, cost, builder);
+  // The chart is enrichment, not the task. It yields to the ingredient rows
+  // and the primary action rather than pushing either off the panel.
+  const costKeys = builder.mayAdd(
+    leafHeight('Label') + leafHeight('Metric') + leafHeight('Bars') + leafHeight('Text', { lines: 2 }) + GAP_PX * 3,
+    leafHeight('Button'),
+  )
+    ? costBreakdown(state, cost, builder)
+    : [];
+  if (costKeys.length === 0) builder.warnings.push('item_detail: no room for the cost breakdown on this panel');
   builder.leaf({ key: 'start', type: 'Button', copy: { text: 'Start cooking' }, fixed: { variant: 'primary' }, action: 'begin' });
 
   builder.container('stack', 'Stack', ['title', 'subtitle', 'batch', 'ingredients_label', ...rows, ...costKeys, 'start']);
@@ -524,10 +607,34 @@ function focusStep(state: TaskState, builder: SurfaceBuilder): string {
   });
 
   const adds = step?.adds ?? [];
-  const shown = adds.slice(0, MAX_STEP_DETAILS);
+  /**
+   * What this surface must still have room for once the rows are placed: the
+   * bowl line, the buttons, and the timer when the step declares one. Rows are
+   * dropped before any of those are, because a step you cannot advance is
+   * worse than a step that names one fewer ingredient.
+   */
+  const tail = leafHeight('Text', { lines: 2 })
+    + leafHeight('Button')
+    + (step && timerFor(step, builder.now) ? leafHeight('Metric') + leafHeight('Progress') : 0);
+
+  /**
+   * The largest number of rows that fits INCLUDING the fold row the remainder
+   * needs. Counting rows first and folding afterwards gives the worse surface:
+   * "Butter" alone tells you less than "+3 more: Butter, Caster sugar, Brown
+   * sugar" in the same space.
+   */
+  const capacity = builder.rowCapacity(
+    adds.length,
+    Math.min(MAX_STEP_DETAILS, adds.length),
+    MAX_STEP_DETAILS,
+    leafHeight('ListItem'),
+    leafHeight('ListItem', { hasDetail: true }),
+    tail,
+  );
+  const shown = adds.slice(0, capacity);
   if (adds.length > shown.length) {
     builder.warnings.push(
-      `focus_step: step ${stepIndex + 1} adds ${adds.length} ingredients, ${MAX_STEP_DETAILS} rows shown`,
+      `focus_step: step ${stepIndex + 1} adds ${adds.length} ingredients, ${shown.length} row(s) fit the panel`,
     );
   }
   const detailKeys = shown.map((id, index) => {
@@ -546,14 +653,22 @@ function focusStep(state: TaskState, builder: SurfaceBuilder): string {
     return key;
   });
   if (adds.length > shown.length) {
-    const rest = adds.slice(MAX_STEP_DETAILS).map((id) => ingredientById(recipe, id)?.name ?? id);
-    builder.leaf({
-      key: `add_${MAX_STEP_DETAILS}`,
-      type: 'ListItem',
-      copy: { title: `+${rest.length} more`, detail: rest.join(', ') },
-      fixed: { hasDetail: true },
-    });
-    detailKeys.push(`add_${MAX_STEP_DETAILS}`);
+    const rest = adds.slice(shown.length).map((id) => ingredientById(recipe, id)?.name ?? id);
+    // The fold row is itself a row. If even it does not fit beside the bowl
+    // and the buttons, the ingredients stay named in the warning rather than
+    // pushing the primary action off the panel.
+    if (builder.mayAdd(leafHeight('ListItem', { hasDetail: true }), tail)) {
+      const key = `add_${shown.length}`;
+      builder.leaf({
+        key,
+        type: 'ListItem',
+        copy: { title: `+${rest.length} more`, detail: rest.join(', ') },
+        fixed: { hasDetail: true },
+      });
+      detailKeys.push(key);
+    } else {
+      builder.warnings.push(`focus_step: no room even to fold ${rest.length} ingredient(s): ${rest.join(', ')}`);
+    }
   }
 
   // A timer only where the step declares a real duration. Both numbers are
@@ -730,6 +845,13 @@ export type ProjectedIds = {
   requestId: string;
   generationId: string;
   maxWidth?: number;
+  /** The stage height available to the surface. Defaults to the device panel. */
+  maxHeight?: number;
+  /**
+   * Let the budget DROP rows to fit, rather than only reporting the overflow.
+   * Off by default — see `SurfaceBuilder`'s constructor.
+   */
+  enforceHeight?: boolean;
   /** Wall clock for any timer on the surface. Defaults to now. */
   now?: number;
 };
@@ -739,6 +861,13 @@ export type ProjectedResult =
   | { ok: false; reason: string; warnings: string[] };
 
 const DEFAULT_MAX_WIDTH = 640;
+/**
+ * The stage a 800x480 panel actually leaves a surface, once the shell's rail
+ * and utterance bar have taken their rows. Measured on the device rather than
+ * derived, and overridable because the panel is the device's business, not
+ * this composer's.
+ */
+const DEFAULT_MAX_HEIGHT = 364;
 
 /**
  * Builds the whole surface — structure AND the content that fills it — from
@@ -747,7 +876,7 @@ const DEFAULT_MAX_WIDTH = 640;
  * empty screen (CLAUDE.md constraint 5).
  */
 export function composeProjected(input: ProjectedInput, ids: ProjectedIds): ProjectedResult {
-  const builder = new SurfaceBuilder(ids.now);
+  const builder = new SurfaceBuilder(ids.now, ids.maxHeight ?? DEFAULT_MAX_HEIGHT, ids.enforceHeight ?? false);
   let root: string;
   try {
     switch (input.kind) {
@@ -763,6 +892,23 @@ export function composeProjected(input: ProjectedInput, ids: ProjectedIds): Proj
   }
 
   const { spec, values } = builder.build(root);
+
+  /**
+   * A surface whose mandatory parts exceed the panel cannot be fixed by
+   * folding a row — there is nothing optional left to drop. It ships, and it
+   * says so: silently handing back a spec that will paint its primary action
+   * below the fold is the failure constraint 5 forbids, and the device has no
+   * way to discover it on its own.
+   */
+  const height = estimateSpecHeight(spec);
+  const panel = ids.maxHeight ?? DEFAULT_MAX_HEIGHT;
+  if (height > panel) {
+    builder.warnings.push(
+      `${input.kind}: estimated ${Math.round(height)}px against a ${panel}px stage — ` +
+        `${Math.round(height - panel)}px will be below the fold`,
+    );
+  }
+
   const error = validateProjectedSpec(spec, values);
   if (error) return { ok: false, reason: `${input.kind}: ${error}`, warnings: builder.warnings };
 

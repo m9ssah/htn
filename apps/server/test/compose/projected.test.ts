@@ -10,6 +10,7 @@ import {
   MAX_SURFACE_ELEMENTS,
   type ProjectedInput,
 } from '../../src/compose/projected.js';
+import { estimateSpecHeight } from '../../src/compose/height.js';
 import { deriveContentRequest } from '../../src/contract/content.js';
 import type { StructureComposer } from '../../src/contract/compose.js';
 import { completeStep, type Recipe, type TaskState } from '../../src/domain/recipe.js';
@@ -17,8 +18,12 @@ import { CLASSIC_CHOCOLATE_CHIP } from '../../src/domain/recipes.js';
 import { CHOICE_OPTIONS, CONTACTS } from '../../src/seed.js';
 
 const ids = { requestId: 'req-1', generationId: 'gen-1' };
+/** What an 800x480 panel leaves a surface once the rail and utterance bar take their rows. */
+const PANEL_STAGE = 364;
 
 const fresh = (recipe: Recipe = CLASSIC_CHOCOLATE_CHIP): TaskState => ({ recipe, scale: 1, stepIndex: 0, inBowl: {} });
+/** A bowl that has drifted from the plan, which is what `recovery` renders. */
+const offPlan = (): TaskState => ({ ...fresh(), inBowl: { caster_sugar: 2.25 } });
 
 /** A recipe shape nobody seeded: 3 ingredients, 3 steps, a different unit. */
 const TINY: Recipe = {
@@ -220,7 +225,9 @@ describe('projected composer — shapes nobody seeded', () => {
       'ing_0', 'ing_1', 'ing_2',
     ]);
     expect(result.content.values.subtitle?.text).toContain('6 flatbreads');
-    expect(result.warnings).toEqual([]);
+    // A panel-overflow note is information about the device, not a problem
+    // with this recipe's projection.
+    expect(result.warnings.filter((w) => !w.includes('below the fold'))).toEqual([]);
   });
 
   it('projects step 1 of 3 (no Back) and step 3 of 3 (Done, no Next)', () => {
@@ -302,7 +309,7 @@ describe('projected composer — overflow is visible, never silent', () => {
     expect(CLASSIC_CHOCOLATE_CHIP.ingredients.length).toBeLessThanOrEqual(MAX_INGREDIENT_ROWS);
   });
 
-  it('a step that adds more than three ingredients names the rest', () => {
+  it('a step that adds more ingredients than fit names the rest', () => {
     const wide: Recipe = {
       ...CLASSIC_CHOCOLATE_CHIP,
       steps: [{ id: 'w1', instruction: 'Tip everything in', adds: ['flour', 'butter', 'caster_sugar', 'eggs', 'salt'] }],
@@ -310,9 +317,55 @@ describe('projected composer — overflow is visible, never silent', () => {
     const result = composeProjected({ kind: 'focus_step', state: fresh(wide) }, ids);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.content.values.add_3?.title).toBe('+2 more');
-    expect(String(result.content.values.add_3?.detail)).toContain('Salt');
+
+    // How many rows fit is now a height decision, so the fold row's key is
+    // wherever capacity ran out rather than a fixed index.
+    const fold = Object.entries(result.content.values)
+      .find(([key, v]) => key.startsWith('add_') && String(v.title).startsWith('+'));
+    expect(fold, 'a fold row naming the remainder').toBeDefined();
+    const [, values] = fold!;
+    expect(String(values.title)).toMatch(/^\+\d+ more$/);
+    expect(String(values.detail)).toContain('Salt');
     expect(result.warnings.join(' ')).toContain('adds 5 ingredients');
+  });
+
+  /**
+   * The reason the height budget exists: `focus_step` measured 431px against
+   * a 364px stage on the real panel, which put its primary button below the
+   * fold. Asserted per template so a new one cannot quietly reintroduce it.
+   */
+  it.each(['item_detail', 'focus_step', 'recovery', 'summary_done'] as const)(
+    '%s either fits the panel or says how far over it is',
+    (kind) => {
+      const result = composeProjected({ kind, state: kind === 'recovery' ? offPlan() : fresh() }, ids);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      const height = estimateSpecHeight(result.structure.spec);
+      if (height <= PANEL_STAGE) return;
+      // Nothing optional is left to fold, so it ships — but never silently.
+      expect(result.warnings.join(' '), `${kind} overflows by ${Math.round(height - PANEL_STAGE)}px unreported`)
+        .toContain('below the fold');
+    },
+  );
+
+  /**
+   * The templates whose mandatory content alone exceeds the panel. Recorded
+   * with real numbers so the next change to any of them is measured against
+   * where they actually stand, rather than rediscovered on the device.
+   */
+  it('reports every surface that will not fit, with the shortfall in pixels', () => {
+    for (const kind of ['item_detail', 'recovery', 'summary_done'] as const) {
+      const result = composeProjected({ kind, state: kind === 'recovery' ? offPlan() : fresh() }, ids);
+      expect(result.ok).toBe(true);
+      if (!result.ok) continue;
+
+      const height = estimateSpecHeight(result.structure.spec);
+      if (height <= PANEL_STAGE) continue;
+      // The shortfall is named in pixels so it can be designed against, rather
+      // than being rediscovered by looking at the device.
+      expect(result.warnings.join(' '), kind).toMatch(/estimated \d+px against a \d+px stage/);
+    }
   });
 });
 

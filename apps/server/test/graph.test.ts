@@ -11,7 +11,7 @@ import type { TemplateId } from '@jit/schema';
 
 const choice = <T extends string>(value: T) => ({ value, confidence: 0.9, distribution: { [value]: 0.9 } as Partial<Record<T, number>> });
 
-function answer(route: Route, templateId: TemplateId, wantsStyleChange = false): JevAnswer {
+function answer(route: Route, templateId: TemplateId, wantsStyleChange = false, deviation?: { ingredient: string; factor: string }): JevAnswer {
   return {
     route: choice(route),
     templateId: choice(templateId),
@@ -23,6 +23,7 @@ function answer(route: Route, templateId: TemplateId, wantsStyleChange = false):
       motif: choice('none' as const),
     },
     wantsStyleChange: { value: wantsStyleChange, probability: wantsStyleChange ? 0.9 : 0.1, confidence: 0.8 },
+    ...(deviation ? { deviationIngredient: choice(deviation.ingredient), deviationFactor: choice(deviation.factor) } : {}),
     usage: { inputTokens: 0, outputTokens: 0 },
   };
 }
@@ -111,6 +112,49 @@ describe('the concrete graph', () => {
     const { patches } = await run(createSession(), jevReturning(answer('query', 'generic_answer', true)));
 
     expect(patches.some((p) => 'theme' in p)).toBe(true);
+  });
+
+  /**
+   * Found by `npm run probe`, not by a test: Jev's correct-route answer was
+   * computed and dropped, so `inBowl` stayed empty, `hasDeviation` was
+   * permanently false, and the recovery beat could never open.
+   */
+  it('lands a correct-route deviation in the bowl and opens recovery', async () => {
+    const session = createSession();
+    await run(session, jevReturning(answer('new_task', 'item_detail')));
+
+    const { log } = await run(
+      session,
+      jevReturning(answer('correct', 'item_detail', false, { ingredient: 'caster_sugar', factor: '3x' })),
+      'actually i used three times the sugar',
+    );
+
+    expect(session.task.inBowl.caster_sugar).toBeGreaterThan(0);
+    expect(log.entries.some((e) => e.kind === 'deviation-applied')).toBe(true);
+    expect(log.entries.find((e) => e.kind === 'policy')).toMatchObject({ templateId: 'recovery', rule: 'correct_recovery' });
+    expect(session.currentTemplate).toBe('recovery');
+  });
+
+  it('reports an unusable deviation factor instead of guessing a number', async () => {
+    const session = createSession();
+    await run(session, jevReturning(answer('new_task', 'item_detail')));
+
+    const { log } = await run(session, jevReturning(answer('correct', 'item_detail', false, { ingredient: 'caster_sugar', factor: 'other' })));
+
+    expect(session.task.inBowl.caster_sugar).toBeUndefined();
+    expect(log.entries.some((e) => e.kind === 'deviation-unapplied')).toBe(true);
+  });
+
+  it('applying the same correction twice does not compound it', async () => {
+    const session = createSession();
+    const correction = answer('correct', 'item_detail', false, { ingredient: 'caster_sugar', factor: '2x' });
+    await run(session, jevReturning(answer('new_task', 'item_detail')));
+
+    await run(session, jevReturning(correction));
+    const once = session.task.inBowl.caster_sugar;
+    await run(session, jevReturning(correction));
+
+    expect(session.task.inBowl.caster_sugar).toBe(once);
   });
 
   it('runs end to end on the stub Jev without throwing', async () => {

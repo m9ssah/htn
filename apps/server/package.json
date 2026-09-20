@@ -10,6 +10,7 @@
     "serve": "tsc -b && node dist/server.js",
     "live-jev": "tsc -b && node dist/live-jev.js",
     "content:smoke": "tsc -b && node dist/content-smoke.js",
+    "probe": "tsc -b && node dist/probe.js",
     "record-jev-fixtures": "tsc -b && node dist/record-fixtures.js",
     "dataset:generate": "tsx src/content-gen/cli-generate.ts",
     "dataset:validate": "tsx src/content-gen/cli-validate.ts",

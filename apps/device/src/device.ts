@@ -1,7 +1,8 @@
 import { createJsonRenderer, toLegacyActions, type JsonSurfaceRenderer } from '@jit/renderer';
+import { connect, type Connection, type ConnectionStatus } from './connection.js';
 import { createEmoticon, type Mood } from './emoticon.js';
 import { createRail } from './rail.js';
-import { DEMO, HOME_TILES } from './script.js';
+import { HOME_TILES } from './script.js';
 
 /**
  * The device shell.
@@ -10,10 +11,16 @@ import { DEMO, HOME_TILES } from './script.js';
  * control rail. It knows nothing about recipes — it moves between three states
  * and forwards control events.
  *
- * Until `apps/server` and `apps/bridge` exist this drives itself from a scripted
- * sequence and a keyboard, so the whole flow is walkable today. Both stand-ins
- * are isolated behind `advance()` and the key handler; swapping in a websocket
- * touches nothing else.
+ * **Driven by `apps/server` over a websocket.** What appears is whatever the
+ * orchestrator sends for what you said; the scripted beat-walker this used to
+ * run on is gone. The keyboard remains as a stand-in for the mic and the
+ * hardware rail (`apps/bridge`) — an utterance is typed rather than spoken,
+ * but it takes the same path through the graph either way.
+ *
+ * When the server is unreachable the shell says so and keeps the surface it
+ * has. It never falls back to canned beats: a device that looked alive while
+ * disconnected is the exact failure CLAUDE.md constraint 5 forbids, and the
+ * worst possible one to discover on stage.
  */
 
 type ShellState = 'greeting' | 'home' | 'surface';
@@ -94,44 +101,55 @@ function paintHome(): void {
  * Driving the demo
  * ------------------------------------------------------------------ */
 
-let beat = -1;
-
 function syncRail(): void {
   rail.update(toLegacyActions(renderer.getActions()));
 }
 
-/** Advance to the next scripted surface. Stands in for the orchestrator. */
-function advance(to = beat + 1): void {
-  const next = DEMO[to];
-  if (next === undefined) return;
-  beat = to;
+/**
+ * The status line. Named states only — "live" is not announced, because the
+ * normal case should be invisible; only a problem earns pixels.
+ */
+const status = $('status');
+function showStatus(text: string | null): void {
+  status.textContent = text ?? '';
+  status.hidden = text === null;
+}
 
-  setState('surface');
-  face.setMood('thinking');
+let painted = false;
 
-  surface.dataset['gen'] = surface.dataset['gen'] === '0' ? '1' : '0';
-
-  renderer.apply(next.structure);
-  syncRail();
-
-  window.setTimeout(() => {
-    renderer.apply(next.style);
-  }, 90);
-
-  window.setTimeout(() => {
-    renderer.apply(next.content);
-    syncRail();
-    face.setMood('pleased');
-    window.setTimeout(() => face.setMood('idle'), 700);
-  }, 430);
-
-  if (next.polish) {
-    window.setTimeout(() => renderer.apply(next.polish!), 1400);
+/**
+ * Applied in arrival order, exactly as received.
+ *
+ * The staged look — structure, then style, then content — is the SERVER's
+ * emission order, not a timer here. The old scripted version faked it with
+ * setTimeout; faking it now would desynchronise the shell from what actually
+ * arrived and make a slow content patch look like a fast one.
+ *
+ * `data-gen` flips per turn so the renderer's turnstile has a generation to
+ * animate between.
+ */
+function onUpdate(update: Parameters<JsonSurfaceRenderer['apply']>[0]): void {
+  if (!painted) {
+    setState('surface');
+    painted = true;
   }
+  renderer.apply(update);
+  syncRail();
+}
+
+function say(text: string): void {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  if (!connection.say(trimmed)) {
+    showStatus('not connected — nothing was sent');
+    return;
+  }
+  face.setMood('thinking');
+  surface.dataset['gen'] = surface.dataset['gen'] === '0' ? '1' : '0';
 }
 
 function reset(): void {
-  beat = -1;
+  painted = false;
   setState('greeting');
   face.setMood('idle');
   rail.update([]);
@@ -140,36 +158,85 @@ function reset(): void {
   });
 }
 
+const connection: Connection = connect({
+  onStatus(next: ConnectionStatus, detail) {
+    if (next === 'live') showStatus(null);
+    else if (next === 'connecting') showStatus('connecting…');
+    else showStatus(`server unreachable — ${detail ?? 'retrying'}`);
+  },
+  onTurnStart() {
+    face.setMood('thinking');
+  },
+  onUpdate(update) {
+    onUpdate(update);
+  },
+  onTurnEnd(outcome, updates) {
+    if (outcome === 'ok' && updates > 0) {
+      face.setMood('pleased');
+      window.setTimeout(() => face.setMood('idle'), 700);
+      return;
+    }
+    // Nothing painted, or the turn was cut short. The surface already up
+    // stays up; the face says it did not land rather than pretending.
+    face.setMood('unsure');
+    showStatus(updates === 0 ? 'nothing to show for that one' : `turn ${outcome}`);
+    window.setTimeout(() => {
+      face.setMood('idle');
+      if (connection.status === 'live') showStatus(null);
+    }, 1600);
+  },
+  onError(reason) {
+    showStatus(reason);
+  },
+});
+
 /* ------------------------------------------------------------------ *
  * Input
  * ------------------------------------------------------------------ */
 
 const setMood = (mood: Mood): void => face.setMood(mood);
 
+/**
+ * The mic stand-in. `apps/bridge` and STT are not built, so an utterance is
+ * typed — but it is the same `utterance` frame on the same wire, routed by
+ * the same graph, so what this exercises is the real flow rather than a
+ * shortcut around it.
+ */
+const input = $<HTMLInputElement>('utterance');
+
+input.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  say(input.value);
+  input.value = '';
+});
+
 window.addEventListener('keydown', (event) => {
   if (event.repeat) return;
+  if (event.target === input) return;
 
+  // The four rail buttons. A press names the action the SURFACE declared,
+  // so the device never invents one (`getActions()` is the contract).
   if (event.key >= '1' && event.key <= '4') {
     const action = rail.actionFor(Number(event.key) - 1);
     if (action === null) return;
-    advance();
+    connection.act(action.action, action.slot);
     return;
   }
 
   switch (event.key) {
+    case '/':
+      // Focus the mic stand-in without typing a slash into it.
+      event.preventDefault();
+      input.focus();
+      break;
     case ' ':
       event.preventDefault();
       $('listening').hidden = false;
       setMood('listening');
       break;
-    case 'Enter':
-      advance();
-      break;
     case 'Backspace':
       reset();
-      break;
-    case '?':
-      setMood('unsure');
       break;
     default:
       break;
@@ -177,19 +244,20 @@ window.addEventListener('keydown', (event) => {
 });
 
 window.addEventListener('keyup', (event) => {
-  if (event.key !== ' ') return;
+  if (event.key !== ' ' || event.target === input) return;
   $('listening').hidden = true;
-  setMood('thinking');
-  window.setTimeout(() => advance(), 260);
+  setMood('idle');
+  input.focus();
 });
 
 $('surface').addEventListener('click', (event) => {
   const target = (event.target as HTMLElement).closest<HTMLElement>('[data-action]');
-  if (target) advance();
+  const action = target?.dataset['action'];
+  if (action) connection.act(action, target?.dataset['slot'] ?? '');
 });
 
-$('home').addEventListener('click', () => advance(0));
 $('greeting').addEventListener('click', () => setState('home'));
+$('home').addEventListener('click', () => input.focus());
 
 paintHome();
 reset();

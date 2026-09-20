@@ -1,6 +1,7 @@
 import { Annotation, END, START, StateGraph, type LangGraphRunnableConfig } from '@langchain/langgraph';
 import type { TemplateId } from '@jit/schema';
-import { findDeviations, type TaskState } from './domain/recipe.js';
+import { applyDeviation, findDeviations, type TaskState } from './domain/recipe.js';
+import { DEVIATION_FACTORS } from './harness/clients/jev-questions.js';
 import { CLASSIC_CHOCOLATE_CHIP } from './domain/recipes.js';
 import { isProjectedSurface } from './compose/projected.js';
 import { runGuarded, runtimeOf, type TurnRuntime } from './harness/graph-runtime.js';
@@ -101,6 +102,36 @@ export function createGraph(session: Session): PatchStream {
     .addNode('policy', async (state: State, config: LangGraphRunnableConfig) => {
       const turn = runtimeOf(config);
       const jev = state.jev!;
+
+      /**
+       * Land a `correct` answer in the bowl BEFORE policy reads it.
+       *
+       * `policy` only routes to `recovery` when `hasDeviation` is true, and
+       * that is computed from `inBowl`. Jev's `deviationIngredient` /
+       * `deviationFactor` were previously computed and dropped, so nothing
+       * ever wrote to the bowl, `hasDeviation` was permanently false, and
+       * "actually I used three times the sugar" kept the current surface
+       * instead of opening the recovery beat — the demo's signature moment,
+       * silently dead. Found by `npm run probe`, not by a test.
+       *
+       * The model classifies (which ingredient, which factor label); the
+       * arithmetic is `applyDeviation`'s (constraint 2). It assigns
+       * `planned x factor` absolutely, so re-applying the same answer is a
+       * no-op rather than a compounding error.
+       */
+      if (jev.route.value === 'correct' && jev.deviationIngredient && jev.deviationFactor) {
+        const label = jev.deviationFactor.value;
+        const factor = DEVIATION_FACTORS[label];
+        if (factor === null || factor === undefined) {
+          // "other" carries no number to compute with, and an unknown label is
+          // a Jev/table skew. Either way: reported, never guessed at.
+          turn.note('deviation-unapplied', { ingredient: jev.deviationIngredient.value, factor: label });
+        } else {
+          session.task = applyDeviation(session.task, jev.deviationIngredient.value, factor);
+          turn.note('deviation-applied', { ingredient: jev.deviationIngredient.value, factor: label });
+        }
+      }
+
       const result = await runGuarded(
         policy,
         {
@@ -128,7 +159,6 @@ export function createGraph(session: Session): PatchStream {
     .addNode('paint', async (state: State, config: LangGraphRunnableConfig) => {
       const turn = runtimeOf(config);
       const templateId = state.templateId!;
-      const jev = state.jev!;
 
       if (!isProjectedSurface(templateId)) {
         // generic_answer/message_drafts compose their structure rather than
@@ -138,19 +168,17 @@ export function createGraph(session: Session): PatchStream {
         return { halted: true };
       }
 
-      const requestId = `${turn.turnId}-surface`;
-      const deviation = jev.deviationIngredient && jev.deviationFactor
-        ? { ingredientId: jev.deviationIngredient.value, factor: jev.deviationFactor.value }
-        : undefined;
-
+      // No `deviation` passed: `policy` already applied it to the session's
+      // task state, and `project` would otherwise apply the same answer a
+      // second time to its local copy. Harmless today (the assignment is
+      // absolute) but two places owning one correction is how they drift.
       const result = await runGuarded(
         project,
         {
           state: session.task,
           templateId,
-          requestId,
+          requestId: `${turn.turnId}-surface`,
           generationId: `${turn.turnId}-gen`,
-          ...(deviation ? { deviation } : {}),
         },
         turn,
         'node-crashed',

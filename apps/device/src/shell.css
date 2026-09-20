@@ -131,7 +131,10 @@ body {
   overflow: hidden;
   width: 100vw;
   height: 100vh;
-  grid-template-rows: minmax(0, 1fr) auto;
+  /* stage · utterance · rail. The utterance bar is a ROW, not an overlay:
+     laid over the stage it covered whatever the generated surface put at the
+     bottom, which is reliably the primary button. */
+  grid-template-rows: minmax(0, 1fr) auto auto;
 }
 
 .stage {
@@ -780,4 +783,48 @@ body {
   .face-frame--beat {
     opacity: 0;
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * The mic stand-in and the connection status
+ *
+ * Shell chrome, not a generated surface — it uses the shell's own tokens and
+ * sits outside `#surface`, so the renderer never sees it and the component
+ * vocabulary does not grow (same reasoning as the tiles).
+ * ------------------------------------------------------------------ */
+
+.utterance {
+  margin: 0 var(--sh-pad) 6px;
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--sh-fg) 20%, transparent);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--sh-fg) 4%, transparent);
+  color: var(--sh-fg);
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  outline: none;
+  opacity: 0.6;
+  transition: opacity 160ms var(--sh-ease), border-color 160ms var(--sh-ease);
+}
+
+.utterance::placeholder {
+  color: color-mix(in srgb, var(--sh-fg) 40%, transparent);
+}
+
+.utterance:focus {
+  border-color: var(--sh-accent);
+  opacity: 1;
+}
+
+.status {
+  position: absolute;
+  top: var(--sh-pad);
+  left: var(--sh-pad);
+  z-index: 4;
+  margin: 0;
+  color: var(--sh-accent);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
