@@ -3,3 +3,5 @@ CLAUDE.md
 node_modules/
 dist/
 *.tsbuildinfo
+training/data-train/dataset.jsonl
+training/data-train/checkpoints/
