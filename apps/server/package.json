@@ -13,6 +13,7 @@
     "node": "tsc -b && node dist/cli.js",
     "serve": "tsc -b && node dist/server.js",
     "live-jev": "tsc -b && node dist/live-jev.js",
+    "content:smoke": "tsc -b && node dist/content-smoke.js",
     "record-jev-fixtures": "tsc -b && node dist/record-fixtures.js"
   },
   "dependencies": {

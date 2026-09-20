@@ -1,5 +1,6 @@
 import { Annotation, END, START, StateGraph, type LangGraphRunnableConfig } from '@langchain/langgraph';
 import { stubContentSource } from './harness/clients/content.js';
+import { BasetenContentModel, stubContentModel } from './harness/clients/content-model.js';
 import { stubJevClient } from './harness/clients/jev.js';
 import { runtimeOf } from './harness/graph-runtime.js';
 import type { PatchStream } from './harness/turn.js';
@@ -41,14 +42,29 @@ const notWiredGraph = new StateGraph(PlaceholderState)
 const port = Number(process.env.JIT_PORT ?? 8787);
 const host = process.env.JIT_HOST ?? '127.0.0.1';
 
+/**
+ * The real content model only when it is actually configured, and the boot log
+ * says which one is live either way. A silent stub fallback would make an
+ * unconfigured endpoint look like a working one until a judge read the copy
+ * (constraint 5); the stub's own placeholder strings are deliberately
+ * unmistakable for the same reason.
+ */
+const contentModelUrl = process.env.JIT_CONTENT_MODEL_URL;
+const contentModel = contentModelUrl ? new BasetenContentModel() : stubContentModel;
+
 const server = await createSurfaceServer({
   port,
   host,
-  deps: { graph: notWiredGraph, jev: stubJevClient, content: stubContentSource },
+  deps: { graph: notWiredGraph, jev: stubJevClient, content: stubContentSource, contentModel },
 });
 
 process.stderr.write(
-  `${JSON.stringify({ event: 'listening', url: server.url, graph: 'NOT WIRED — emits nothing' })}\n`,
+  `${JSON.stringify({
+    event: 'listening',
+    url: server.url,
+    graph: 'NOT WIRED — emits nothing',
+    contentModel: contentModelUrl ? `live: ${contentModelUrl}` : 'STUB — set JIT_CONTENT_MODEL_URL for the trained model',
+  })}\n`,
 );
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {

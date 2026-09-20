@@ -1,5 +1,6 @@
 import type { StylePatch } from '@jit/schema';
 import type { JevAnswer, JevState, Node } from './types.js';
+import { generate } from './nodes/generate.js';
 import { policy } from './nodes/policy.js';
 import { style } from './nodes/style.js';
 import { project } from './nodes/project.js';
@@ -60,4 +61,5 @@ export const NODES: Record<string, Node<any, unknown>> = {
   policy,
   style,
   project,
+  generate,
 };

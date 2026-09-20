@@ -1,4 +1,4 @@
-import type { Density, FontPairing, Motif, Palette, Radius, SurfaceUpdate, TemplateId } from '@jit/schema';
+import type { ContentGenerationRequestV1, Density, FontPairing, Motif, Palette, Radius, SurfaceUpdate, TemplateId } from '@jit/schema';
 
 /**
  * The seam every orchestration node runs behind. Deliberately small: a node is
@@ -13,6 +13,8 @@ export type Node<In, Out> = {
 export type Ctx = {
   jev: JevClient;
   content: ContentSource;
+  /** The fine-tuned content model. `generate` fills a composed surface through this. */
+  contentModel: ContentModel;
   sink: PatchSink;
   /**
    * Load-bearing, not decorative. `backend/probes/p19b_langgraph_cancel.mjs`
@@ -178,6 +180,26 @@ export interface JevClient {
 /** Used by `generate`. Implementations MUST check `signal` between chunks. */
 export interface ContentSource {
   stream(prompt: string, signal: AbortSignal): AsyncIterable<string>;
+}
+
+/**
+ * The fine-tuned Stage 2 content model, as one request/response rather than a
+ * stream of slot lines.
+ *
+ * Separate from `ContentSource` because the two answer different protocols,
+ * not because there are two ways to do one thing: `ContentSource` streams
+ * `generate`'s JSON-Lines slot protocol from a general model, while this
+ * fills the `jit.content.request.v1` contract the LoRA in
+ * `training/data-train` was actually trained on. Forcing the trained model
+ * through the streaming seam would mean prompting it for a protocol it never
+ * saw.
+ *
+ * `fill` returns `unknown` on purpose — what the model said is not yet known
+ * to be a valid result, and `validateContentResult` is what decides that.
+ * Implementations MUST thread `signal` into their own await.
+ */
+export interface ContentModel {
+  fill(request: ContentGenerationRequestV1, signal: AbortSignal): Promise<unknown>;
 }
 
 /**
