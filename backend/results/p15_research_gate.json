@@ -1,0 +1,42 @@
+{
+  "rows": [
+    {
+      "wording": "w1 original (probe 14)",
+      "accuracy": 0.8,
+      "false_alarms": 3,
+      "missed": 0,
+      "slow_turns": 9,
+      "mean_ms": 3386
+    },
+    {
+      "wording": "w2 session-scoped",
+      "accuracy": 0.533,
+      "false_alarms": 7,
+      "missed": 0,
+      "slow_turns": 13,
+      "mean_ms": 4795
+    },
+    {
+      "wording": "w3 external-only",
+      "accuracy": 0.867,
+      "false_alarms": 0,
+      "missed": 2,
+      "slow_turns": 4,
+      "mean_ms": 1624
+    },
+    {
+      "wording": "w4 external-only + examples",
+      "accuracy": 0.8,
+      "false_alarms": 1,
+      "missed": 2,
+      "slow_turns": 5,
+      "mean_ms": 1976
+    }
+  ],
+  "best": "w3 external-only",
+  "best_criteria": {
+    "q": "Does answering this require querying an outside source such as the web or an API?",
+    "t": "A live or external lookup is required \u2014 prices, weather, opening hours, nutrition data, recalls, or anything that changes independently of this device",
+    "f": "Answerable from the current recipe or session state, from general knowledge, or by changing the interface"
+  }
+}
