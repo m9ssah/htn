@@ -70,6 +70,8 @@ export type CssVar =
   | '--jit-fg'
   | '--jit-muted'
   | '--jit-accent'
+  /** Gradient partner for `--jit-accent`; a neighbour in hue, not a second brand. */
+  | '--jit-accent-2'
   | '--jit-on-accent'
   | '--jit-accent-soft'
   | '--jit-input'
@@ -77,6 +79,7 @@ export type CssVar =
   | '--jit-font-display'
   | '--jit-font-body'
   | '--jit-weight-display'
+  | '--jit-tracking-display'
   | '--jit-scale'
   // space
   | '--jit-gap'
@@ -352,12 +355,19 @@ export const RANGE_CONTROL_COUNT = 1;
  * text sits on `--jit-surface` rather than `--jit-bg`. Checking only against bg
  * rejects token sets that are perfectly readable where they are actually drawn.
  *
- * `*-on-accent-soft` exists because `Badge` and `Alert` paint on
- * `--jit-accent-soft`, not `bg` or `surface`. Without these two, a palette can
- * pass every check here and still ship an unreadable badge, which is exactly
- * what `slate` did (accent-on-accent-soft measured 4.27:1 against the required
- * 4.5:1) before these pairs existed to catch it. Required via `Surface`'s
+ * `fg-on-accent-soft` exists because `Badge` and `Alert` paint on
+ * `--jit-accent-soft`, not `bg` or `surface`. Required via `Surface`'s
  * `accent-soft`, opt-in the same way `surface` is.
+ *
+ * There is deliberately no `accent-on-accent-soft`. Badge's text used to be
+ * `--jit-accent` on this background, and for `slate` that measured 3.63:1 —
+ * nowhere near the 4.5:1 floor. Darkening `accentSoft` cannot fix this: with
+ * `slate`'s actual accent hue, the ceiling even at pure black is 4.512:1, a
+ * fragile pass that would also flatten the tinted badge to solid black. The
+ * real fix was in the renderer, not the palette — Badge's text now uses `fg`,
+ * which clears AA by a wide margin (13.6–17.6:1) on every palette. Checking a
+ * pairing nothing renders would only force future palettes to satisfy a
+ * constraint their accent hue may make impossible.
  */
 export type ContrastPair =
   | 'fg-on-bg'
@@ -365,8 +375,7 @@ export type ContrastPair =
   | 'fg-on-surface'
   | 'muted-on-surface'
   | 'on-accent-on-accent'
-  | 'fg-on-accent-soft'
-  | 'accent-on-accent-soft';
+  | 'fg-on-accent-soft';
 
 export type ContrastCheck = {
   pair: ContrastPair;

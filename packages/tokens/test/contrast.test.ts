@@ -50,7 +50,7 @@ describe('contrastRatio', () => {
 });
 
 describe('checkContrast', () => {
-  it('passes every palette in the enum table on all seven pairs', () => {
+  it('passes every palette in the enum table on all six pairs', () => {
     // The base exists to cover agent 4's latency. If it is unreadable, the user
     // stares at an inaccessible surface for up to two seconds on an
     // accessibility tool — so the table itself is held to AA, not just polish.
@@ -58,28 +58,29 @@ describe('checkContrast', () => {
       const report = checkContrast(resolve(theme({ palette })), {
         surfaces: ['bg', 'surface', 'accent-soft'],
       });
-      expect(report.checks, palette).toHaveLength(7);
+      expect(report.checks, palette).toHaveLength(6);
       expect(report, palette).toMatchObject({ pass: true });
     }
   });
 
-  it('catches accent text on accent-soft, the pairing Badge and Alert actually use', () => {
-    // Regression test: slate's original accentSoft (#1c2333) measured 4.27:1
-    // against accent (#5b7cfa) — below AA — while every *page-ground* pair
-    // (fg/bg, fg/surface, on-accent/accent) passed cleanly. Surface-narrowing
-    // alone would never have caught this, because accent-soft is not a page
-    // ground; it's a component background. This asserts the failing case is
-    // actually reachable, independent of today's fixed palette values.
+  it('catches a bad fg-on-accent-soft, the pairing Badge and Alert actually use', () => {
+    // fg-on-accent-soft is the only accent-soft pair — see ContrastPair's doc
+    // comment for why there is no accent-on-accent-soft. slate's real accent
+    // (#6d5cf6) measured 3.63:1 against its real accentSoft (#1a1b30) when
+    // Badge used to render accent-colored text there; no accentSoft value
+    // could fix that (ceiling 4.512:1 even at pure black). The actual fix was
+    // moving Badge's text to fg in renderer.css, which is why this test checks
+    // fg-on-accent-soft rather than the pairing that used to fail.
     const base = resolve(theme({ palette: 'slate' }));
-    const failing = { ...base, '--jit-accent': '#5b7cfa', '--jit-accent-soft': '#1c2333' };
+    const failing = { ...base, '--jit-fg': '#4a4d5c', '--jit-accent-soft': '#1a1b30' };
     const report = checkContrast(failing, { surfaces: ['accent-soft'] });
-    const check = report.checks.find((c) => c.pair === 'accent-on-accent-soft');
+    const check = report.checks.find((c) => c.pair === 'fg-on-accent-soft');
     expect(report.pass).toBe(false);
     expect(check).toMatchObject({ pass: false });
     expect(check?.ratio).toBeLessThan(AA_NORMAL);
   });
 
-  it('only checks accent-soft pairs when a template opts in', () => {
+  it('only checks the accent-soft pair when a template opts in', () => {
     // accent-soft is a component ground (Badge, Alert), not a page ground —
     // unlike on-accent-on-accent, it must NOT be forced on templates that never
     // paint on it, or a token set with an unrelated dark accent-soft would fail
@@ -89,7 +90,7 @@ describe('checkContrast', () => {
 
     const withIt = checkContrast(resolve(theme()), { surfaces: ['accent-soft'] });
     expect(withIt.checks.map((c) => c.pair).sort()).toEqual(
-      ['accent-on-accent-soft', 'fg-on-accent-soft', 'on-accent-on-accent'].sort(),
+      ['fg-on-accent-soft', 'on-accent-on-accent'].sort(),
     );
   });
 

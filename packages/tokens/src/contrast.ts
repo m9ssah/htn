@@ -83,16 +83,17 @@ const PAIR_VARS: Record<ContrastPair, { fg: keyof TokenSet; bg: keyof TokenSet }
   'fg-on-surface': { fg: '--jit-fg', bg: '--jit-surface' },
   'muted-on-surface': { fg: '--jit-muted', bg: '--jit-surface' },
   'on-accent-on-accent': { fg: '--jit-on-accent', bg: '--jit-accent' },
-  // Alert (recovery.diagnosis) inherits body text color onto this background.
+  // Badge and Alert (recovery.diagnosis) both render fg-colored text on this
+  // background. See ContrastPair's doc comment for why there is no
+  // accent-on-accent-soft: Badge used to use accent, and no accentSoft value
+  // could make that pass AA for every accent hue.
   'fg-on-accent-soft': { fg: '--jit-fg', bg: '--jit-accent-soft' },
-  // Badge sets its text to accent explicitly, on this same background.
-  'accent-on-accent-soft': { fg: '--jit-accent', bg: '--jit-accent-soft' },
 };
 
 const PAIRS_BY_SURFACE: Record<Surface, ContrastPair[]> = {
   bg: ['fg-on-bg', 'muted-on-bg'],
   surface: ['fg-on-surface', 'muted-on-surface'],
-  'accent-soft': ['fg-on-accent-soft', 'accent-on-accent-soft'],
+  'accent-soft': ['fg-on-accent-soft'],
 };
 
 export type CheckContrastOptions = {
@@ -107,18 +108,18 @@ export type CheckContrastOptions = {
 };
 
 /**
- * WCAG AA check over the seven pairs the renderer can actually produce.
+ * WCAG AA check over the six pairs the renderer can actually produce.
  *
  * Nothing is ever skipped. An unparseable colour yields a FAILING check with a
  * null ratio and a reason, because "we could not tell" and "it is fine" must not
  * look the same to the caller.
  *
  * `on-accent-on-accent` is always required — every template renders at least
- * one button via `getActions()`. `fg-on-accent-soft` and `accent-on-accent-soft`
- * are opt-in via `surfaces: [...,'accent-soft']`, the same as `surface`, because
- * only templates with a `Badge` or an `Alert` in their tree paint on that
- * ground — see the renderer's template tests for the check that a template
- * containing either always declares it.
+ * one button via `getActions()`. `fg-on-accent-soft` is opt-in via
+ * `surfaces: [...,'accent-soft']`, the same as `surface`, because only
+ * templates with a `Badge` or an `Alert` in their tree paint on that ground —
+ * see the renderer's template tests for the check that a template containing
+ * either always declares it.
  *
  * Pure, so the orchestrator can run this before emitting a polish patch — which
  * is the real fix when agent 4 goes unreadable. Rejecting at the renderer is the
