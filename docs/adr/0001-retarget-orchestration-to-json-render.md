@@ -128,8 +128,10 @@ is contract-independent.
 - The `StructureComposer` interface localises any future change of composition
   strategy to one module.
 
-**Defects inherited with the adopted layer.** These were found by review, not by
-tests, and are not yet fixed:
+**Defects inherited with the adopted layer.** Found by review, not by tests.
+**All eight are now fixed** (branch `agent/contract-fix`, merged as `f3e15af`);
+each has a test named in that branch's report. Kept here because the reasoning
+is the durable part and the defect classes will recur:
 
 0. **The composed path cannot receive content at all.** `composeBatch` assigns
    element keys `node_N` and `structuredClone`s each candidate element without
@@ -153,7 +155,42 @@ tests, and are not yet fixed:
 3. `$bindState` props are treated as fixed and ship the binding expression as a
    literal value.
 4. `Bars` and `Progress` have no `GENERATED_FIELDS` entry and can never receive
-   generated content.
+   generated content. **Resolved as intentional, not a defect:** `Bars.values`
+   and `Progress.pct` — like `Slider`'s `min`/`max`/`step`/`value`/`unit` — are
+   numbers a user could check, so constraint 2 puts them in TypeScript rather
+   than in a prompt.
+
+### How they were fixed
+
+- **Binding (0, 2):** `rebindComposedSpec()` rewrites `$state`/`$bindState`
+  element segments, `props.id` and `state.content` keys to the library-assigned
+  element key, copying values because two candidates may name one segment.
+  `contentPointer()` returns the full `{elementId, field}` and a prop resolves
+  only if its path is exactly `/content/<own element>/<own prop>`. A
+  non-resolving binding is **returned in `unresolved[]`**, never silently
+  omitted — throwing would discard the targets that are fine, which is defect 3
+  again.
+- **`maxUses > 1` is refused** rather than rewritten per instance. Rebinding can
+  make `$state` and `props.id` per-instance, but an **action name cannot be** —
+  it is a catalog identity the hardware maps a button to, so two instances of
+  one candidate give two elements the same action and `getActions()` cannot tell
+  them apart. One candidate per instance.
+- **Deadlines (4):** `COMPOSE_DEADLINE_MS = 2 x HARD_DEADLINE_MS = 3000ms`,
+  derived from the measured shape (exactly two serialised round trips), not
+  invented. The 30s timeout is gone.
+- **`limit` (5):** `stopReason: 'limit'` mapped to `'partial'`, so `complete`
+  never arrived — a second never-resolves path, found while fixing the first.
+
+### The evaluator injection
+
+`jevEvaluator(client)` translates the library's `{state, questions, signal}`
+through `JevHttpClient`. This was not an optimisation: the shipped
+`experimental_createEvaluator` posts to `ai-gateway.vercel.sh` and requires a
+Vercel AI Gateway key, which the project does not have — the TypeSafe key gets
+**HTTP 401**. `npm run jev:smoke` also read an `.env` that is not in the repo,
+so it was unrunnable as checked in. Composition now shares one credential, one
+budget cap, one keep-alive agent and one telemetry path with `decide`.
+`gatewayEvaluator()` is kept as a seam, not a default.
 
 ## Amendment, same day: the projected composer
 
