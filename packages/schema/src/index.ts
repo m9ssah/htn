@@ -358,14 +358,19 @@ export const RANGE_CONTROL_COUNT = 1;
  * `accent-soft`, opt-in the same way `surface` is.
  *
  * There is deliberately no `accent-on-accent-soft`. Badge's text used to be
- * `--jit-accent` on this background, and for `slate` that measured 3.63:1 —
- * nowhere near the 4.5:1 floor. Darkening `accentSoft` cannot fix this: with
- * `slate`'s actual accent hue, the ceiling even at pure black is 4.512:1, a
- * fragile pass that would also flatten the tinted badge to solid black. The
- * real fix was in the renderer, not the palette — Badge's text now uses `fg`,
- * which clears AA by a wide margin (13.6–17.6:1) on every palette. Checking a
- * pairing nothing renders would only force future palettes to satisfy a
- * constraint their accent hue may make impossible.
+ * `--jit-accent` on this background, and on the palette that was written
+ * against it measured 3.63:1 — nowhere near the 4.5:1 floor. Darkening
+ * `accentSoft` could not fix it: at that accent hue the ceiling even against
+ * pure black was 4.512:1, a fragile pass that would also have flattened the
+ * tinted badge to solid black. The real fix was in the renderer, not the
+ * palette — Badge's text now uses `fg`, which measures 14.0–17.6:1 across the
+ * current table.
+ *
+ * The palettes have since been reworked and now clear AA on `accent` too
+ * (5.40:1 at worst), so the original failure is not reproducible against this
+ * table. The omission still stands on its own reasoning: checking a pairing
+ * nothing renders would force every future palette's accent hue to satisfy a
+ * constraint it has no other reason to meet.
  */
 export type ContrastPair =
   | 'fg-on-bg'

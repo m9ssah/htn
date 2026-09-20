@@ -462,14 +462,16 @@ body {
   letter-spacing: -0.012em;
 }
 
-/* A 2x2 tile is the mosaic's focal point and carries the display face. */
+/*
+ * A 2x2 tile is the mosaic's focal point and is set large — but in Manrope, not
+ * the bitmap face. The tiles are a field of short labels at small sizes, and a
+ * bitmap face there reads as texture rather than as a set of names; the display
+ * face is reserved for the eyebrow labels and for generated surfaces' headings.
+ */
 .tile[data-size='2x2'] b {
-  font-family: var(--sh-display);
-  font-size: 25px;
-  font-weight: 400;
-  /* Bitmap type tracks OUT: its sidebearings are part of the pixel grid, and
-     pulling them together closes the counters that make the grid readable. */
-  letter-spacing: 0.02em;
+  font-size: 27px;
+  font-weight: 200;
+  letter-spacing: -0.02em;
 }
 
 .tile span {
