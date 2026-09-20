@@ -287,7 +287,10 @@
   padding: 2px 9px;
   border-radius: 999px;
   background: var(--jit-accent-soft);
-  color: var(--jit-accent);
+  /* Was var(--jit-accent) — for slate that measured 3.63:1 against
+     accent-soft, and no accentSoft value can fix it without going to solid
+     black (ceiling 4.512:1). fg clears AA by a wide margin on every palette. */
+  color: var(--jit-fg);
   font-size: var(--ph-fs);
   font-weight: 700;
   line-height: var(--ph-lh);

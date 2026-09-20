@@ -1,6 +1,16 @@
 import '@jit/renderer/renderer.css';
-import { TEMPLATES, TEMPLATE_IDS, createRenderer } from '@jit/renderer';
+import type { FontPairing, ThemeEnums } from '@jit/schema';
+import { BOOTSTRAP_THEME, TEMPLATES, TEMPLATE_IDS, createRenderer } from '@jit/renderer';
 import { SCENARIOS } from './scenarios.js';
+
+/**
+ * All four, not just the bootstrap default. The Slider head avoids `baseline`
+ * alignment specifically because ascent/descent differ across these — the same
+ * risk applies to every other reservation in every template, and the only place
+ * that can actually be measured is here, in a real browser. Checking one font
+ * and calling it done would have let that exact bug class back in.
+ */
+const FONT_PAIRINGS: FontPairing[] = ['system', 'editorial', 'geometric', 'mono'];
 
 /**
  * Measures whether a patch moves anything.
@@ -10,7 +20,14 @@ import { SCENARIOS } from './scenarios.js';
  * about geometry, which means they can only be checked where layout actually
  * runs.
  */
-type Row = { template: string; stage: string; worst: number; slot: string; strict: boolean };
+type Row = {
+  template: string;
+  fontPairing: FontPairing;
+  stage: string;
+  worst: number;
+  slot: string;
+  strict: boolean;
+};
 
 const probe = document.getElementById('probe')!;
 const rows: Row[] = [];
@@ -49,48 +66,59 @@ const TOLERANCE = 0.5;
  */
 const LAYOUT_VARS = ['--jit-scale', '--jit-gap', '--jit-pad', '--jit-density-f'];
 
-for (const templateId of TEMPLATE_IDS) {
-  const scenario = SCENARIOS.find((s) => s.templateId === templateId);
-  if (!scenario) continue;
+for (const fontPairing of FONT_PAIRINGS) {
+  const theme: ThemeEnums = { ...BOOTSTRAP_THEME, fontPairing };
 
-  const host = document.createElement('div');
-  host.style.width = '520px';
-  probe.replaceChildren(host);
-  const renderer = createRenderer(host);
+  for (const templateId of TEMPLATE_IDS) {
+    const scenario = SCENARIOS.find((s) => s.templateId === templateId);
+    if (!scenario) continue;
 
-  renderer.applySkeleton({ v: 1, templateId, maxWidth: TEMPLATES[templateId].maxWidth });
-  const atSkeleton = positions(host);
+    const host = document.createElement('div');
+    host.style.width = '520px';
+    probe.replaceChildren(host);
+    const renderer = createRenderer(host);
 
-  // A slot explicitly set to null collapses, which IS a reflow — a deliberate
-  // exception, because the alternative is shimmering forever on a row that will
-  // never fill. Strip those so this measures the reservation guarantee itself:
-  // every slot that does receive content must not move.
-  const filled = Object.fromEntries(
-    Object.entries(scenario.content.slots).filter(([, v]) => v !== null),
-  ) as typeof scenario.content.slots;
-  renderer.applyContent({ v: 1, slots: filled });
-  const atContent = positions(host);
-  const [contentDelta, contentSlot] = worstDelta(atSkeleton, atContent);
-  rows.push({
-    template: templateId,
-    stage: 'content lands',
-    worst: contentDelta,
-    slot: contentSlot,
-    strict: true,
-  });
+    // Set the font pairing before anything paints, so every measurement below
+    // — skeleton, content, polish — happens under this font, not the bootstrap
+    // default.
+    renderer.applyStyle({ v: 1, theme });
 
-  if (scenario.polish) {
-    const reflows = LAYOUT_VARS.some((v) => v in scenario.polish!.tokens);
-    renderer.applyPolish(scenario.polish);
-    const atPolish = positions(host);
-    const [polishDelta, polishSlot] = worstDelta(atContent, atPolish);
+    renderer.applySkeleton({ v: 1, templateId, maxWidth: TEMPLATES[templateId].maxWidth });
+    const atSkeleton = positions(host);
+
+    // A slot explicitly set to null collapses, which IS a reflow — a deliberate
+    // exception, because the alternative is shimmering forever on a row that will
+    // never fill. Strip those so this measures the reservation guarantee itself:
+    // every slot that does receive content must not move.
+    const filled = Object.fromEntries(
+      Object.entries(scenario.content.slots).filter(([, v]) => v !== null),
+    ) as typeof scenario.content.slots;
+    renderer.applyContent({ v: 1, slots: filled });
+    const atContent = positions(host);
+    const [contentDelta, contentSlot] = worstDelta(atSkeleton, atContent);
     rows.push({
       template: templateId,
-      stage: reflows ? 'polish (resizes by request)' : 'polish (colour only)',
-      worst: polishDelta,
-      slot: polishSlot,
-      strict: !reflows,
+      fontPairing,
+      stage: 'content lands',
+      worst: contentDelta,
+      slot: contentSlot,
+      strict: true,
     });
+
+    if (scenario.polish) {
+      const reflows = LAYOUT_VARS.some((v) => v in scenario.polish!.tokens);
+      renderer.applyPolish(scenario.polish);
+      const atPolish = positions(host);
+      const [polishDelta, polishSlot] = worstDelta(atContent, atPolish);
+      rows.push({
+        template: templateId,
+        fontPairing,
+        stage: reflows ? 'polish (resizes by request)' : 'polish (colour only)',
+        worst: polishDelta,
+        slot: polishSlot,
+        strict: !reflows,
+      });
+    }
   }
 }
 
@@ -98,7 +126,7 @@ probe.replaceChildren();
 
 const table = document.createElement('table');
 table.innerHTML =
-  '<thead><tr><th>template</th><th>stage</th><th>worst shift</th><th>slot</th><th></th></tr></thead>';
+  '<thead><tr><th>template</th><th>font pairing</th><th>stage</th><th>worst shift</th><th>slot</th><th></th></tr></thead>';
 const body = document.createElement('tbody');
 let failures = 0;
 
@@ -107,7 +135,7 @@ for (const row of rows) {
   const ok = strict ? row.worst <= TOLERANCE : true;
   if (!ok) failures += 1;
   const tr = document.createElement('tr');
-  for (const cell of [row.template, row.stage, `${row.worst}px`, row.slot]) {
+  for (const cell of [row.template, row.fontPairing, row.stage, `${row.worst}px`, row.slot]) {
     const td = document.createElement('td');
     td.textContent = cell;
     tr.append(td);
@@ -126,7 +154,7 @@ banner.className = failures === 0 ? 'pass' : 'fail';
 banner.id = 'verdict';
 banner.textContent =
   failures === 0
-    ? `REFLOW-CHECK PASS — ${rows.filter((r) => r.strict).length} strict stages held position across ${TEMPLATE_IDS.length} templates`
+    ? `REFLOW-CHECK PASS — ${rows.filter((r) => r.strict).length} strict stages held position across ${TEMPLATE_IDS.length} templates × ${FONT_PAIRINGS.length} font pairings`
     : `REFLOW-CHECK FAIL — ${failures} stage(s) moved the layout`;
 
 document.getElementById('out')!.append(banner, table);
