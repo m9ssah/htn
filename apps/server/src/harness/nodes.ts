@@ -1,7 +1,5 @@
-import type { SkeletonPatch, StylePatch } from '@jit/schema';
-import { TEMPLATES } from '@jit/renderer';
+import type { StylePatch } from '@jit/schema';
 import type { JevAnswer, JevState, Node } from './types.js';
-import { generate } from './nodes/generate.js';
 import { policy } from './nodes/policy.js';
 import { style } from './nodes/style.js';
 import { project } from './nodes/project.js';
@@ -27,7 +25,6 @@ import { project } from './nodes/project.js';
  * "The shape".
  */
 export type DecideResult = {
-  skeleton: SkeletonPatch;
   style: StylePatch;
   jev: JevAnswer;
 };
@@ -36,11 +33,6 @@ export const decide: Node<JevState, DecideResult> = {
   name: 'decide',
   async run(state, ctx) {
     const jev = await ctx.jev.ask(state, ctx.signal);
-    const skeleton: SkeletonPatch = {
-      v: 1,
-      templateId: jev.templateId.value,
-      maxWidth: TEMPLATES[jev.templateId.value].maxWidth,
-    };
     const style: StylePatch = {
       v: 1,
       theme: {
@@ -51,11 +43,9 @@ export const decide: Node<JevState, DecideResult> = {
         motif: jev.theme.motif.value,
       },
     };
-    return { skeleton, style, jev };
+    return { style, jev };
   },
 };
-
-export { generate };
 
 /**
  * `decide` and `generate` take different input types (`JevState` vs.
@@ -67,7 +57,6 @@ export { generate };
  */
 export const NODES: Record<string, Node<any, unknown>> = {
   decide,
-  generate,
   policy,
   style,
   project,
