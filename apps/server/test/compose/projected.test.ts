@@ -230,7 +230,7 @@ describe('projected composer — shapes nobody seeded', () => {
     if (!last.ok) return;
     expect(last.content.values.progress?.text).toBe('Step 3 of 3');
     expect(last.content.values.next?.text).toBe('Done');
-    expect(last.structure.spec.elements.next?.on?.press?.action).toBe('finish');
+    expect(last.structure.spec.elements.next?.on?.press?.action).toBe('step_done');
   });
 
   it('projects step 5 of 6 on a seeded-but-shortened recipe', () => {

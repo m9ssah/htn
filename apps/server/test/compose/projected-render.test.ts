@@ -21,14 +21,14 @@ const midway = completeStep(completeStep(fresh()));
 const deviated: TaskState = { ...midway, inBowl: { ...midway.inBowl, caster_sugar: 1.5 } };
 
 const SURFACES: ReadonlyArray<[string, ProjectedInput, string[]]> = [
-  ['item_detail', { kind: 'item_detail', state: fresh() }, ['set_batch', 'begin']],
+  ['item_detail', { kind: 'item_detail', state: fresh() }, ['set_amount', 'begin']],
   ['focus_step', { kind: 'focus_step', state: midway }, ['prev_step', 'next_step']],
   ['recovery', { kind: 'recovery', state: deviated }, ['start_over', 'apply_fix']],
   ['summary_done', { kind: 'summary_done', state: { ...fresh(), scale: 2, stepIndex: 7 } }, ['share']],
   [
     'choice_cards',
     { kind: 'choice_cards', options: CHOICE_OPTIONS },
-    ['set_effort', ...CHOICE_OPTIONS.map((o) => `select_${o.id}`)],
+    ['set_preference', ...CHOICE_OPTIONS.map((o) => `select_${o.id}`)],
   ],
   [
     'people_picker',

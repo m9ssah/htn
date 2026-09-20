@@ -317,6 +317,26 @@ export const MAX_SURFACE_ELEMENTS = MAX_ELEMENTS;
 /** How many of a step's additions get their own row. */
 const MAX_STEP_DETAILS = 3;
 
+/**
+ * The action vocabulary these surfaces emit. **Nothing dispatches on these
+ * names yet** — `apps/device/src/rail.ts` maps a descriptor to a button by
+ * INDEX and never reads `.action`, so whoever wires the rail to task state is
+ * free to rename them, but must rename them here and nowhere else.
+ *
+ * Names are aligned with `packages/renderer/src/examples.ts`, the only other
+ * place in the repo that spells them, so the two do not drift into synonyms:
+ *
+ *   item_detail    set_amount (range) · begin
+ *   focus_step     prev_step · next_step | step_done
+ *   recovery       start_over · apply_fix
+ *   summary_done   share
+ *   choice_cards   set_preference (range) · select_<optionId>
+ *   people_picker  choose_<contactId> · write_messages
+ *
+ * `select_`/`choose_` are suffixed with the domain id rather than a row number
+ * (`examples.ts` uses `select_1`), so reordering the list cannot silently
+ * repoint a button at a different thing.
+ */
 export type ProjectedInput =
   | { kind: 'item_detail'; state: TaskState }
   | { kind: 'focus_step'; state: TaskState }
@@ -399,7 +419,7 @@ function itemDetail(state: TaskState, builder: SurfaceBuilder): string {
       value: currentYield(state),
       unit: recipe.yieldUnit,
     },
-    action: 'set_batch',
+    action: 'set_amount',
   });
   builder.leaf({ key: 'ingredients_label', type: 'Label', copy: { text: 'Ingredients' } });
   const rows = ingredientRows(state, builder);
@@ -489,7 +509,7 @@ function focusStep(state: TaskState, builder: SurfaceBuilder): string {
       type: 'Button',
       copy: { text: isLast ? 'Done' : 'Next' },
       fixed: { variant: 'primary' },
-      action: isLast ? 'finish' : 'next_step',
+      action: isLast ? 'step_done' : 'next_step',
     });
     buttons.push('next');
   }
@@ -587,7 +607,7 @@ function choiceCards(options: readonly ChoiceOption[], builder: SurfaceBuilder):
     type: 'Slider',
     copy: { label: 'Effort', minLabel: 'Quick', maxLabel: 'Impressive' },
     fixed: { min: 0, max: 2, step: 1, value: options[Math.floor(options.length / 2)]?.effort ?? 1 },
-    action: 'set_effort',
+    action: 'set_preference',
   });
   const keys = options.map((option, index) => {
     const key = `option_${index}`;

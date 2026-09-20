@@ -71,7 +71,7 @@ describe('project — focus_step', () => {
 
     expect(result.structure?.spec.elements.prev).toBeDefined();
     expect(copy(result, 'next')).toEqual({ text: 'Done' });
-    expect(result.structure?.spec.elements.next?.on?.press?.action).toBe('finish');
+    expect(result.structure?.spec.elements.next?.on?.press?.action).toBe('step_done');
   });
 
   it('is total: a stepIndex past the end does not throw', async () => {
