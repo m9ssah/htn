@@ -297,8 +297,23 @@ export function validateProjectedSpec(spec: SurfaceSpec, values: ContentUpdateV2
  * The four (plus two) projected surfaces
  * ------------------------------------------------------------------ */
 
-/** How many ingredient rows a 4" screen shows before the rest are folded up. */
-export const MAX_INGREDIENT_ROWS = 8;
+/**
+ * How many ingredient rows `item_detail` carries before the rest are folded up.
+ *
+ * Derived from the device's element budget, NOT from the 4" screen height:
+ * `apps/device/src/shell.css` gives `.surface` `overflow: hidden auto`, so a
+ * row below the fold is scrolled to, not lost. A lower cap therefore buys no
+ * legibility and costs completeness — the retired contract's 8 reserved slots
+ * would make the seeded 9-ingredient demo recipe render "+2 more ingredients"
+ * on its main screen every single time. `item_detail` spends
+ * `ITEM_DETAIL_FIXED_ELEMENTS` on everything that is not a row; the rest of
+ * the 24 is available, and this leaves headroom inside it.
+ */
+export const MAX_INGREDIENT_ROWS = 12;
+/** card, stack, title, subtitle, batch, ingredients_label, start. */
+export const ITEM_DETAIL_FIXED_ELEMENTS = 7;
+/** Exported so a test can hold `MAX_INGREDIENT_ROWS` to the real device cap. */
+export const MAX_SURFACE_ELEMENTS = MAX_ELEMENTS;
 /** How many of a step's additions get their own row. */
 const MAX_STEP_DETAILS = 3;
 

@@ -19,18 +19,19 @@ const copy = (
 ): Record<string, unknown> | undefined => result.content?.values[elementId];
 
 describe('project — item_detail', () => {
-  it('fills title/subtitle/batch and names the 9th ingredient rather than dropping it', async () => {
+  it('fills title/subtitle/batch and gives all nine seeded ingredients their own row', async () => {
     const result = await run({ state: fresh(), templateId: 'item_detail' });
 
     expect(copy(result, 'title')).toEqual({ text: 'Classic Chocolate Chip' });
     expect(result.structure?.spec.elements.batch?.props).toMatchObject({ unit: 'cookies', value: 18 });
 
-    // 9 ingredients, 8 rows: constraint 5 forbids silently dropping one, so
-    // the 8th row must visibly carry both the 8th AND 9th ingredient.
-    const last = copy(result, 'ing_7');
-    expect(last?.title).toBe('+2 more ingredients');
-    expect(String(last?.detail)).toContain('Salt');
-    expect(result.warnings.some((w) => w.includes('did not fit'))).toBe(true);
+    // The demo recipe must never be the overflow case: every ingredient gets
+    // a row of its own, with the quantity the domain computed.
+    expect(Object.keys(result.structure!.spec.elements).filter((k) => k.startsWith('ing_'))).toHaveLength(
+      CLASSIC_CHOCOLATE_CHIP.ingredients.length,
+    );
+    expect(copy(result, 'ing_8')).toEqual({ title: 'Salt', detail: '$0.01', meta: '\u00bd tsp' });
+    expect(result.warnings).toEqual([]);
   });
 
   it('never leaves a bound element without content — a one-shot surface has nothing pending', async () => {

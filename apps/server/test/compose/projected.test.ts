@@ -6,9 +6,11 @@ import {
   projectedComposer,
   validateProjectedSpec,
   MAX_INGREDIENT_ROWS,
+  ITEM_DETAIL_FIXED_ELEMENTS,
+  MAX_SURFACE_ELEMENTS,
   type ProjectedInput,
 } from '../../src/compose/projected.js';
-import { deriveContentRequest } from '../../src/orchestration.js';
+import { deriveContentRequest, type StructureComposer } from '../../src/orchestration.js';
 import { completeStep, type Recipe, type TaskState } from '../../src/domain/recipe.js';
 import { CLASSIC_CHOCOLATE_CHIP } from '../../src/domain/recipes.js';
 import { CHOICE_OPTIONS, CONTACTS } from '../../src/seed.js';
@@ -36,7 +38,7 @@ const TINY: Recipe = {
   ],
 };
 
-/** Twelve ingredients over an eight-row surface — the overflow case. */
+/** Sixteen ingredients over a twelve-row surface — the overflow case. */
 const BIG: Recipe = {
   ...CLASSIC_CHOCOLATE_CHIP,
   id: 'big',
@@ -46,6 +48,10 @@ const BIG: Recipe = {
     { id: 'oats', name: 'Rolled oats', amount: 1, unit: 'cup', pricePerUnit: 0.4 },
     { id: 'walnuts', name: 'Walnuts', amount: 0.5, unit: 'cup', pricePerUnit: 3.1 },
     { id: 'cinnamon', name: 'Cinnamon', amount: 2, unit: 'tsp', pricePerUnit: 0.2 },
+    { id: 'raisins', name: 'Raisins', amount: 0.5, unit: 'cup', pricePerUnit: 1.2 },
+    { id: 'honey', name: 'Honey', amount: 2, unit: 'tbsp', pricePerUnit: 0.6 },
+    { id: 'seeds', name: 'Pumpkin seeds', amount: 0.25, unit: 'cup', pricePerUnit: 2.4 },
+    { id: 'nutmeg', name: 'Nutmeg', amount: 1, unit: 'tsp', pricePerUnit: 0.5 },
   ],
 };
 
@@ -87,6 +93,15 @@ function pointers(spec: SurfaceSpec): Pointer[] {
     }),
   );
 }
+
+/**
+ * The headline claim, compiled rather than asserted in a comment: the graph
+ * must never learn which composer it has. `StructureComposerLike` is declared
+ * structurally in `compose/projected.ts` (that module is being moved), so this
+ * is the only place the two shapes are checked against each other.
+ */
+const _seam: StructureComposer = projectedComposer({ kind: 'summary_done', state: fresh() });
+void _seam;
 
 describe('projected composer — every surface is schema-valid and fully bound', () => {
   for (const [name, input] of ALL) {
@@ -269,10 +284,16 @@ describe('projected composer — overflow is visible, never silent', () => {
 
     const last = result.content.values[`ing_${MAX_INGREDIENT_ROWS - 1}`]!;
     expect(last.title).toBe('+5 more ingredients');
-    for (const name of ['Baking soda', 'Salt', 'Rolled oats', 'Walnuts', 'Cinnamon']) {
+    for (const name of ['Cinnamon', 'Raisins', 'Honey', 'Pumpkin seeds', 'Nutmeg']) {
       expect(String(last.detail)).toContain(name);
     }
     expect(result.warnings.join(' ')).toContain('did not fit');
+  });
+
+  it('the row cap fits the device element budget, so overflow is the only limit', () => {
+    expect(MAX_INGREDIENT_ROWS + ITEM_DETAIL_FIXED_ELEMENTS).toBeLessThanOrEqual(MAX_SURFACE_ELEMENTS);
+    // The seeded demo recipe must show every ingredient, not "+2 more".
+    expect(CLASSIC_CHOCOLATE_CHIP.ingredients.length).toBeLessThanOrEqual(MAX_INGREDIENT_ROWS);
   });
 
   it('a step that adds more than three ingredients names the rest', () => {
