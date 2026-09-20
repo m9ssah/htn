@@ -299,6 +299,7 @@ export function buildGraph(deps: GraphDeps): PatchStream {
         jevTemplateId: jev.templateId.value,
         currentTemplate: session.surface === 'grocery_added' ? 'item_detail' : (session.surface as TemplateId | null),
         hasDeviation,
+        hasTask: session.task !== null,
       },
       turn,
       'node-crashed',

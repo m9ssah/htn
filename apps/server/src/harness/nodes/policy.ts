@@ -23,6 +23,20 @@ export type PolicyInput = {
    */
   hasDeviation?: boolean;
   /**
+   * Whether a task is actually open. The caller computes it (`task !== null`)
+   * so `policy` stays domain-agnostic, same as `hasDeviation`.
+   *
+   * Load-bearing on the opening utterance. `route` is stable there (measured
+   * `new_task` at 1.00 across four phrasings) but `templateId` is NOT: the
+   * same intent gave `choice_cards` 0.67, `focus_step` 0.49, `choice_cards`
+   * 0.47 and `focus_step` 0.38. Half of those name a surface that cannot be
+   * built from an empty task, and the projected composer correctly refuses
+   * rather than inventing one — so the device painted nothing on the first
+   * thing the user says. Reconciling here is the fix: the model classifies,
+   * code decides what is constructible (CLAUDE.md constraint 2).
+   */
+  hasTask?: boolean;
+  /**
    * `select` only, and only when the trigger was a physical touch/press
    * rather than voice (nothing upstream produces this yet — see the P2
    * report). Selection is deterministic from this, never from Jev's guess.
@@ -37,7 +51,8 @@ export type PolicyRule =
   | 'correct_keep'
   | 'select_mapped'
   | 'select_keep'
-  | 'other_keep';
+  | 'other_keep'
+  | 'no_task_reprojected';
 
 export type PolicyResult = { templateId: TemplateId; rule: PolicyRule };
 
@@ -54,7 +69,31 @@ const SELECT_TARGET: Partial<Record<TemplateId, TemplateId>> = {
 
 const templateOf = (slot: SlotId): TemplateId => slot.split('.')[0] as TemplateId;
 
+/**
+ * Surfaces that are a projection OF an open task, so they cannot be built
+ * without one. `choice_cards`, `people_picker`, `message_drafts` and
+ * `generic_answer` stand on their own.
+ */
+const TASK_REQUIRED: ReadonlySet<TemplateId> = new Set<TemplateId>([
+  'item_detail',
+  'focus_step',
+  'recovery',
+  'summary_done',
+]);
+
 function decide(input: PolicyInput): PolicyResult {
+  const chosen = choose(input);
+  // Reconcile against what the task state can actually produce. This is NOT a
+  // fallback that hides a failure (constraint 5): nothing failed, and the rule
+  // is reported so the turn log says exactly why the surface differs from what
+  // Jev named.
+  if (input.hasTask === false && TASK_REQUIRED.has(chosen.templateId)) {
+    return { templateId: 'choice_cards', rule: 'no_task_reprojected' };
+  }
+  return chosen;
+}
+
+function choose(input: PolicyInput): PolicyResult {
   const { route, jevTemplateId, currentTemplate, hasDeviation, touchedSlot } = input;
 
   switch (route) {

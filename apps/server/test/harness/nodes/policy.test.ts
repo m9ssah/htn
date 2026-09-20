@@ -128,3 +128,58 @@ describe('policy', () => {
     expect(result).toEqual({ templateId: 'generic_answer', rule: 'honour_jev' });
   });
 });
+
+describe('policy — reconciling against what the task state can build', () => {
+  const ctx = createStubCtx(new AbortController().signal);
+
+  /**
+   * The opening-utterance defect, measured live before this existed.
+   * `route` was `new_task` at 1.00 for all four phrasings of "I want to bake
+   * cookies", but `templateId` was not stable: choice_cards 0.67,
+   * focus_step 0.49, choice_cards 0.47, focus_step 0.38. Two of the four
+   * named a surface that is a projection of a task, with no task open — so
+   * the composer refused and the device painted NOTHING on the first thing
+   * the user says.
+   */
+  it.each(['item_detail', 'focus_step', 'recovery', 'summary_done'] as const)(
+    'reprojects %s to choice_cards when no task is open, and says so',
+    async (jevTemplateId) => {
+      const result = await policy.run(
+        { route: 'new_task', jevTemplateId, currentTemplate: null, hasTask: false },
+        ctx,
+      );
+
+      expect(result).toEqual({ templateId: 'choice_cards', rule: 'no_task_reprojected' });
+    },
+  );
+
+  it.each(['choice_cards', 'people_picker', 'message_drafts', 'generic_answer'] as const)(
+    'leaves %s alone with no task — it stands on its own',
+    async (jevTemplateId) => {
+      const result = await policy.run(
+        { route: 'new_task', jevTemplateId, currentTemplate: null, hasTask: false },
+        ctx,
+      );
+
+      expect(result).toEqual({ templateId: jevTemplateId, rule: 'honour_jev' });
+    },
+  );
+
+  it('does not interfere once a task IS open', async () => {
+    const result = await policy.run(
+      { route: 'new_task', jevTemplateId: 'focus_step', currentTemplate: 'item_detail', hasTask: true },
+      ctx,
+    );
+
+    expect(result).toEqual({ templateId: 'focus_step', rule: 'honour_jev' });
+  });
+
+  it('is inert when the caller does not say — hasTask is optional, not defaulted to false', async () => {
+    const result = await policy.run(
+      { route: 'new_task', jevTemplateId: 'focus_step', currentTemplate: null },
+      ctx,
+    );
+
+    expect(result.templateId).toBe('focus_step');
+  });
+});
