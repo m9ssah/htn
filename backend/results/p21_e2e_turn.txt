@@ -1,0 +1,16 @@
+
+utterance                               route            gate  patch  palette   ms
+--------------------------------------------------------------------------------------------
+turn the lights down in here            new_task(0.95)   false 0      —         603
+how long do I boil an egg               query(0.79)      false 0      —         268
+actually make it three times the batch  correct(0.38)    false 0      —         155
+I forgot the baking soda                correct(0.97)    false 0      —         334
+make this easier to read from far away  refine(1.00)     true  1      contrast  157
+who lives closest to me                 query(0.55)      false 0      —         204
+tell Priya I will be 20 minutes late    new_task(0.99)   false 0      —         224
+go back to the previous one             other(0.56)      false 0      —         274
+what did that cost in total             query(1.00)      false 0      —         219
+this one                                select(1.00)     false 0      —         156
+
+turn latency  min 155ms  p50 224ms  max 603ms
+jev spend     $0.00063 over 10 requests
