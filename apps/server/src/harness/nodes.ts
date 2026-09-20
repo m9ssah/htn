@@ -1,6 +1,7 @@
 import type { SkeletonPatch, StylePatch } from '@jit/schema';
 import { TEMPLATES } from '@jit/renderer';
 import type { JevAnswer, JevState, Node } from './types.js';
+import { generate } from './nodes/generate.js';
 
 /**
  * The registry the CLI lists and runs from — deliberately just the two nodes
@@ -10,7 +11,8 @@ import type { JevAnswer, JevState, Node } from './types.js';
  * `docs/orchestration-plan.md`'s "Node inventory" — that table doesn't claim
  * runnability, so it isn't lying the way this registry would if it listed
  * unimplemented names. `policy`/`style`/`project` are P2's job; `research`
- * has no phase yet.
+ * has no phase yet. `generate` (P5) lives in `./nodes/generate.ts`, re-
+ * exported here for the registry only.
  */
 
 /**
@@ -50,27 +52,15 @@ export const decide: Node<JevState, DecideResult> = {
   },
 };
 
-export const generate: Node<string, string[]> = {
-  name: 'generate',
-  async run(prompt, ctx) {
-    const chunks: string[] = [];
-    for await (const chunk of ctx.content.stream(prompt, ctx.signal)) {
-      chunks.push(chunk);
-      // Exercises the sink from inside a node, as the real `generate` (P5)
-      // will: one PolishPatch per chunk is a legal, minimal stand-in for
-      // "some patch landed" without inventing a ContentPatch slot mapping.
-      ctx.sink.emit({ v: 1, tokens: {}, interpretedAs: chunk });
-    }
-    return chunks;
-  },
-};
+export { generate };
 
 /**
  * `decide` and `generate` take different input types (`JevState` vs.
- * `string`), so the registry can't be typed as one `Node<In, unknown>` without
- * losing one of them. It exists only for the CLI's name -> node lookup, whose
- * caller (`cli.ts`) already knows which input shape to build per name — hence
- * `any` here rather than a heavier existential wrapper for a two-entry table.
+ * `GenerateInput`), so the registry can't be typed as one `Node<In, unknown>`
+ * without losing one of them. It exists only for the CLI's name -> node
+ * lookup, whose caller (`cli.ts`) already knows which input shape to build
+ * per name — hence `any` here rather than a heavier existential wrapper for a
+ * two-entry table.
  */
 export const NODES: Record<string, Node<any, unknown>> = {
   decide,

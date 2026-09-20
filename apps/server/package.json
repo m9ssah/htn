@@ -8,6 +8,7 @@
     "build": "tsc -b",
     "node": "tsc -b && node dist/cli.js",
     "live-jev": "tsc -b && node dist/live-jev.js",
+    "live-generate": "tsc -b && node dist/live-generate.js",
     "record-jev-fixtures": "tsc -b && node dist/record-fixtures.js"
   },
   "dependencies": {

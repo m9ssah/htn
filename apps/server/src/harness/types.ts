@@ -34,20 +34,33 @@ export type Ctx = {
  * `turnId` is optional here: P1 has no turn concept outside `PatchSink`
  * (§"Turn gating"). Full threading through every event is P4's job.
  *
- * A discriminated union of one member on purpose. The plan already commits to
+ * A discriminated union, widened once so far. The plan already commits to
  * more event kinds later — the full Jev distribution per question, `jev.*`
- * vs `applied.*` plus which policy rule fired, per-slot arrival timestamps,
- * degraded/crashed markers — and none of that is P1's job. `kind: 'node'`
- * just means adding those is additive at every `ctx.telemetry` call site
- * instead of a breaking widen.
+ * vs `applied.*` plus which policy rule fired, per-slot arrival timestamps —
+ * and none of that is P1's job. `kind: 'node'` just means adding those is
+ * additive at every `ctx.telemetry` call site instead of a breaking widen.
+ *
+ * `generate-fault` is the first addition: `generate` (P5) catches its own
+ * content-source failures rather than letting them reach the stream
+ * controller (see `ContentSource`'s doc), so `timed()`'s throw-path telemetry
+ * never fires for that case — this is how `generate` reports the failure
+ * instead. Same base fields as `node` (`node`/`ms`/`error`) so existing
+ * `events[0]?.ms`-style call sites keep working across the union.
  */
-export type Event = {
-  kind: 'node';
-  node: string;
-  ms: number;
-  turnId?: string;
-  error?: unknown;
-};
+export type Event =
+  | {
+      kind: 'node';
+      node: string;
+      ms: number;
+      turnId?: string;
+      error?: unknown;
+    }
+  | {
+      kind: 'generate-fault';
+      node: string;
+      ms: number;
+      error: unknown;
+    };
 
 /**
  * The 5-way route + `other`, upstream of the template answer
