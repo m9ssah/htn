@@ -2,7 +2,7 @@ import { readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { ContentPatch, Patch } from '@jit/schema';
+import type { ContentUpdateV2, SurfaceUpdate } from '@jit/schema';
 import { startTurn, createTurnRunner, type Turn } from '../../src/harness/turn.js';
 import {
   deps,
@@ -199,7 +199,7 @@ describe('turn: boundary validation', () => {
     const turn = startTurn(
       { step: 0 },
       deps(oneNodeGraph(emitter(3)), {
-        validate: (p: Patch) => (patchLabel(p) === 'patch 2' ? 'slot "x": malformed Slider value' : null),
+        validate: (p: SurfaceUpdate) => (patchLabel(p) === 'patch 2' ? 'slot "x": malformed Slider value' : null),
       }),
     );
     const got = await drain(turn);
@@ -233,7 +233,7 @@ describe('turn log', () => {
     const record = JSON.parse(mine[0] as string) as {
       turnId: string;
       outcome: string;
-      entries: { kind: string; patch?: ContentPatch }[];
+      entries: { kind: string; patch?: ContentUpdateV2 }[];
     };
     expect(record.turnId).toBe(turn.turnId);
     expect(record.outcome).toBe('ok');

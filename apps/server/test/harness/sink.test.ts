@@ -1,8 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createMemorySinkStore } from '../../src/harness/clients/sink.js';
-import type { SkeletonPatch } from '@jit/schema';
+import type { StyleUpdateV1 } from '@jit/schema';
 
-const patch: SkeletonPatch = { v: 1, templateId: 'summary_done', maxWidth: 480 };
+const patch: StyleUpdateV1 = {
+  v: 1,
+  stage: 'style',
+  theme: { palette: 'slate', fontPairing: 'system', density: 'normal', radius: 'soft', motif: 'none' },
+};
 
 describe('PatchSinkStore turn gating', () => {
   it('drops a patch from a sink whose turn is no longer current', () => {
