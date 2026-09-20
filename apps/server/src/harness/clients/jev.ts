@@ -1,45 +1,313 @@
-import type { JevAnswer, JevClient } from '../types.js';
+import { existsSync, readFileSync } from 'node:fs';
+import * as http from 'node:http';
+import * as https from 'node:https';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import type { Density, FontPairing, Motif, Palette, Radius, TemplateId } from '@jit/schema';
+import type { JevAnswer, JevChoiceAnswer, JevClient, JevState, Route } from '../types.js';
 import { sleep } from '../signal.js';
 import { readFixture } from './fixtures.js';
+import { AXIS_DESCRIPTIONS, ROUTES, TEMPLATE_DESCRIPTIONS, buildQuestions, buildWireState } from './jev-questions.js';
+import type { JevChoiceQuestion } from './jev-questions.js';
+
+const HOST = 'api.typesafe.ai';
+const PATH = '/v1/systemone';
+const KEY_FILE = join(homedir(), '.config', 'typesafe', 'env');
+
+// TypeSafe bills input tokens only; output is free.
+const USD_PER_INPUT_TOKEN = 42 / 1e9;
 
 /**
- * The real HTTP client is P3's job (explicit keep-alive agent + budget cap).
- * Left as a documented stub here so a wrong Ctx shape fails loudly rather than
- * silently degrading to a fake network call.
+ * Provisional — n≈7-8 rows per probe, no p99 (docs/orchestration-plan.md
+ * "Reliability"). `SOFT_DEADLINE_MS` names the threshold below which a late
+ * answer is still worth waiting for; it needs no code of its own because
+ * "keep waiting" is what not aborting already does. `HARD_DEADLINE_MS` is
+ * enforced below via `AbortSignal.timeout`.
  */
+export const SOFT_DEADLINE_MS = 500;
+export const HARD_DEADLINE_MS = 1500;
+
+function loadKey(): string {
+  const fromEnv = process.env.TYPESAFE_API_KEY;
+  if (fromEnv) return fromEnv;
+  if (existsSync(KEY_FILE)) {
+    const match = /TYPESAFE_API_KEY=(\S+)/.exec(readFileSync(KEY_FILE, 'utf8'));
+    if (match?.[1]) return match[1];
+    throw new Error(`${KEY_FILE} exists but has no TYPESAFE_API_KEY=... line`);
+  }
+  throw new Error(`No TYPESAFE_API_KEY in env or ${KEY_FILE}`);
+}
+
+/** Mirrors `backend/jev/client.py`'s `Budget`. Thrown rather than spending past the cap. */
+export class JevBudgetError extends Error {}
+
+export type JevWireChoiceAnswer = {
+  type: 'choice';
+  choice: string;
+  confidence: number;
+  probabilities?: Record<string, number>;
+};
+export type JevWireResponse = {
+  model: string;
+  usage?: { input_tokens?: number; output_tokens?: number };
+  answers: Record<string, JevWireChoiceAnswer>;
+};
+
+function parseChoice<T extends string>(raw: JevWireResponse, qid: string, allowed: readonly T[]): JevChoiceAnswer<T> {
+  const answer = raw.answers[qid];
+  if (!answer) throw new Error(`Jev response missing an answer for "${qid}"`);
+  if (answer.type !== 'choice') {
+    throw new Error(`Jev response for "${qid}" is not a choice answer (got "${answer.type}")`);
+  }
+  if (!allowed.includes(answer.choice as T)) {
+    throw new Error(`Jev returned an unknown "${qid}" value: "${answer.choice}"`);
+  }
+  return {
+    value: answer.choice as T,
+    confidence: answer.confidence,
+    distribution: (answer.probabilities ?? {}) as Partial<Record<T, number>>,
+  };
+}
+
+/**
+ * Turns the raw wire response into a `JevAnswer`, validating every value
+ * against the finite option set it was asked with — model output is runtime
+ * data, not something TypeScript already checked (docs/orchestration-plan.md
+ * "Validate generated slot values at the boundary" makes the same point about
+ * `generate`; this is the same discipline for `decide`).
+ *
+ * Shared by the real client and `createReplayJevClient` so replay exercises
+ * this parsing path too, not just a hand-typed `JevAnswer` fixture.
+ */
+export function parseJevResponse(raw: JevWireResponse): JevAnswer {
+  return {
+    route: parseChoice(raw, 'route', Object.keys(ROUTES) as Route[]),
+    templateId: parseChoice(raw, 'templateId', Object.keys(TEMPLATE_DESCRIPTIONS) as TemplateId[]),
+    theme: {
+      palette: parseChoice(raw, 'palette', Object.keys(AXIS_DESCRIPTIONS.palette) as Palette[]),
+      fontPairing: parseChoice(raw, 'fontPairing', Object.keys(AXIS_DESCRIPTIONS.fontPairing) as FontPairing[]),
+      density: parseChoice(raw, 'density', Object.keys(AXIS_DESCRIPTIONS.density) as Density[]),
+      radius: parseChoice(raw, 'radius', Object.keys(AXIS_DESCRIPTIONS.radius) as Radius[]),
+      motif: parseChoice(raw, 'motif', Object.keys(AXIS_DESCRIPTIONS.motif) as Motif[]),
+    },
+    usage: { inputTokens: raw.usage?.input_tokens ?? 0, outputTokens: raw.usage?.output_tokens ?? 0 },
+  };
+}
+
+function isStaleSocketError(err: unknown): boolean {
+  const code = (err as { code?: string } | undefined)?.code;
+  // A pooled keep-alive socket the server closed out from under us — never a
+  // deadline/barge-in abort, which must propagate on the first try.
+  return code === 'ECONNRESET' || code === 'EPIPE';
+}
+
+export type JevClientOptions = {
+  /** Overridable for tests — a loopback http:// URL makes a black-hole/barge-in test possible with no real network. */
+  baseUrl?: string;
+  model?: string;
+  maxRequests?: number;
+  maxUsd?: number;
+  /** The hard deadline (docs/orchestration-plan.md "Reliability"). */
+  timeoutMs?: number;
+};
+
+/**
+ * The real Jev HTTP client.
+ *
+ * Built on `node:https`/`node:http` with an explicit keep-alive agent, not
+ * `fetch` — Node's global `fetch` (undici) only accepts an undici
+ * `dispatcher` for connection pooling, and `undici` is not an installed
+ * dependency. `http(s).request(url, { agent, signal })` gives the same
+ * properties the task asks of "fetch": a signal that actually aborts the
+ * in-flight request and releases the socket, which is what makes the hard
+ * deadline real rather than merely give up waiting client-side.
+ *
+ * Connection reuse is the single biggest latency lever here (~260ms/63% of a
+ * cold call is the TLS handshake) — hence the explicit persistent `agent`
+ * instead of a fresh connection per call.
+ */
+export class JevHttpClient implements JevClient {
+  private readonly key: string;
+  private readonly url: URL;
+  // `http` and `https` have the same `request`/`Agent` shape for the options
+  // we use (method, agent, signal, headers) — cast to one type rather than
+  // union the two namespaces, which TypeScript cannot call through cleanly
+  // (overloaded functions don't combine across a union). Only ever
+  // constructed from `this.url.protocol`, which is the actual dispatch.
+  private readonly mod: typeof https;
+  private readonly agent: https.Agent;
+  private readonly model: string;
+  private readonly maxRequests: number;
+  private readonly maxUsd: number;
+  private readonly timeoutMs: number;
+
+  requests = 0;
+  inputTokens = 0;
+  outputTokens = 0;
+
+  constructor(options: JevClientOptions = {}) {
+    this.key = loadKey();
+    this.url = new URL(options.baseUrl ?? `https://${HOST}${PATH}`);
+    this.mod = (this.url.protocol === 'http:' ? http : https) as unknown as typeof https;
+    this.agent = new this.mod.Agent({ keepAlive: true, keepAliveMsecs: 30_000 });
+    this.model = options.model ?? 'jev-latest';
+    this.maxRequests = options.maxRequests ?? 2000;
+    this.maxUsd = options.maxUsd ?? 2.0;
+    this.timeoutMs = options.timeoutMs ?? HARD_DEADLINE_MS;
+  }
+
+  get usd(): number {
+    return this.inputTokens * USD_PER_INPUT_TOKEN;
+  }
+
+  /** There is no ping endpoint — warming the connection means a real minimal call. */
+  async warmup(): Promise<void> {
+    await this.ask({ utterance: 'warmup', currentTemplate: null, taskState: '' }, AbortSignal.timeout(this.timeoutMs));
+  }
+
+  async ask(state: JevState, signal: AbortSignal): Promise<JevAnswer> {
+    const raw = await this.evaluate(state, buildQuestions(), signal);
+    return parseJevResponse(raw);
+  }
+
+  /**
+   * Same as `ask`, but also hands back the raw wire response — used only by
+   * the live fixture recorder (`live-jev.ts`), which needs the full
+   * distribution on disk for P2, not just the parsed `JevAnswer`.
+   */
+  async askRecording(state: JevState, signal: AbortSignal): Promise<{ answer: JevAnswer; raw: JevWireResponse }> {
+    const raw = await this.evaluate(state, buildQuestions(), signal);
+    return { answer: parseJevResponse(raw), raw };
+  }
+
+  private async evaluate(
+    state: JevState,
+    questions: Record<string, JevChoiceQuestion>,
+    signal: AbortSignal,
+  ): Promise<JevWireResponse> {
+    if (this.requests >= this.maxRequests) throw new JevBudgetError(`request cap reached (${this.maxRequests})`);
+    if (this.usd >= this.maxUsd) throw new JevBudgetError(`spend cap reached ($${this.usd.toFixed(4)})`);
+
+    const body = JSON.stringify({ state: buildWireState(state), model: this.model, questions });
+    // Barge-in and the hard deadline come from one object, so either one
+    // actually tears down the socket rather than just stop waiting.
+    const combined = AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]);
+    const raw = await this.send(body, combined);
+
+    this.requests += 1;
+    this.inputTokens += raw.usage?.input_tokens ?? 0;
+    this.outputTokens += raw.usage?.output_tokens ?? 0;
+    return raw;
+  }
+
+  /**
+   * One retry, only for a pooled socket the server closed between calls
+   * (mirrors `_send_keepalive` in `backend/jev/client.py`). This is a
+   * connection-reuse concern, not a general retry policy — a barge-in or
+   * hard-deadline abort propagates on the first attempt.
+   */
+  private async send(body: string, signal: AbortSignal): Promise<JevWireResponse> {
+    try {
+      return await this.request(body, signal);
+    } catch (err) {
+      if (!isStaleSocketError(err) || signal.aborted) throw err;
+      return await this.request(body, signal);
+    }
+  }
+
+  private request(body: string, signal: AbortSignal): Promise<JevWireResponse> {
+    return new Promise((resolve, reject) => {
+      const req = this.mod.request(
+        this.url,
+        {
+          method: 'POST',
+          agent: this.agent,
+          signal,
+          headers: {
+            Authorization: `Bearer ${this.key}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(body),
+          },
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          // Always drain the body — an unconsumed response leaves the socket
+          // unreturnable to the agent's keep-alive pool.
+          res.on('data', (chunk: Buffer) => chunks.push(chunk));
+          res.on('end', () => {
+            const text = Buffer.concat(chunks).toString('utf8');
+            if ((res.statusCode ?? 0) >= 400) {
+              reject(new Error(`Jev ${res.statusCode}: ${text.slice(0, 500)}`));
+              return;
+            }
+            try {
+              resolve(JSON.parse(text) as JevWireResponse);
+            } catch (cause) {
+              reject(new Error('Jev: malformed JSON response', { cause }));
+            }
+          });
+          res.on('error', reject);
+        },
+      );
+      req.on('error', reject);
+      req.end(body);
+    });
+  }
+}
+
+/**
+ * The real HTTP client, constructed once per process so its keep-alive agent
+ * and budget counters are actually shared across calls. Reading the key (and
+ * therefore throwing if it is missing) happens lazily on first use, not at
+ * import time — a wrong `Ctx` shape should fail loudly when it is USED, not
+ * make every import of this module require a key.
+ */
+let singleton: JevHttpClient | undefined;
 export const realJevClient: JevClient = {
-  async ask(): Promise<JevAnswer> {
-    throw new Error('realJevClient: not implemented until P3 (TS Jev client)');
+  ask(state, signal) {
+    singleton ??= new JevHttpClient();
+    return singleton.ask(state, signal);
   },
 };
 
 /** Hand-written, deterministic. No network, safe for CI. */
 export const stubJevClient: JevClient = {
-  async ask(_utterance, signal): Promise<JevAnswer> {
+  async ask(_state, signal): Promise<JevAnswer> {
     await sleep(20, signal);
-    return { templateId: 'generic_answer', confidence: 0.5 };
+    return {
+      route: { value: 'query', confidence: 0.5, distribution: { query: 0.5 } },
+      templateId: { value: 'generic_answer', confidence: 0.5, distribution: { generic_answer: 0.5 } },
+      theme: {
+        palette: { value: 'slate', confidence: 0.5, distribution: { slate: 0.5 } },
+        fontPairing: { value: 'system', confidence: 0.5, distribution: { system: 0.5 } },
+        density: { value: 'normal', confidence: 0.5, distribution: { normal: 0.5 } },
+        radius: { value: 'soft', confidence: 0.5, distribution: { soft: 0.5 } },
+        motif: { value: 'none', confidence: 0.5, distribution: { none: 0.5 } },
+      },
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
   },
 };
 
+/** A recorded fixture: the wire request `state` alongside the raw wire `response`. */
+export type JevFixture = { state: JevState; response: JevWireResponse };
+
 /**
- * Reads a recorded answer from disk. CI-safe: no network, just a file read.
+ * Reads a recorded response from disk and parses it through the same
+ * `parseJevResponse` the real client uses, so replay exercises parsing too.
  *
  * Still threads `signal` through — an already-aborted turn must not return an
- * answer just because reading a fixture is fast. Replay is meant to stand in
- * for the real client in a cancellation test, not to short-circuit it.
- *
- * `sleep(0, signal)`, not `signal.throwIfAborted()` — see `content.ts`'s
- * matching comment. `throwIfAborted()` returns synchronously without ever
- * yielding, so a timer-scheduled abort (the normal case) would never get a
- * chance to land before this already returned. `sleep(0, ...)` still checks
- * synchronously if `signal` is already aborted, but otherwise yields once,
- * which is what lets a pending abort actually win the race.
+ * answer just because reading a fixture is fast. `sleep(0, signal)`, not
+ * `signal.throwIfAborted()` — see `content.ts`'s matching comment: the latter
+ * never yields, so a timer-scheduled abort would not land before this already
+ * returned.
  */
 export function createReplayJevClient(fixturePath: string): JevClient {
   return {
-    async ask(_utterance, signal): Promise<JevAnswer> {
+    async ask(_state, signal): Promise<JevAnswer> {
       await sleep(0, signal);
-      return readFixture<JevAnswer>(fixturePath);
+      const fixture = readFixture<JevFixture>(fixturePath);
+      return parseJevResponse(fixture.response);
     },
   };
 }

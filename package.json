@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "harness": "npm run harness -w @jit/renderer",
     "node": "npm run node -w @jit/server --",
+    "live-jev": "npm run live-jev -w @jit/server --",
     "clean": "rm -rf packages/*/dist apps/*/dist && find . -name '*.tsbuildinfo' -not -path '*/node_modules/*' -delete",
     "dev": "npm run dev -w @jit/device"
   },

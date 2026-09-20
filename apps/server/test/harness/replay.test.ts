@@ -16,12 +16,29 @@ const fixture = (path: string): string => join(FIXTURES_DIR, path);
  * actually exercised. These are the replay tier's only callers.
  */
 describe('replay clients', () => {
+  const anyState = { utterance: 'anything', currentTemplate: null, taskState: '' };
+
   it('createReplayJevClient reads a recorded answer from disk', async () => {
     const client = createReplayJevClient(fixture('jev/example.json'));
 
-    const answer = await client.ask('anything', new AbortController().signal);
+    const answer = await client.ask(anyState, new AbortController().signal);
 
-    expect(answer).toEqual({ templateId: 'choice_cards', confidence: 0.81 });
+    expect(answer.route.value).toBe('new_task');
+    expect(answer.templateId).toEqual({
+      value: 'choice_cards',
+      confidence: 0.81,
+      distribution: {
+        choice_cards: 0.81,
+        item_detail: 0.05,
+        focus_step: 0.02,
+        recovery: 0.01,
+        summary_done: 0.01,
+        people_picker: 0.03,
+        message_drafts: 0.01,
+        generic_answer: 0.06,
+      },
+    });
+    expect(answer.theme.palette.value).toBe('slate');
   });
 
   it('createReplayContentSource reads recorded chunks from disk', async () => {
@@ -46,7 +63,7 @@ describe('replay clients', () => {
     const controller = new AbortController();
     controller.abort(new Error('barge-in'));
 
-    await expect(client.ask('anything', controller.signal)).rejects.toThrow('barge-in');
+    await expect(client.ask(anyState, controller.signal)).rejects.toThrow('barge-in');
   });
 
   it('createReplayContentSource stops yielding once the signal is aborted', async () => {

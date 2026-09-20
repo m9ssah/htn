@@ -18,7 +18,15 @@ if (!node) {
   process.exit(1);
 }
 
-const input = rest.join(' ');
+/**
+ * Each node takes a different input shape. `decide` needs `JevState`, not a
+ * bare string — a CLI smoke test has no real `currentTemplate`/`taskState`,
+ * so it passes the honest values for "first utterance of a session".
+ */
+const INPUT_BUILDERS: Record<string, (argv: string[]) => unknown> = {
+  decide: (argv) => ({ utterance: argv.join(' '), currentTemplate: null, taskState: '' }),
+};
+const input = (INPUT_BUILDERS[nodeName ?? ''] ?? ((argv: string[]) => argv.join(' ')))(rest);
 const controller = new AbortController();
 const events: Event[] = [];
 const ctx = createStubCtx(controller.signal);

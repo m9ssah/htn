@@ -1,4 +1,60 @@
 {
-  "templateId": "choice_cards",
-  "confidence": 0.81
+  "state": { "utterance": "what should I make tonight", "currentTemplate": null, "taskState": "nothing started" },
+  "response": {
+    "model": "jev-latest",
+    "usage": { "input_tokens": 812, "output_tokens": 0 },
+    "answers": {
+      "route": {
+        "type": "choice",
+        "choice": "new_task",
+        "confidence": 0.86,
+        "probabilities": { "new_task": 0.86, "refine": 0.03, "correct": 0.01, "select": 0.02, "query": 0.06, "other": 0.02 }
+      },
+      "templateId": {
+        "type": "choice",
+        "choice": "choice_cards",
+        "confidence": 0.81,
+        "probabilities": {
+          "choice_cards": 0.81,
+          "item_detail": 0.05,
+          "focus_step": 0.02,
+          "recovery": 0.01,
+          "summary_done": 0.01,
+          "people_picker": 0.03,
+          "message_drafts": 0.01,
+          "generic_answer": 0.06
+        }
+      },
+      "palette": {
+        "type": "choice",
+        "choice": "slate",
+        "confidence": 0.52,
+        "probabilities": { "slate": 0.52, "mono": 0.21, "rose": 0.15, "contrast": 0.12 }
+      },
+      "fontPairing": {
+        "type": "choice",
+        "choice": "system",
+        "confidence": 0.58,
+        "probabilities": { "system": 0.58, "editorial": 0.14, "geometric": 0.19, "mono": 0.09 }
+      },
+      "density": {
+        "type": "choice",
+        "choice": "normal",
+        "confidence": 0.63,
+        "probabilities": { "compact": 0.12, "normal": 0.63, "spacious": 0.25 }
+      },
+      "radius": {
+        "type": "choice",
+        "choice": "soft",
+        "confidence": 0.55,
+        "probabilities": { "sharp": 0.18, "soft": 0.55, "round": 0.27 }
+      },
+      "motif": {
+        "type": "choice",
+        "choice": "none",
+        "confidence": 0.71,
+        "probabilities": { "none": 0.71, "floral": 0.14, "geometric": 0.15 }
+      }
+    }
+  }
 }

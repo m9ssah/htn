@@ -6,10 +6,12 @@
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsc -b",
-    "node": "tsc -b && node dist/cli.js"
+    "node": "tsc -b && node dist/cli.js",
+    "live-jev": "tsc -b && node dist/live-jev.js"
   },
   "dependencies": {
     "@jit/schema": "*",
-    "@jit/tokens": "*"
+    "@jit/tokens": "*",
+    "@jit/renderer": "*"
   }
 }

@@ -1,4 +1,4 @@
-import type { Patch, TemplateId } from '@jit/schema';
+import type { Density, FontPairing, Motif, Palette, Patch, Radius, TemplateId } from '@jit/schema';
 
 /**
  * The seam every orchestration node runs behind. Deliberately small: a node is
@@ -50,29 +50,64 @@ export type Event = {
 };
 
 /**
- * Constraint 1 (CLAUDE.md): Jev returns typed values only — a flat set of
- * enums, booleans, scores or selections from a finite list, never free-form
- * strings or nested JSON. `templateId` and `confidence` are that shape for the
- * `decide` node's route/template judgement.
+ * The 5-way route + `other`, upstream of the template answer
+ * (docs/orchestration-plan.md "The shape"). Unanswerable from the utterance
+ * alone (p18) — see `JevState` below.
  */
-export type JevAnswer = {
-  templateId: TemplateId;
+export type Route = 'new_task' | 'refine' | 'correct' | 'select' | 'query' | 'other';
+
+/**
+ * `ask`'s real input. p18/p18b/p18c measured that route is unanswerable from
+ * the utterance alone — "refine"/"correct"/"select" and "the second one" are
+ * only classifiable with something already on screen — so the batched call
+ * needs `currentTemplate` and `taskState` alongside the utterance. This
+ * replaced P1's single-string placeholder; see the comment that used to live
+ * here, preserved in git history.
+ */
+export type JevState = {
+  utterance: string;
+  currentTemplate: TemplateId | null;
+  taskState: string;
+};
+
+/** option -> probability. Never collapse this to the argmax before logging it
+ * — p13 found a wrong answer at 0.723 sitting above a correct one at 0.317. */
+export type Distribution<T extends string> = Partial<Record<T, number>>;
+
+/**
+ * One `choice` question's answer, normalised. `confidence` is not a gate —
+ * docs/orchestration-plan.md "Reliability" measured it does not separate
+ * right answers from wrong ones — it is carried through for telemetry only.
+ */
+export type JevChoiceAnswer<T extends string> = {
+  value: T;
   confidence: number;
+  distribution: Distribution<T>;
 };
 
 /**
- * `ask`'s single-string input is a P1 placeholder, not a settled shape.
- * p18/p18b/p18c measured that route is unanswerable from the utterance
- * alone — "refine"/"correct"/"select" and "the second one" are only
- * classifiable with something already on screen — so P3's real batched call
- * will need `currentTemplate` and `taskState` alongside the utterance. That
- * is a breaking change to `ask`'s INPUT, not an additive widen like `Event`'s
- * `kind` discriminator above: there is no way to add required context to an
- * existing single-string parameter without changing every call site. P3
- * should plan for that rather than be surprised by it.
+ * Constraint 1 (CLAUDE.md): Jev returns typed values only — a flat set of
+ * enums, booleans, scores or selections from a finite list, never free-form
+ * strings or nested JSON. Every field here is a `choice` answer plus its full
+ * distribution, never a bare argmax — see `Distribution`'s comment. Building
+ * this into `SkeletonPatch`/`StylePatch` is `decide`'s job, not the client's;
+ * applying (or overriding) `templateId` is `policy`'s (P2), not `decide`'s.
  */
+export type JevAnswer = {
+  route: JevChoiceAnswer<Route>;
+  templateId: JevChoiceAnswer<TemplateId>;
+  theme: {
+    palette: JevChoiceAnswer<Palette>;
+    fontPairing: JevChoiceAnswer<FontPairing>;
+    density: JevChoiceAnswer<Density>;
+    radius: JevChoiceAnswer<Radius>;
+    motif: JevChoiceAnswer<Motif>;
+  };
+  usage: { inputTokens: number; outputTokens: number };
+};
+
 export interface JevClient {
-  ask(utterance: string, signal: AbortSignal): Promise<JevAnswer>;
+  ask(state: JevState, signal: AbortSignal): Promise<JevAnswer>;
 }
 
 /** Used by `generate`. Implementations MUST check `signal` between chunks. */

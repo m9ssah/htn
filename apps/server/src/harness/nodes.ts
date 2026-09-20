@@ -1,4 +1,6 @@
-import type { JevAnswer, Node } from './types.js';
+import type { SkeletonPatch, StylePatch } from '@jit/schema';
+import { TEMPLATES } from '@jit/renderer';
+import type { JevAnswer, JevState, Node } from './types.js';
 
 /**
  * The registry the CLI lists and runs from — deliberately just the two nodes
@@ -11,9 +13,41 @@ import type { JevAnswer, Node } from './types.js';
  * has no phase yet.
  */
 
-export const decide: Node<string, JevAnswer> = {
+/**
+ * `decide`'s output. It hands back the naive `SkeletonPatch`/`StylePatch`
+ * built directly from what Jev said, PLUS the full `JevAnswer` (every
+ * question's distribution) — deciding whether to actually *apply*
+ * `templateId` (vs. keep the current surface on `refine`/`correct`/`select`)
+ * is `policy`'s job (P2), not this node's. See docs/orchestration-plan.md
+ * "The shape".
+ */
+export type DecideResult = {
+  skeleton: SkeletonPatch;
+  style: StylePatch;
+  jev: JevAnswer;
+};
+
+export const decide: Node<JevState, DecideResult> = {
   name: 'decide',
-  run: (utterance, ctx) => ctx.jev.ask(utterance, ctx.signal),
+  async run(state, ctx) {
+    const jev = await ctx.jev.ask(state, ctx.signal);
+    const skeleton: SkeletonPatch = {
+      v: 1,
+      templateId: jev.templateId.value,
+      maxWidth: TEMPLATES[jev.templateId.value].maxWidth,
+    };
+    const style: StylePatch = {
+      v: 1,
+      theme: {
+        palette: jev.theme.palette.value,
+        fontPairing: jev.theme.fontPairing.value,
+        density: jev.theme.density.value,
+        radius: jev.theme.radius.value,
+        motif: jev.theme.motif.value,
+      },
+    };
+    return { skeleton, style, jev };
+  },
 };
 
 export const generate: Node<string, string[]> = {
@@ -31,7 +65,14 @@ export const generate: Node<string, string[]> = {
   },
 };
 
-export const NODES: Record<string, Node<string, unknown>> = {
+/**
+ * `decide` and `generate` take different input types (`JevState` vs.
+ * `string`), so the registry can't be typed as one `Node<In, unknown>` without
+ * losing one of them. It exists only for the CLI's name -> node lookup, whose
+ * caller (`cli.ts`) already knows which input shape to build per name — hence
+ * `any` here rather than a heavier existential wrapper for a two-entry table.
+ */
+export const NODES: Record<string, Node<any, unknown>> = {
   decide,
   generate,
 };
