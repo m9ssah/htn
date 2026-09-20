@@ -1,0 +1,96 @@
+{
+  "state": {
+    "utterance": "the second one",
+    "currentTemplate": "choice_cards",
+    "taskState": "3 recipe options on screen"
+  },
+  "response": {
+    "model": "jev-1.13.0",
+    "answers": {
+      "route": {
+        "type": "choice",
+        "choice": "select",
+        "confidence": 1,
+        "probabilities": {
+          "refine": 0,
+          "query": 0,
+          "correct": 0,
+          "new_task": 0,
+          "other": 0,
+          "select": 1
+        }
+      },
+      "templateId": {
+        "type": "choice",
+        "choice": "item_detail",
+        "confidence": 0.9,
+        "probabilities": {
+          "people_picker": 0,
+          "focus_step": 0.01,
+          "choice_cards": 0.07,
+          "item_detail": 0.92,
+          "generic_answer": 0,
+          "recovery": 0,
+          "summary_done": 0,
+          "message_drafts": 0
+        }
+      },
+      "palette": {
+        "type": "choice",
+        "choice": "contrast",
+        "confidence": 0.68,
+        "probabilities": {
+          "slate": 0.1,
+          "rose": 0.01,
+          "mono": 0.13,
+          "contrast": 0.76
+        }
+      },
+      "fontPairing": {
+        "type": "choice",
+        "choice": "system",
+        "confidence": 0.64,
+        "probabilities": {
+          "geometric": 0.25,
+          "mono": 0.01,
+          "editorial": 0.01,
+          "system": 0.73
+        }
+      },
+      "density": {
+        "type": "choice",
+        "choice": "normal",
+        "confidence": 0.57,
+        "probabilities": {
+          "compact": 0.24,
+          "spacious": 0.05,
+          "normal": 0.71
+        }
+      },
+      "radius": {
+        "type": "choice",
+        "choice": "soft",
+        "confidence": 0.13,
+        "probabilities": {
+          "round": 0.27,
+          "sharp": 0.31,
+          "soft": 0.42
+        }
+      },
+      "motif": {
+        "type": "choice",
+        "choice": "none",
+        "confidence": 0.97,
+        "probabilities": {
+          "none": 0.98,
+          "geometric": 0.02,
+          "floral": 0
+        }
+      }
+    },
+    "usage": {
+      "input_tokens": 1146,
+      "output_tokens": 347
+    }
+  }
+}

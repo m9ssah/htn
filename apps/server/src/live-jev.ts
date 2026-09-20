@@ -36,7 +36,9 @@ const currentTemplate = (takeFlag('--template') ?? null) as TemplateId | null;
 const taskState = takeFlag('--task') ?? 'nothing started';
 const utterance = argv.join(' ') || 'what should I make tonight';
 
-const client = new JevHttpClient({ maxUsd: 0.05 });
+// $5 is a circuit breaker for a runaway loop, not a real budget — a normal
+// run here is a handful of calls at ~$0.00003 each.
+const client = new JevHttpClient({ maxUsd: 5.0 });
 const state: JevState = { utterance, currentTemplate, taskState };
 const signal = (): AbortSignal => AbortSignal.timeout(5000);
 

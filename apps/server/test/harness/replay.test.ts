@@ -18,8 +18,8 @@ const fixture = (path: string): string => join(FIXTURES_DIR, path);
 describe('replay clients', () => {
   const anyState = { utterance: 'anything', currentTemplate: null, taskState: '' };
 
-  it('createReplayJevClient reads a recorded answer from disk', async () => {
-    const client = createReplayJevClient(fixture('jev/example.json'));
+  it('createReplayJevClient reads a hand-written fixture from disk', async () => {
+    const client = createReplayJevClient(fixture('jev/synthetic-example.json'));
 
     const answer = await client.ask(anyState, new AbortController().signal);
 
@@ -41,6 +41,21 @@ describe('replay clients', () => {
     expect(answer.theme.palette.value).toBe('slate');
   });
 
+  /**
+   * The done-when item "at least one recorded fixture checked in for P2 to
+   * use" is only real if replay can actually read it — this exercises one of
+   * the four `jev/recorded/*.json` fixtures (live-recorded, one per policy
+   * branch: docs/orchestration-plan.md "The shape") end to end.
+   */
+  it('createReplayJevClient reads a real recorded fixture (the correct/recovery case)', async () => {
+    const client = createReplayJevClient(fixture('jev/recorded/correct.json'));
+
+    const answer = await client.ask(anyState, new AbortController().signal);
+
+    expect(answer.route.value).toBe('correct');
+    expect(answer.templateId.value).toBe('recovery');
+  });
+
   it('createReplayContentSource reads recorded chunks from disk', async () => {
     const source = createReplayContentSource(fixture('content/example.json'));
 
@@ -59,7 +74,7 @@ describe('replay clients', () => {
    * everyone stopped listening — just with a fixture instead of a socket.
    */
   it('createReplayJevClient rejects if the signal is already aborted', async () => {
-    const client = createReplayJevClient(fixture('jev/example.json'));
+    const client = createReplayJevClient(fixture('jev/synthetic-example.json'));
     const controller = new AbortController();
     controller.abort(new Error('barge-in'));
 

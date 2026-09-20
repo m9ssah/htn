@@ -99,7 +99,12 @@ describe('JevHttpClient', () => {
       });
       const client = new JevHttpClient({ baseUrl, timeoutMs: 150 });
 
-      await expect(client.ask(STATE, new AbortController().signal)).rejects.toThrow();
+      // A hard-deadline abort must surface as a TimeoutError specifically —
+      // not just "something rejected" — because degradation handling
+      // (docs/orchestration-plan.md "Reliability") treats a dead Jev
+      // differently from a barge-in, and the caller can only tell them apart
+      // if the rejection says which one happened.
+      await expect(client.ask(STATE, new AbortController().signal)).rejects.toMatchObject({ name: 'TimeoutError' });
 
       expect(sockets).toHaveLength(1);
       await new Promise<void>((resolve) => {
@@ -121,7 +126,9 @@ describe('JevHttpClient', () => {
     await new Promise((resolve) => setTimeout(resolve, 30)); // let the TCP connection establish
     controller.abort(new Error('barge-in'));
 
-    await expect(run).rejects.toThrow();
+    // The caller's own abort reason, not a generic AbortError — same
+    // property the replay client's matching test asserts.
+    await expect(run).rejects.toThrow('barge-in');
     await new Promise<void>((resolve) => {
       if (sockets[0]?.destroyed) resolve();
       else sockets[0]?.once('close', () => resolve());

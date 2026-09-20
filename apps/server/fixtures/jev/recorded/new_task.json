@@ -1,0 +1,96 @@
+{
+  "state": {
+    "utterance": "what should I make tonight",
+    "currentTemplate": null,
+    "taskState": "nothing started"
+  },
+  "response": {
+    "model": "jev-1.13.0",
+    "answers": {
+      "route": {
+        "type": "choice",
+        "choice": "new_task",
+        "confidence": 0.4,
+        "probabilities": {
+          "refine": 0,
+          "select": 0,
+          "other": 0,
+          "new_task": 0.51,
+          "correct": 0,
+          "query": 0.49
+        }
+      },
+      "templateId": {
+        "type": "choice",
+        "choice": "choice_cards",
+        "confidence": 0.98,
+        "probabilities": {
+          "generic_answer": 0.01,
+          "recovery": 0,
+          "item_detail": 0,
+          "people_picker": 0,
+          "message_drafts": 0,
+          "focus_step": 0,
+          "summary_done": 0,
+          "choice_cards": 0.99
+        }
+      },
+      "palette": {
+        "type": "choice",
+        "choice": "slate",
+        "confidence": 0.42,
+        "probabilities": {
+          "contrast": 0.24,
+          "mono": 0.07,
+          "rose": 0.12,
+          "slate": 0.57
+        }
+      },
+      "fontPairing": {
+        "type": "choice",
+        "choice": "system",
+        "confidence": 0.62,
+        "probabilities": {
+          "editorial": 0.05,
+          "mono": 0,
+          "system": 0.72,
+          "geometric": 0.23
+        }
+      },
+      "density": {
+        "type": "choice",
+        "choice": "normal",
+        "confidence": 0.65,
+        "probabilities": {
+          "spacious": 0.18,
+          "normal": 0.76,
+          "compact": 0.06
+        }
+      },
+      "radius": {
+        "type": "choice",
+        "choice": "round",
+        "confidence": 0.44,
+        "probabilities": {
+          "soft": 0.28,
+          "sharp": 0.1,
+          "round": 0.62
+        }
+      },
+      "motif": {
+        "type": "choice",
+        "choice": "none",
+        "confidence": 0.99,
+        "probabilities": {
+          "geometric": 0,
+          "floral": 0.01,
+          "none": 0.99
+        }
+      }
+    },
+    "usage": {
+      "input_tokens": 1142,
+      "output_tokens": 349
+    }
+  }
+}

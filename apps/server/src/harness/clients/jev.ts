@@ -249,7 +249,12 @@ export class JevHttpClient implements JevClient {
           res.on('error', reject);
         },
       );
-      req.on('error', reject);
+      // On an aborted signal, Node wraps it as a generic AbortError and puts
+      // the real reason (our `TimeoutError`, or the caller's barge-in Error)
+      // one level down in `.cause`. Surface that reason directly instead —
+      // the caller (and the replay client's matching behaviour) needs to
+      // tell "hit the hard deadline" apart from "barge-in", not just "aborted".
+      req.on('error', (err) => reject(signal.aborted ? signal.reason : err));
       req.end(body);
     });
   }

@@ -1,0 +1,96 @@
+{
+  "state": {
+    "utterance": "make it high contrast, I can't read this",
+    "currentTemplate": "item_detail",
+    "taskState": "cookie recipe open"
+  },
+  "response": {
+    "model": "jev-1.13.0",
+    "answers": {
+      "route": {
+        "type": "choice",
+        "choice": "refine",
+        "confidence": 1,
+        "probabilities": {
+          "refine": 1,
+          "correct": 0,
+          "other": 0,
+          "query": 0,
+          "select": 0,
+          "new_task": 0
+        }
+      },
+      "templateId": {
+        "type": "choice",
+        "choice": "item_detail",
+        "confidence": 0.68,
+        "probabilities": {
+          "people_picker": 0,
+          "message_drafts": 0,
+          "focus_step": 0.16,
+          "item_detail": 0.72,
+          "choice_cards": 0.01,
+          "recovery": 0.04,
+          "generic_answer": 0.07,
+          "summary_done": 0
+        }
+      },
+      "palette": {
+        "type": "choice",
+        "choice": "contrast",
+        "confidence": 1,
+        "probabilities": {
+          "mono": 0,
+          "slate": 0,
+          "contrast": 1,
+          "rose": 0
+        }
+      },
+      "fontPairing": {
+        "type": "choice",
+        "choice": "system",
+        "confidence": 0.33,
+        "probabilities": {
+          "geometric": 0.36,
+          "mono": 0.12,
+          "system": 0.49,
+          "editorial": 0.03
+        }
+      },
+      "density": {
+        "type": "choice",
+        "choice": "spacious",
+        "confidence": 0.93,
+        "probabilities": {
+          "normal": 0.04,
+          "spacious": 0.95,
+          "compact": 0.01
+        }
+      },
+      "radius": {
+        "type": "choice",
+        "choice": "sharp",
+        "confidence": 0.92,
+        "probabilities": {
+          "soft": 0.04,
+          "sharp": 0.94,
+          "round": 0.02
+        }
+      },
+      "motif": {
+        "type": "choice",
+        "choice": "none",
+        "confidence": 0.96,
+        "probabilities": {
+          "geometric": 0.03,
+          "floral": 0,
+          "none": 0.97
+        }
+      }
+    },
+    "usage": {
+      "input_tokens": 1151,
+      "output_tokens": 350
+    }
+  }
+}

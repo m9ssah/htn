@@ -1,0 +1,96 @@
+{
+  "state": {
+    "utterance": "I put in too much sugar",
+    "currentTemplate": "focus_step",
+    "taskState": "step 3 of 6, flour+butter in bowl"
+  },
+  "response": {
+    "model": "jev-1.13.0",
+    "answers": {
+      "route": {
+        "type": "choice",
+        "choice": "correct",
+        "confidence": 0.99,
+        "probabilities": {
+          "new_task": 0.01,
+          "select": 0,
+          "correct": 0.99,
+          "query": 0,
+          "other": 0,
+          "refine": 0
+        }
+      },
+      "templateId": {
+        "type": "choice",
+        "choice": "recovery",
+        "confidence": 0.97,
+        "probabilities": {
+          "summary_done": 0,
+          "choice_cards": 0,
+          "generic_answer": 0.02,
+          "item_detail": 0,
+          "message_drafts": 0,
+          "recovery": 0.97,
+          "focus_step": 0.01,
+          "people_picker": 0
+        }
+      },
+      "palette": {
+        "type": "choice",
+        "choice": "contrast",
+        "confidence": 0.44,
+        "probabilities": {
+          "rose": 0.13,
+          "mono": 0.09,
+          "slate": 0.19,
+          "contrast": 0.59
+        }
+      },
+      "fontPairing": {
+        "type": "choice",
+        "choice": "system",
+        "confidence": 0.52,
+        "probabilities": {
+          "editorial": 0.03,
+          "mono": 0.17,
+          "system": 0.64,
+          "geometric": 0.16
+        }
+      },
+      "density": {
+        "type": "choice",
+        "choice": "normal",
+        "confidence": 0.67,
+        "probabilities": {
+          "normal": 0.78,
+          "compact": 0.14,
+          "spacious": 0.08
+        }
+      },
+      "radius": {
+        "type": "choice",
+        "choice": "soft",
+        "confidence": 0.15,
+        "probabilities": {
+          "soft": 0.43,
+          "sharp": 0.16,
+          "round": 0.41
+        }
+      },
+      "motif": {
+        "type": "choice",
+        "choice": "none",
+        "confidence": 0.99,
+        "probabilities": {
+          "none": 0.99,
+          "geometric": 0,
+          "floral": 0.01
+        }
+      }
+    },
+    "usage": {
+      "input_tokens": 1157,
+      "output_tokens": 348
+    }
+  }
+}
