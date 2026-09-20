@@ -12,7 +12,7 @@
     "typecheck": "tsc -b --force",
     "test": "vitest run",
     "verify:jev-preview": "sh scripts/verify-json-render-preview.sh",
-    "jev:smoke": "npm run build -w @jit/server && node --env-file=.env apps/server/dist/jev-smoke.js",
+    "jev:smoke": "npm run build -w @jit/server && node --env-file-if-exists=.env apps/server/dist/jev-smoke.js",
     "test:watch": "vitest",
     "harness": "npm run harness -w @jit/renderer",
     "node": "npm run node -w @jit/server --",

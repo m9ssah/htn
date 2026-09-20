@@ -239,12 +239,38 @@ export class JevHttpClient implements JevClient {
     return { answer: parseJevResponse(raw), raw };
   }
 
+  /**
+   * Ask an arbitrary `state` object, rather than a `JevState`.
+   *
+   * The structure composer (`contract/compose.ts`) builds its own wire state
+   * — `user_request`/`context`/`guidance`/`capabilities` — and its own
+   * `choice` questions, and must spend through THIS client so composition
+   * shares the one credential, the one budget cap, the one keep-alive agent
+   * and the one telemetry path with `decide`. Everything below this line is
+   * the same code path `ask` takes.
+   */
+  async evaluateQuestions(
+    state: Record<string, unknown>,
+    questions: Record<string, JevQuestion>,
+    signal: AbortSignal,
+  ): Promise<JevWireResponse> {
+    return this.evaluateWire(state, questions, signal);
+  }
+
   private async evaluate(
     state: JevState,
     questions: Record<string, JevQuestion>,
     signal: AbortSignal,
   ): Promise<JevWireResponse> {
-    const body = JSON.stringify({ state: buildWireState(state), model: this.model, questions });
+    return this.evaluateWire(buildWireState(state), questions, signal);
+  }
+
+  private async evaluateWire(
+    state: Record<string, unknown>,
+    questions: Record<string, JevQuestion>,
+    signal: AbortSignal,
+  ): Promise<JevWireResponse> {
+    const body = JSON.stringify({ state, model: this.model, questions });
     // Barge-in and the hard deadline come from one object, so either one
     // actually tears down the socket rather than just stop waiting.
     const combined = AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]);
