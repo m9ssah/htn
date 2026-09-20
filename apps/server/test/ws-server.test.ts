@@ -1,3 +1,6 @@
+import { readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { createSurfaceServer, type SurfaceServer } from '../src/ws-server.js';
@@ -19,11 +22,17 @@ import type { PatchStream } from '../src/harness/turn.js';
 
 let server: SurfaceServer | null = null;
 const sockets: WebSocket[] = [];
+const dir = join(tmpdir(), `jit-ws-${process.pid}`);
 
 afterEach(async () => {
-  for (const s of sockets.splice(0)) s.close();
+  // Server FIRST, clients second, and `terminate()` rather than `close()`.
+  // `close()` on a client whose server socket is already destroyed waits out
+  // the close handshake — ~30s in `ws` — which surfaces as a vitest timeout
+  // rather than as the leak it is.
   await server?.close();
+  for (const s of sockets.splice(0)) s.terminate();
   server = null;
+  rmSync(dir, { recursive: true, force: true });
 });
 
 async function boot(graph: PatchStream): Promise<SurfaceServer> {
@@ -204,9 +213,27 @@ describe('ws server: barge-in', () => {
 });
 
 describe('ws server: disconnect', () => {
-  it('a disconnect mid-turn aborts the turn and leaves the server running', async () => {
+  /**
+   * Two separate claims, and the first one needs the turn log to check.
+   *
+   * An earlier version asserted only "the server is still up and a new
+   * device can connect". That passes with the disconnect's `runner.abort()`
+   * deleted — the leaked node just runs to completion, `send` returns false
+   * on `readyState`, and the second device connects fine. Verified: with the
+   * abort commented out, that version stayed green.
+   *
+   * "Stopped paying for a dead turn" is a different claim from "survived",
+   * and only the turn log can distinguish them.
+   */
+  it('a disconnect mid-turn aborts the turn in flight, and the server survives', async () => {
+    const logPath = join(dir, 'disconnect.jsonl');
     const attempts: number[] = [];
-    const s = await boot(oneNodeGraph(signalIgnoringEmitter(12, 15, attempts)));
+    server = await createSurfaceServer({
+      deps: deps(oneNodeGraph(signalIgnoringEmitter(12, 15, attempts)), { logPath }),
+      log: () => {},
+    });
+    const s = server;
+
     const client = connect(s.url);
     await client.open;
     client.socket.send(JSON.stringify({ type: 'utterance', text: 'start something long' }));
@@ -214,9 +241,20 @@ describe('ws server: disconnect', () => {
 
     client.socket.close();
     await client.closed;
-    await sleep(150);
+    await sleep(250);
 
-    // Still up, and a new device can connect and drive a turn.
+    // The node was still running when the socket dropped...
+    expect(attempts.length).toBeGreaterThan(2);
+    // ...and the turn was aborted rather than left to render into a dead socket.
+    const record = JSON.parse(readFileSync(logPath, 'utf8').trim().split('\n')[0] as string) as {
+      outcome: string;
+      entries: { kind: string; reason?: string }[];
+    };
+    const abort = record.entries.find((e) => e.kind === 'abort');
+    expect(abort?.reason).toContain('socket closed');
+    expect(record.outcome).toBe('aborted');
+
+    // And the server is still up: a new device can connect and drive a turn.
     expect(s.connections).toBe(0);
     const second = connect(s.url);
     await second.open;

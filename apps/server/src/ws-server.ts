@@ -108,6 +108,13 @@ function attachDevice(
    * purpose: p19c measured that lag between receiving a chunk and handling
    * it is what loses queued writes, and awaiting a send ack is exactly that
    * lag. A frame that cannot go out is reported, not retried.
+   *
+   * The `readyState` check is a cost-saver, not a correctness guard, and is
+   * measured as one: with it removed every test still passes, because
+   * `ws.send` on a closed socket in `ws` 8.x does not throw — it emits
+   * `error`, which `teardown` already handles. What it buys is not doing a
+   * `JSON.stringify` of a surface update into a socket that is gone, and not
+   * turning every such frame into a spurious `socket-error` log line.
    */
   const send = (message: ServerMessage): boolean => {
     if (closed || ws.readyState !== ws.OPEN) return false;
