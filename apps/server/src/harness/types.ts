@@ -15,6 +15,8 @@ export type Ctx = {
   content: ContentSource;
   /** The fine-tuned content model. `generate` fills a composed surface through this. */
   contentModel: ContentModel;
+  /** `research`'s fetch seam. Named `fetch` because the plan's node inventory does. */
+  fetch: ResearchClient;
   sink: PatchSink;
   /**
    * Load-bearing, not decorative. `backend/probes/p19b_langgraph_cancel.mjs`
@@ -201,6 +203,24 @@ export interface ContentSource {
 export interface ContentModel {
   fill(request: ContentGenerationRequestV1, signal: AbortSignal): Promise<unknown>;
 }
+
+/**
+ * One fetch. The `research` node's only I/O, and the `ctx.fetch` the plan's
+ * node inventory cited before `Ctx` actually had it.
+ *
+ * Deliberately dumb: it retrieves bytes and reports what happened. Judging
+ * whether a result is relevant, current or conflicting is a separate Jev call
+ * (docs/ARCHITECTURE.md Stage 2 — asking "relevant *and* trustworthy" as one
+ * question cost 0.50 precision in testing), and running the fetch is code with
+ * no model in it at all.
+ */
+export interface ResearchClient {
+  get(url: string, signal: AbortSignal): Promise<FetchOutcome>;
+}
+
+export type FetchOutcome =
+  | { ok: true; status: number; body: string }
+  | { ok: false; reason: string };
 
 /**
  * `emit` returns `void`, so it cannot do I/O. TypeScript will still let a

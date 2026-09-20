@@ -2,6 +2,7 @@ import type { Ctx, PatchSinkStore } from './types.js';
 import { stubJevClient } from './clients/jev.js';
 import { stubContentSource } from './clients/content.js';
 import { stubContentModel } from './clients/content-model.js';
+import { stubResearchClient } from './clients/research.js';
 import { createMemorySinkStore } from './clients/sink.js';
 
 /**
@@ -18,6 +19,7 @@ export function createStubCtx(signal: AbortSignal, store: PatchSinkStore = creat
     jev: stubJevClient,
     content: stubContentSource,
     contentModel: stubContentModel,
+    fetch: stubResearchClient,
     sink: store.beginTurn('stub-turn'),
     signal,
     now: () => performance.now(),

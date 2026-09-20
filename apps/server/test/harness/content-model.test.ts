@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { ContentGenerationRequestV1, JsonValue } from '@jit/schema';
-import { BasetenContentModel, contentMessages, pythonJson, stubContentModel } from '../../src/harness/clients/content-model.js';
+import { OpenAiContentModel, contentMessages, instructedContentMessages, pythonJson, stubContentModel } from '../../src/harness/clients/content-model.js';
 import { readFixture } from '../../src/harness/clients/fixtures.js';
 import { validateContentResult } from '../../src/contract/content.js';
 
@@ -95,15 +95,17 @@ describe('stubContentModel', () => {
   });
 });
 
-describe('BasetenContentModel', () => {
+describe('OpenAiContentModel', () => {
   let server: Server | undefined;
 
   beforeEach(() => {
-    process.env.BASETEN_API = 'test-key-never-sent-anywhere-real';
+    process.env.JIT_CONTENT_MODEL_KEY = 'test-key-never-sent-anywhere-real';
+    process.env.JIT_CONTENT_MODEL_NAME = 'jit-content-lora';
   });
 
   afterEach(async () => {
-    delete process.env.BASETEN_API;
+    delete process.env.JIT_CONTENT_MODEL_KEY;
+    delete process.env.JIT_CONTENT_MODEL_NAME;
     delete process.env.JIT_CONTENT_MODEL_URL;
     if (server) {
       await new Promise<void>((resolve) => server?.close(() => resolve()));
@@ -133,14 +135,14 @@ describe('BasetenContentModel', () => {
 
   it('round-trips a chat completion into the raw result the validator can judge', async () => {
     const url = await listen(respond(completion(JSON.stringify(RESULT))));
-    const model = new BasetenContentModel({ url, timeoutMs: 2000 });
+    const model = new OpenAiContentModel({ url, timeoutMs: 2000 });
 
     const raw = await model.fill(REQUEST, new AbortController().signal);
 
     expect(validateContentResult(REQUEST, raw).rejected).toEqual([]);
   });
 
-  it('asks for the LoRA module by name — the base model name would answer untrained', async () => {
+  it('asks for the served adapter by name — the base model name would answer untrained', async () => {
     let seen = '';
     const url = await listen((req, res) => {
       let body = '';
@@ -151,36 +153,83 @@ describe('BasetenContentModel', () => {
         res.end(JSON.stringify(completion(JSON.stringify(RESULT))));
       });
     });
-    const model = new BasetenContentModel({ url, model: 'checkpoint-51', timeoutMs: 2000 });
+    const model = new OpenAiContentModel({ url, model: 'my-adapter', timeoutMs: 2000 });
 
     await model.fill(REQUEST, new AbortController().signal);
 
     const sent = JSON.parse(seen) as { model: string; temperature: number; messages: unknown[] };
-    expect(sent.model).toBe('checkpoint-51');
+    expect(sent.model).toBe('my-adapter');
     expect(sent.temperature).toBe(0);
-    expect(sent.messages).toEqual(contentMessages(REQUEST));
+    // The default prompt spells the contract out, for a model that was not
+    // fine-tuned on it.
+    expect(sent.messages).toEqual(instructedContentMessages(REQUEST));
   });
 
-  it('sends the Baseten Api-Key authorization header', async () => {
-    let auth: string | undefined;
+  it('sends the terse trained prompt only when asked for it', async () => {
+    let seen = '';
     const url = await listen((req, res) => {
-      auth = req.headers.authorization;
-      req.on('data', () => {});
+      let body = '';
+      req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
       req.on('end', () => {
+        seen = body;
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(completion(JSON.stringify(RESULT))));
       });
     });
-    const model = new BasetenContentModel({ url, timeoutMs: 2000 });
+    const model = new OpenAiContentModel({ url, prompt: 'trained', timeoutMs: 2000 });
 
     await model.fill(REQUEST, new AbortController().signal);
 
-    expect(auth).toBe('Api-Key test-key-never-sent-anywhere-real');
+    expect((JSON.parse(seen) as { messages: unknown[] }).messages).toEqual(contentMessages(REQUEST));
+  });
+
+  it('both prompt styles send byte-identical request payloads', () => {
+    expect(instructedContentMessages(REQUEST)[1]).toEqual(contentMessages(REQUEST)[1]);
+  });
+
+  type AuthBox = { auth: string | undefined; seen: boolean };
+
+  const captureAuth = (box: AuthBox): Handler => (req, res) => {
+    box.auth = req.headers.authorization;
+    box.seen = true;
+    req.on('data', () => {});
+    req.on('end', () => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(completion(JSON.stringify(RESULT))));
+    });
+  };
+
+  it('sends a Bearer token — the scheme every OpenAI-compatible host expects', async () => {
+    const box: AuthBox = { auth: undefined, seen: false };
+    const url = await listen(captureAuth(box));
+    const model = new OpenAiContentModel({ url, timeoutMs: 2000 });
+
+    await model.fill(REQUEST, new AbortController().signal);
+
+    expect(box.auth).toBe('Bearer test-key-never-sent-anywhere-real');
+  });
+
+  it('omits the header entirely when no key is set, rather than sending "Bearer undefined"', async () => {
+    delete process.env.JIT_CONTENT_MODEL_KEY;
+    const box: AuthBox = { auth: undefined, seen: false };
+    const url = await listen(captureAuth(box));
+    const model = new OpenAiContentModel({ url, timeoutMs: 2000 });
+
+    await model.fill(REQUEST, new AbortController().signal);
+
+    expect(box.seen).toBe(true);
+    expect(box.auth).toBeUndefined();
+  });
+
+  it('refuses to construct without a model name — the base model would answer untrained', () => {
+    delete process.env.JIT_CONTENT_MODEL_NAME;
+
+    expect(() => new OpenAiContentModel({ url: 'http://127.0.0.1:1/v1/chat/completions' })).toThrow('JIT_CONTENT_MODEL_NAME');
   });
 
   it('throws on prose instead of JSON rather than passing a fallback downstream', async () => {
     const url = await listen(respond(completion('Sure, here is your result!')));
-    const model = new BasetenContentModel({ url, timeoutMs: 2000 });
+    const model = new OpenAiContentModel({ url, timeoutMs: 2000 });
 
     await expect(model.fill(REQUEST, new AbortController().signal)).rejects.toThrow('non-JSON');
   });
@@ -193,14 +242,14 @@ describe('BasetenContentModel', () => {
         res.end('{"error":"cold start"}');
       });
     });
-    const model = new BasetenContentModel({ url, timeoutMs: 2000 });
+    const model = new OpenAiContentModel({ url, timeoutMs: 2000 });
 
     await expect(model.fill(REQUEST, new AbortController().signal)).rejects.toThrow('Content model 503');
   });
 
   it('a barge-in aborts the in-flight request with the caller reason, not a generic AbortError', async () => {
     const url = await listen(() => { /* black hole: never answers */ });
-    const model = new BasetenContentModel({ url, timeoutMs: 5000 });
+    const model = new OpenAiContentModel({ url, timeoutMs: 5000 });
     const controller = new AbortController();
     const bargeIn = new Error('barge-in');
 
@@ -212,12 +261,19 @@ describe('BasetenContentModel', () => {
 
   it('gives up at the deadline rather than holding the turn open', async () => {
     const url = await listen(() => { /* black hole */ });
-    const model = new BasetenContentModel({ url, timeoutMs: 50 });
+    const model = new OpenAiContentModel({ url, timeoutMs: 50 });
 
     await expect(model.fill(REQUEST, new AbortController().signal)).rejects.toThrow(/timed out/i);
   });
 
-  it('refuses to construct without a URL, rather than defaulting to somewhere', () => {
-    expect(() => new BasetenContentModel()).toThrow('JIT_CONTENT_MODEL_URL');
+  it('defaults to OpenAI, so OPENAI_KEY alone is a working configuration', async () => {
+    delete process.env.JIT_CONTENT_MODEL_NAME;
+    delete process.env.JIT_CONTENT_MODEL_KEY;
+    process.env.OPENAI_KEY = 'test-key-never-sent-anywhere-real';
+
+    // Constructing is the assertion: no URL, no model name, no throw.
+    expect(() => new OpenAiContentModel()).not.toThrow();
+
+    delete process.env.OPENAI_KEY;
   });
 });

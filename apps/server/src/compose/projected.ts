@@ -21,6 +21,7 @@ import {
   type Ingredient,
   type TaskState,
 } from '../domain/recipe.js';
+import { formatDuration, readTimer, timerFor } from '../domain/timer.js';
 import type { ChoiceOption, Contact } from '../seed.js';
 import type { StructureComposer } from '../contract/compose.js';
 
@@ -129,6 +130,13 @@ class SurfaceBuilder {
   private readonly seed: Record<string, Record<string, JsonValue>> = {};
   private readonly values: Record<string, Record<string, JsonValue>> = {};
   readonly warnings: string[] = [];
+
+  /**
+   * Injected rather than read from `Date.now()` inside a surface, so a timer's
+   * rendered output is a function of its inputs and a test can assert the
+   * screen at a chosen instant.
+   */
+  constructor(readonly now: number = Date.now()) {}
 
   container(key: string, type: StructuralComponentV2, children?: string[]): this {
     this.elements[key] = { type, props: {}, ...(children ? { children } : {}) };
@@ -392,6 +400,63 @@ function ingredientRows(state: TaskState, builder: SurfaceBuilder): string[] {
   return [...shown, `ing_${MAX_INGREDIENT_ROWS - 1}`];
 }
 
+/**
+ * What the batch costs, and where the money goes.
+ *
+ * `Bars` takes 1–12 values, so the chart shows the priciest ingredients and
+ * folds the tail into one "other" bar rather than dropping it — a cost chart
+ * whose bars do not sum to the total beside them is a chart that invites
+ * exactly the question you cannot answer on stage.
+ *
+ * Every number here comes from `estimateCost` (constraint 2). `Bars.values`
+ * and `Metric.value` are facts, so they are fixed props, never generated.
+ */
+function costBreakdown(
+  state: TaskState,
+  cost: ReturnType<typeof estimateCost>,
+  builder: SurfaceBuilder,
+): string[] {
+  const lines = [...cost.lines].filter((line) => line.cost > 0).sort((a, b) => b.cost - a.cost);
+  if (lines.length === 0) {
+    builder.warnings.push('item_detail: no priced ingredients, so no cost breakdown');
+    return [];
+  }
+
+  const MAX_BARS = 6;
+  const head = lines.slice(0, MAX_BARS - 1);
+  const tail = lines.slice(MAX_BARS - 1);
+  const tailCost = tail.reduce((sum, line) => sum + line.cost, 0);
+  const shown = tail.length > 0 ? [...head, { id: 'other', cost: tailCost }] : head.concat(lines.slice(head.length));
+
+  builder.leaf({ key: 'cost_label', type: 'Label', copy: { text: 'Cost per batch' } });
+  builder.leaf({
+    key: 'cost_total',
+    type: 'Metric',
+    copy: {
+      label: `$${cost.total.toFixed(2)} total`,
+      value: `$${(cost.total / Math.max(1, currentYield(state))).toFixed(2)}`,
+      delta: `per ${state.recipe.yieldUnit.replace(/s$/, '')}`,
+    },
+  });
+  builder.leaf({
+    key: 'cost_bars',
+    type: 'Bars',
+    fixed: { values: shown.map((line) => Number(line.cost.toFixed(2))) },
+  });
+  builder.leaf({
+    key: 'cost_legend',
+    type: 'Text',
+    copy: {
+      text: shown
+        .map((line) => `${line.id === 'other' ? `${tail.length} others` : ingredientById(state.recipe, line.id)?.name ?? line.id} $${line.cost.toFixed(2)}`)
+        .join(' · '),
+    },
+    fixed: { tone: 'muted' },
+    lines: 2,
+  });
+  return ['cost_label', 'cost_total', 'cost_bars', 'cost_legend'];
+}
+
 function itemDetail(state: TaskState, builder: SurfaceBuilder): string {
   const { recipe } = state;
   const cost = estimateCost(state);
@@ -418,9 +483,10 @@ function itemDetail(state: TaskState, builder: SurfaceBuilder): string {
   builder.leaf({ key: 'ingredients_label', type: 'Label', copy: { text: 'Ingredients' } });
   const rows = ingredientRows(state, builder);
   if (rows.length === 0) builder.warnings.push('item_detail: the recipe has no ingredients to show');
+  const costKeys = costBreakdown(state, cost, builder);
   builder.leaf({ key: 'start', type: 'Button', copy: { text: 'Start cooking' }, fixed: { variant: 'primary' }, action: 'begin' });
 
-  builder.container('stack', 'Stack', ['title', 'subtitle', 'batch', 'ingredients_label', ...rows, 'start']);
+  builder.container('stack', 'Stack', ['title', 'subtitle', 'batch', 'ingredients_label', ...rows, ...costKeys, 'start']);
   builder.container('card', 'Card', ['stack']);
   return 'card';
 }
@@ -490,6 +556,22 @@ function focusStep(state: TaskState, builder: SurfaceBuilder): string {
     detailKeys.push(`add_${MAX_STEP_DETAILS}`);
   }
 
+  // A timer only where the step declares a real duration. Both numbers are
+  // computed (domain/timer.ts), and the reading is taken at paint time —
+  // see `timerKeys`' note on what makes it tick.
+  const timerKeys: string[] = [];
+  const timer = step ? timerFor(step, state.stepStartedAt ?? builder.now) : null;
+  if (timer) {
+    const reading = readTimer(timer, builder.now);
+    builder.leaf({
+      key: 'timer_remaining',
+      type: 'Metric',
+      copy: { label: reading.done ? 'Done' : 'Time left', value: formatDuration(reading.remainingMs) },
+    });
+    builder.leaf({ key: 'timer_bar', type: 'Progress', fixed: { pct: reading.pct } });
+    timerKeys.push('timer_remaining', 'timer_bar');
+  }
+
   builder.leaf({ key: 'bowl', type: 'Text', copy: { text: bowlSummary(state) }, fixed: { tone: 'muted' }, lines: 2 });
 
   const buttons: string[] = [];
@@ -508,7 +590,7 @@ function focusStep(state: TaskState, builder: SurfaceBuilder): string {
     buttons.push('next');
   }
   builder.container('buttons', 'ButtonGroup', buttons);
-  builder.container('stack', 'Stack', ['progress', 'instruction', ...detailKeys, 'bowl', 'buttons']);
+  builder.container('stack', 'Stack', ['progress', 'instruction', ...detailKeys, ...timerKeys, 'bowl', 'buttons']);
   builder.container('card', 'Card', ['stack']);
   return 'card';
 }
@@ -644,7 +726,13 @@ function peoplePicker(contacts: readonly Contact[], builder: SurfaceBuilder): st
  * Entry points
  * ------------------------------------------------------------------ */
 
-export type ProjectedIds = { requestId: string; generationId: string; maxWidth?: number };
+export type ProjectedIds = {
+  requestId: string;
+  generationId: string;
+  maxWidth?: number;
+  /** Wall clock for any timer on the surface. Defaults to now. */
+  now?: number;
+};
 
 export type ProjectedResult =
   | { ok: true; structure: StructureUpdateV2; content: ContentUpdateV2; warnings: string[] }
@@ -659,7 +747,7 @@ const DEFAULT_MAX_WIDTH = 640;
  * empty screen (CLAUDE.md constraint 5).
  */
 export function composeProjected(input: ProjectedInput, ids: ProjectedIds): ProjectedResult {
-  const builder = new SurfaceBuilder();
+  const builder = new SurfaceBuilder(ids.now);
   let root: string;
   try {
     switch (input.kind) {

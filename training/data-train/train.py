@@ -9,7 +9,23 @@ from peft import LoraConfig
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import SFTConfig, SFTTrainer
 
-MODEL_ID = os.environ.get("MODEL_ID", "Qwen/Qwen2.5-14B-Instruct")
+"""LoRA fine-tune for the Stage 2 content model.
+
+Provider-agnostic: any machine with a GPU and the deps below. On a hosted
+notebook (Kaggle/Colab) point DATASET_PATH at the uploaded copy.
+
+    pip install -U transformers datasets accelerate peft trl
+    MODEL_ID=Qwen/Qwen2.5-3B-Instruct python train.py
+
+The adapter lands in OUTPUT_DIR. Serve it behind any OpenAI-compatible
+endpoint and give the server its URL as JIT_CONTENT_MODEL_URL.
+"""
+
+MODEL_ID = os.environ.get("MODEL_ID", "Qwen/Qwen2.5-3B-Instruct")
+# The canonical dataset, not a copy staged next to this script.
+DATASET_PATH = Path(
+    os.environ.get("DATASET_PATH", Path(__file__).resolve().parents[1] / "content-model" / "dataset.jsonl")
+)
 
 hf_token = os.environ.get("HF_TOKEN")
 if hf_token:
@@ -30,7 +46,7 @@ SYSTEM_PROMPT = (
 
 def load_examples() -> Dataset:
     rows = []
-    with open(DATASET_PATH) as f:
+    with DATASET_PATH.open(encoding="utf-8") as f:
         for line in f:
             record = json.loads(line)
             if record.get("expectRejection"):
@@ -49,12 +65,13 @@ def load_examples() -> Dataset:
 
 dataset = load_examples().train_test_split(test_size=0.1, seed=0)
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, token=hf_token)
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
 
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_ID,
+    token=hf_token,
     torch_dtype=torch.bfloat16,
     device_map="auto",
     use_cache=False,
@@ -82,7 +99,7 @@ training_args = SFTConfig(
     eval_steps=25,
     save_steps=25,
     bf16=True,
-    output_dir=os.getenv("BT_CHECKPOINT_DIR", "./checkpoints"),
+    output_dir=os.environ.get("OUTPUT_DIR", "./checkpoints"),
 )
 
 trainer = SFTTrainer(

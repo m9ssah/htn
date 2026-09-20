@@ -6,9 +6,11 @@ import { sleep } from '../signal.js';
 import { readFixture } from './fixtures.js';
 
 /**
- * The fine-tuned Stage 2 content model: Qwen2.5-3B-Instruct + a LoRA trained
- * on `training/content-model/dataset.jsonl`, served by vLLM on Baseten behind
- * an OpenAI-compatible `/v1/chat/completions`.
+ * The fine-tuned Stage 2 content model, behind any OpenAI-compatible
+ * `/v1/chat/completions` — vLLM, Together, Fireworks, Groq, an HF endpoint, a
+ * local server. The provider is a URL and a key, deliberately: the adapter is
+ * trained from `training/data-train/train.py` and wherever it ends up served
+ * is not this layer's concern.
  *
  * It answers the `jit.content.request.v1` -> `jit.content.result.v1` contract
  * in `contract/content.ts`, which is the same contract it was trained on. It
@@ -58,10 +60,55 @@ export function pythonJson(value: JsonValue): string {
 const escapeNonAscii = (json: string): string =>
   json.replace(/[\u007f-￿]/g, (ch) => `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`);
 
-/** The two turns the model was trained on. Exported so the eval script prompts it identically. */
-export function contentMessages(request: ContentGenerationRequestV1): Array<{ role: 'system' | 'user'; content: string }> {
+export type ChatMessage = { role: 'system' | 'user'; content: string };
+
+/** The two turns the fine-tuned model was trained on. Exported so an eval script prompts it identically. */
+export function contentMessages(request: ContentGenerationRequestV1): ChatMessage[] {
   return [
     { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'user', content: pythonJson(request as unknown as JsonValue) },
+  ];
+}
+
+/**
+ * The same task, spelled out for a model that has NOT been fine-tuned on it.
+ *
+ * `SYSTEM_PROMPT` is terse because the LoRA learned the contract from 270
+ * examples; a stock instruct model has seen none of them and needs the rules
+ * stated. Keeping the two separate rather than widening one is deliberate:
+ * lengthening the trained prompt would shift the fine-tune's input
+ * distribution, and shortening this one would leave a stock model guessing at
+ * a contract it has never seen.
+ *
+ * The request still goes over as `pythonJson` so a single fixture proves both
+ * paths send byte-identical payloads.
+ */
+export function instructedContentMessages(request: ContentGenerationRequestV1): ChatMessage[] {
+  const system = [
+    'You fill named text fields on a generated UI surface.',
+    '',
+    'You receive a jit.content.request.v1 JSON payload. Reply with ONLY a',
+    'jit.content.result.v1 JSON object — no prose, no markdown, no code fences.',
+    '',
+    'Shape your reply exactly like this, echoing requestId and catalogVersion',
+    'from the request:',
+    '{"contract":"jit.content.result.v1","requestId":"...","catalogVersion":"...",',
+    ' "values":{"<elementId>":{"<field>":"<text>"}}}',
+    '',
+    'Rules:',
+    '- One entry in `values` per target in `targets`, keyed by its elementId.',
+    '  Never invent an elementId that is not in targets.',
+    '- Write every field marked required. Omit an optional field you have',
+    '  nothing good for — omit the key entirely, never send null.',
+    '- Respect each field\'s maxLength. Shorter is better than truncated.',
+    '- Plain text only. No markdown, no quotes around the value, no trailing',
+    '  punctuation on headings or button labels.',
+    '- `fixed` and `sourceFacts` are facts already computed for you. Use them',
+    '  to inform wording, but never restate a number as a field you generate.',
+    '- Write for a 4-inch touch screen: concrete, specific, and short.',
+  ].join('\n');
+  return [
+    { role: 'system', content: system },
     { role: 'user', content: pythonJson(request as unknown as JsonValue) },
   ];
 }
@@ -69,17 +116,33 @@ export function contentMessages(request: ContentGenerationRequestV1): Array<{ ro
 export type ContentModelOptions = {
   /** Full chat-completions URL. Defaults to `JIT_CONTENT_MODEL_URL`. */
   url?: string;
-  /** Defaults to `BASETEN_API`. */
+  /** Defaults to `JIT_CONTENT_MODEL_KEY`. Optional — a local server needs none. */
   apiKey?: string;
   /**
-   * vLLM serves the adapter under its LoRA module name, not the base model's
-   * — `deploy.py`'s checkpoint name. Asking for the base model name silently
-   * answers with the UNTRAINED base model, which is a wrong answer rather
-   * than an error, so this is explicit.
+   * Which model the endpoint should answer with. Server-side LoRA hosting
+   * usually serves the adapter under its OWN name rather than the base
+   * model's, and naming the base model there silently answers with the
+   * UNTRAINED weights — a wrong answer rather than an error — so this is
+   * explicit rather than defaulted.
    */
   model?: string;
   timeoutMs?: number;
+  /**
+   * `instructed` (the default) states the contract in full, for a stock
+   * model. `trained` sends the terse prompt the LoRA was fine-tuned on — use
+   * it only against an endpoint serving that adapter, where the long prompt
+   * would be off-distribution.
+   */
+  prompt?: 'instructed' | 'trained';
+  /**
+   * Ask the endpoint to constrain decoding to JSON. On by default because the
+   * single most common stock-model failure here is a ```json fence, which
+   * `fill` can only reject. Turn it off for a host that rejects the parameter.
+   */
+  jsonMode?: boolean;
 };
+
+const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
 type ChatCompletion = { choices?: Array<{ message?: { content?: string } }> };
 
@@ -88,25 +151,36 @@ type ChatCompletion = { choices?: Array<{ message?: { content?: string } }> };
  * `JevHttpClient` is: the TLS handshake dominates a cold call, and this sits
  * inside a 1.5s budget.
  */
-export class BasetenContentModel implements ContentModel {
+export class OpenAiContentModel implements ContentModel {
   private readonly url: URL;
-  private readonly key: string;
+  private readonly key: string | undefined;
   private readonly mod: typeof https;
   private readonly agent: https.Agent;
   private readonly model: string;
   private readonly timeoutMs: number;
+  private readonly buildMessages: (request: ContentGenerationRequestV1) => ChatMessage[];
+  private readonly jsonMode: boolean;
 
   constructor(options: ContentModelOptions = {}) {
-    const url = options.url ?? process.env.JIT_CONTENT_MODEL_URL;
-    if (!url) throw new Error('No content model URL: set JIT_CONTENT_MODEL_URL (see training/data-train/deploy.py).');
-    const key = options.apiKey ?? process.env.BASETEN_API;
-    if (!key) throw new Error('No Baseten API key: set BASETEN_API.');
+    // OpenAI itself is the default host, so `OPENAI_KEY` alone is a working
+    // configuration; any other OpenAI-compatible host is one env var away.
+    const url = options.url ?? process.env.JIT_CONTENT_MODEL_URL ?? OPENAI_URL;
+    const model = options.model ?? process.env.JIT_CONTENT_MODEL_NAME
+      ?? (url === OPENAI_URL ? 'gpt-4o-mini' : undefined);
+    if (!model) throw new Error('No content model name: set JIT_CONTENT_MODEL_NAME to the served adapter, not the base model.');
     this.url = new URL(url);
-    this.key = key;
+    // Absent rather than empty when unset: a local vLLM/Ollama needs no key,
+    // and sending `Bearer undefined` would fail in a way that reads like a
+    // credential problem instead of a missing one.
+    this.key = options.apiKey ?? process.env.JIT_CONTENT_MODEL_KEY ?? process.env.OPENAI_KEY;
     this.mod = (this.url.protocol === 'http:' ? http : https) as unknown as typeof https;
     this.agent = new this.mod.Agent({ keepAlive: true, keepAliveMsecs: 30_000 });
-    this.model = options.model ?? process.env.JIT_CONTENT_MODEL_NAME ?? 'checkpoint-51';
+    this.model = model;
     this.timeoutMs = options.timeoutMs ?? CONTENT_DEADLINE_MS;
+    this.buildMessages = (options.prompt ?? process.env.JIT_CONTENT_MODEL_PROMPT) === 'trained'
+      ? contentMessages
+      : instructedContentMessages;
+    this.jsonMode = options.jsonMode ?? true;
   }
 
   /**
@@ -118,7 +192,8 @@ export class BasetenContentModel implements ContentModel {
   async fill(request: ContentGenerationRequestV1, signal: AbortSignal): Promise<unknown> {
     const body = JSON.stringify({
       model: this.model,
-      messages: contentMessages(request),
+      messages: this.buildMessages(request),
+      ...(this.jsonMode ? { response_format: { type: 'json_object' } } : {}),
       // Deterministic: the contract is a fixed shape, not a creative task,
       // and a judge re-asking the same thing should not get a different
       // surface. `max_tokens` bounds the tail a runaway generation could add
@@ -151,7 +226,7 @@ export class BasetenContentModel implements ContentModel {
           agent: this.agent,
           signal,
           headers: {
-            Authorization: `Api-Key ${this.key}`,
+            ...(this.key ? { Authorization: `Bearer ${this.key}` } : {}),
             'Content-Type': 'application/json',
             'Content-Length': Buffer.byteLength(body),
           },

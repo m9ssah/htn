@@ -1,12 +1,14 @@
 import type { SurfaceSpec } from '@jit/schema';
 import { contentUpdateFrom, deriveContentRequest, validateContentResult } from './contract/content.js';
-import { BasetenContentModel } from './harness/clients/content-model.js';
+import { OpenAiContentModel } from './harness/clients/content-model.js';
 
 /**
  * The live content-model smoke test. Touches the real network; never run by
  * `npm test`.
  *
- *   JIT_CONTENT_MODEL_URL=https://model-<id>.api.baseten.co/environments/production/sync/v1/chat/completions \
+ *   JIT_CONTENT_MODEL_URL=<host>/v1/chat/completions \
+ *   JIT_CONTENT_MODEL_NAME=<served adapter name> \
+ *   JIT_CONTENT_MODEL_KEY=<key, if the host needs one> \
  *   npm run content:smoke -- "plan a study session for tomorrow"
  *
  * It runs the exact path the device will: derive targets from a spec's own
@@ -48,7 +50,7 @@ const { request, unresolved } = deriveContentRequest({
 });
 if (unresolved.length > 0) throw new Error(`CONTENT-SMOKE FAIL — unresolved bindings: ${unresolved.map((entry) => entry.reason).join(' ')}`);
 
-const model = new BasetenContentModel();
+const model = new OpenAiContentModel();
 const started = performance.now();
 const raw = await model.fill(request, AbortSignal.timeout(30_000));
 const elapsed = Math.round(performance.now() - started);
