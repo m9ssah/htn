@@ -328,12 +328,22 @@ describe('ws server: untrusted input', () => {
     expect(client.socket.readyState).toBe(WebSocket.OPEN);
   });
 
-  it('acknowledges a control event as not-yet-handled rather than silently ignoring it', async () => {
+  /**
+   * A control event used to be answered with "not handled yet", which meant
+   * nothing on a generated surface could be pressed. It now runs a turn
+   * through the same command layer speech resolves to.
+   */
+  it('runs a turn for a control event instead of refusing it', async () => {
     const s = await boot(oneNodeGraph(emitter(1)));
     const client = connect(s.url);
     await client.open;
-    client.socket.send(JSON.stringify({ type: 'action', action: 'setBatch', elementId: 'slider1', value: 30 }));
-    const error = (await client.waitFor((f) => f.type === 'error')) as Extract<ServerMessage, { type: 'error' }>;
-    expect(error.reason).toContain('not handled yet');
+    await client.waitFor((f) => f.type === 'hello');
+
+    client.socket.send(JSON.stringify({ type: 'action', action: 'next_step', elementId: 'next' }));
+
+    const started = await client.waitFor((f) => f.type === 'turn-start');
+    expect(started.type).toBe('turn-start');
+    const ended = await client.waitFor((f) => f.type === 'turn-end');
+    expect(ended.type).toBe('turn-end');
   });
 });

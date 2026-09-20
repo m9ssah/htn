@@ -6,7 +6,7 @@ import { stubContentSource } from '../src/harness/clients/content.js';
 import { stubContentModel } from '../src/harness/clients/content-model.js';
 import { stubResearchClient } from '../src/harness/clients/research.js';
 import { stubJevClient } from '../src/harness/clients/jev.js';
-import type { JevAnswer, JevClient, Route } from '../src/harness/types.js';
+import type { ContentModel, JevAnswer, JevClient, Route } from '../src/harness/types.js';
 import type { TemplateId } from '@jit/schema';
 
 const choice = <T extends string>(value: T) => ({ value, confidence: 0.9, distribution: { [value]: 0.9 } as Partial<Record<T, number>> });
@@ -97,15 +97,61 @@ describe('the concrete graph', () => {
     expect(loud.patches.some((p) => 'theme' in p)).toBe(true);
   });
 
-  it('names a generated template it cannot paint instead of painting something else', async () => {
+  /**
+   * A judge's unscripted question is the case this exists for. The surface is
+   * a template, but everything ON it comes from the content model and the
+   * utterance — so the device answers what was actually asked instead of
+   * showing a cookie screen.
+   */
+  it('paints a generated surface skeleton and fills it from the content model', async () => {
     const session = createSession();
+    const filling: ContentModel = {
+      async fill(request): Promise<unknown> {
+        return {
+          contract: 'jit.content.result.v1',
+          requestId: request.requestId,
+          catalogVersion: request.catalogVersion,
+          values: Object.fromEntries(request.targets.map((target) => [
+            target.elementId,
+            Object.fromEntries(target.fields.filter((f) => f.required).map((f) => [f.name, 'answered'])),
+          ])),
+        };
+      },
+    };
 
-    const { patches, log } = await run(session, jevReturning(answer('query', 'generic_answer')));
+    const turn = startTurn(
+      { utterance: "what's the most expensive ingredient" },
+      { ...deps(session, jevReturning(answer('query', 'generic_answer'))), contentModel: filling },
+    );
+    const patches: SurfaceUpdate[] = [];
+    for await (const patch of turn.patches) patches.push(patch);
 
-    expect(patches.filter((p) => 'spec' in p)).toEqual([]);
-    expect(log.entries.some((e) => e.kind === 'paint-skipped')).toBe(true);
-    // The surface it could not paint must not become the remembered one.
-    expect(session.currentTemplate).toBeNull();
+    // Structure first so the skeleton paints before the model answers.
+    expect(patches[0]).toMatchObject({ stage: 'structure' });
+    const content = patches.find((p) => 'values' in p && !('spec' in p)) as { values: Record<string, unknown> };
+    expect(content, 'the generated surface must receive content').toBeDefined();
+    expect(Object.keys(content.values).length).toBeGreaterThan(0);
+    expect(session.currentTemplate).toBe('generic_answer');
+  });
+
+  it('keeps the skeleton up and reports when the content model fails', async () => {
+    const session = createSession();
+    const failing: ContentModel = {
+      async fill(): Promise<unknown> {
+        throw new Error('model unreachable');
+      },
+    };
+
+    const turn = startTurn(
+      { utterance: 'anything at all' },
+      { ...deps(session, jevReturning(answer('query', 'generic_answer'))), contentModel: failing },
+    );
+    const patches: SurfaceUpdate[] = [];
+    for await (const patch of turn.patches) patches.push(patch);
+
+    // The skeleton still painted — losing the model must not lose the surface.
+    expect(patches.some((p) => 'spec' in p)).toBe(true);
+    expect(turn.log.entries.some((e) => e.kind === 'paint-warning')).toBe(true);
   });
 
   it('a style ask still lands when the template itself could not be painted', async () => {

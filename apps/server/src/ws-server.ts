@@ -201,12 +201,17 @@ function attachDevice(
     }
 
     if (parsed.message.type === 'action') {
-      // Reserved. Control events bypass the graph by design (plan: "a slider
-      // scrub emits a cached content patch"), and there is nothing to serve
-      // from until the concrete graph exists. Acknowledged so the device
-      // workstream sees a defined response rather than silence.
-      log('action-unhandled', { action: parsed.message.action, elementId: parsed.message.elementId });
-      send({ type: 'error', reason: `action "${parsed.message.action}" is not handled yet` });
+      // A control event names the action the SURFACE declared, so it needs no
+      // routing — it goes straight to the command layer that speech resolves
+      // to as well, which is what keeps pressing "Next" and saying "next"
+      // from meaning two different things.
+      const turn = runner.say({
+        action: parsed.message.action,
+        ...(parsed.message.value !== undefined ? { value: parsed.message.value } : {}),
+      });
+      activeTurnId = turn.turnId;
+      log('turn-start', { turnId: turn.turnId, action: parsed.message.action });
+      void pump(turn);
       return;
     }
 

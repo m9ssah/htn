@@ -37,6 +37,13 @@ export type Dictation = {
   start(): void;
   /** Close it. The current partial is discarded, not sent. */
   stop(): void;
+  /**
+   * Close the mic and send whatever has been heard so far as ONE final
+   * utterance. This is what releasing a push-to-talk key does: the user has
+   * said they are finished, which is a better endpoint than waiting for the
+   * recogniser to decide the silence was long enough.
+   */
+  finish(): void;
   readonly state: DictationState;
   readonly available: boolean;
 };
@@ -74,17 +81,32 @@ function recogniser(): SpeechCtor | null {
  */
 const GIVE_UP_AFTER = 3;
 
-export function createDictation(handlers: DictationHandlers, options: { lang?: string } = {}): Dictation {
+export function createDictation(
+  handlers: DictationHandlers,
+  options: { lang?: string; pushToTalk?: boolean } = {},
+): Dictation {
+  /**
+   * Hold-to-talk by default, and this is not a preference.
+   *
+   * Always-listening transcribed the ROOM: the turn log filled with
+   * "do you want me to do anything in parallel" and "we have and then just
+   * let one agency" — bystanders' conversation, each one routed and each one
+   * repainting the screen. On a demo floor the microphone has to be told when
+   * to listen, or the device is driven by whoever is standing nearby.
+   */
+  const pushToTalk = options.pushToTalk ?? true;
   const Ctor = recogniser();
   if (!Ctor) {
     handlers.onState('unavailable', 'this browser has no SpeechRecognition');
-    return { start: () => {}, stop: () => {}, state: 'unavailable', available: false };
+    return { start: () => {}, stop: () => {}, finish: () => {}, state: 'unavailable', available: false };
   }
 
   let state: DictationState = 'idle';
   let wanted = false;
   let failures = 0;
   let recognition: SpeechRecognitionLike | null = null;
+  /** The best transcript so far this press, final or not. */
+  let heard = '';
 
   const setState = (next: DictationState, detail?: string): void => {
     if (state === next) return;
@@ -114,12 +136,24 @@ export function createDictation(handlers: DictationHandlers, options: { lang?: s
         const text = result[0]?.transcript ?? '';
         if (result.isFinal) {
           const finalText = text.trim();
-          if (finalText) handlers.onFinal(finalText);
+          if (!finalText) continue;
+          heard = finalText;
+          // In push-to-talk the user decides when they are done, so a final
+          // from the recogniser is banked rather than sent — `finish()` is
+          // what releases it. Continuous mode has no such signal and sends.
+          if (!pushToTalk) {
+            heard = '';
+            handlers.onFinal(finalText);
+          }
         } else {
           partial += text;
         }
       }
-      if (partial.trim()) handlers.onPartial(partial.trim());
+      const trimmed = partial.trim();
+      if (trimmed) {
+        if (pushToTalk) heard = trimmed;
+        handlers.onPartial(trimmed);
+      }
     };
 
     r.onerror = (event) => {
@@ -175,10 +209,22 @@ export function createDictation(handlers: DictationHandlers, options: { lang?: s
     start,
     stop(): void {
       wanted = false;
+      heard = '';
       const active = recognition;
       recognition = null;
       active?.abort();
       setState('idle');
+    },
+
+    finish(): void {
+      wanted = false;
+      const text = heard.trim();
+      heard = '';
+      const active = recognition;
+      recognition = null;
+      active?.abort();
+      setState('idle');
+      if (text) handlers.onFinal(text);
     },
     get state(): DictationState {
       return state;

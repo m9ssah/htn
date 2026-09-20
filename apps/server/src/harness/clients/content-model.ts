@@ -30,8 +30,14 @@ const SYSTEM_PROMPT =
   + 'business fact, never invent an elementId not in targets, and omit any '
   + 'optional field you have nothing for.';
 
-/** Content must land under 1.5s (CLAUDE.md constraint 3); past that the turn is better off reporting. */
-export const CONTENT_DEADLINE_MS = 1500;
+/**
+ * CLAUDE.md budgets content at 1.5s, and that is the number to design toward.
+ * It is not the number to ABORT at: the skeleton has already painted by the
+ * time this call is in flight, so a 2s answer fills a surface the user is
+ * looking at, while a 1.5s abort leaves it shimmering and empty. Measured
+ * against OpenAI, a generated answer lands in roughly 2-4s.
+ */
+export const CONTENT_DEADLINE_MS = 8000;
 
 /**
  * Python's `json.dumps` defaults, reproduced.
@@ -89,6 +95,12 @@ export function instructedContentMessages(request: ContentGenerationRequestV1): 
     '',
     'You receive a jit.content.request.v1 JSON payload. Reply with ONLY a',
     'jit.content.result.v1 JSON object — no prose, no markdown, no code fences.',
+    '',
+    '`intent` is what the person actually said, and everything you write must',
+    'respond to IT. `context` is background about what is already on screen —',
+    'use it only where the intent refers to it. When the two are unrelated,',
+    'follow the intent and ignore the context completely: answering "my name',
+    'is Sam" with the current recipe step is the failure to avoid.',
     '',
     'Shape your reply exactly like this, echoing requestId and catalogVersion',
     'from the request:',

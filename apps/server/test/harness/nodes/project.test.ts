@@ -182,8 +182,22 @@ describe('project — summary_done / choice_cards / people_picker', () => {
 
     expect(CONTACTS).toHaveLength(3);
     expect(copy(result, 'person_0')).toEqual({ title: CONTACTS[0]?.name });
-    expect(copy(result, 'confirm')).toEqual({ text: 'Send messages' });
+    expect(copy(result, 'confirm')).toEqual({ text: 'Pick someone first' });
     expect(result.warnings.filter((w) => !w.includes('below the fold'))).toEqual([]);
+  });
+
+  /**
+   * Saying "Ari" repainted a screen identical to the one before it, so there
+   * was no way to tell the device had heard — which reads exactly like the
+   * selection doing nothing.
+   */
+  it('marks who has been chosen, so a selection is visible', async () => {
+    const result = await run({ state: fresh(), templateId: 'people_picker', chosen: ['ari'] });
+
+    expect(copy(result, 'person_0')).toEqual({ title: 'Ari', meta: 'Picked' });
+    expect(copy(result, 'person_1')).toEqual({ title: 'Blake' });
+    expect(String(copy(result, 'subtitle')?.text)).toContain('1 chosen');
+    expect(copy(result, 'confirm')).toEqual({ text: 'Text 1' });
   });
 });
 

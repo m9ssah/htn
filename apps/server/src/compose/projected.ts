@@ -120,6 +120,12 @@ type LeafInput = {
   copy?: Record<string, string>;
   /** Everything a user could check — numbers, flags, enums. Stays a fixed prop. */
   fixed?: Record<string, JsonValue>;
+  /**
+   * Fields bound to `/content/...` with NOTHING behind them yet — the slot
+   * shimmers until a content patch lands. `copy` is for a value this composer
+   * already knows; this is for one only a model can write.
+   */
+  generate?: readonly string[];
   /** `reserveLines`, 1–4. */
   lines?: number;
   /** Binds this leaf to the hardware rail. Must be unique within the spec. */
@@ -191,7 +197,8 @@ class SurfaceBuilder {
       Object.entries(item.copy ?? {}).filter(([, value]) => value !== undefined && value !== null),
     );
     const bindable = COPY_FIELDS[item.type];
-    const bound = Object.keys(copy).filter((field) => bindable.includes(field));
+    const generated = (item.generate ?? []).filter((field) => bindable.includes(field));
+    const bound = [...new Set([...Object.keys(copy).filter((f) => bindable.includes(f)), ...generated])];
     for (const field of Object.keys(copy)) {
       if (!bindable.includes(field)) {
         this.warnings.push(`${item.key}: "${field}" is not a generated field of ${item.type} — dropped`);
@@ -405,7 +412,7 @@ export type ProjectedInput =
   | { kind: 'recovery'; state: TaskState }
   | { kind: 'summary_done'; state: TaskState }
   | { kind: 'choice_cards'; options: readonly ChoiceOption[] }
-  | { kind: 'people_picker'; contacts: readonly Contact[] };
+  | { kind: 'people_picker'; contacts: readonly Contact[]; chosen?: readonly string[] };
 
 export type ProjectedSurfaceKind = ProjectedInput['kind'];
 
@@ -816,22 +823,39 @@ function choiceCards(options: readonly ChoiceOption[], builder: SurfaceBuilder):
   return 'card';
 }
 
-function peoplePicker(contacts: readonly Contact[], builder: SurfaceBuilder): string {
+function peoplePicker(contacts: readonly Contact[], chosen: readonly string[], builder: SurfaceBuilder): string {
   if (contacts.length === 0) builder.warnings.push('people_picker: no contacts to pick from');
   builder.leaf({ key: 'title', type: 'Heading', copy: { text: "Who's getting a text?" }, fixed: { level: 1 } });
-  builder.leaf({ key: 'subtitle', type: 'Text', copy: { text: 'Pick up to 3' }, fixed: { tone: 'muted' } });
+  builder.leaf({
+    key: 'subtitle',
+    type: 'Text',
+    // The count is the feedback. Saying "Ari" repainted a screen identical to
+    // the one before it, so there was no way to tell the device had heard —
+    // which reads exactly like the selection doing nothing.
+    copy: { text: chosen.length === 0 ? 'Pick up to 3' : `${chosen.length} chosen — say another name, or "send"` },
+    fixed: { tone: 'muted' },
+  });
   const keys = contacts.map((contact, index) => {
     const key = `person_${index}`;
+    const picked = chosen.includes(contact.id);
     builder.leaf({
       key,
       type: 'ListItem',
-      copy: { title: contact.name },
+      // `meta` is the row's own right-hand mark, so a chosen contact is
+      // legible at a metre without a component the vocabulary does not have.
+      copy: { title: contact.name, ...(picked ? { meta: 'Picked' } : {}) },
       fixed: { interactive: true },
       action: `choose_${contact.id}`,
     });
     return key;
   });
-  builder.leaf({ key: 'confirm', type: 'Button', copy: { text: 'Send messages' }, fixed: { variant: 'primary' }, action: 'write_messages' });
+  builder.leaf({
+    key: 'confirm',
+    type: 'Button',
+    copy: { text: chosen.length === 0 ? 'Pick someone first' : `Text ${chosen.length}` },
+    fixed: { variant: 'primary' },
+    action: 'write_messages',
+  });
   builder.container('stack', 'Stack', ['title', 'subtitle', ...keys, 'confirm']);
   builder.container('card', 'Card', ['stack']);
   return 'card';
@@ -875,6 +899,83 @@ const DEFAULT_MAX_HEIGHT = 364;
  * comes back as `ok: false` with the reason, never as a plausible-looking
  * empty screen (CLAUDE.md constraint 5).
  */
+/**
+ * The GENERATED surfaces: `generic_answer` and `message_drafts`.
+ *
+ * Structure from a template, content from the model — the other half of the
+ * architecture from `composeProjected`, which owns the surfaces the domain
+ * fully determines. Nothing here knows what a recipe is; the only thing that
+ * makes this surface about anything is the utterance the content model is
+ * handed.
+ *
+ * It returns structure ALONE. Every text slot is bound and pending, so the
+ * device paints the skeleton at its final dimensions immediately and the copy
+ * fills in when `generate` answers — which is the paint model the whole
+ * latency budget is built on, and the reason this is not one blocking call.
+ */
+export type GeneratedKind = 'generic_answer' | 'message_drafts';
+
+export const isGeneratedSurface = (kind: string): kind is GeneratedKind =>
+  kind === 'generic_answer' || kind === 'message_drafts';
+
+export function composeGenerated(kind: GeneratedKind, ids: ProjectedIds): ProjectedResult {
+  const builder = new SurfaceBuilder(ids.now, ids.maxHeight ?? DEFAULT_MAX_HEIGHT, ids.enforceHeight ?? false);
+  let root: string;
+  try {
+    root = kind === 'generic_answer' ? genericAnswer(builder) : messageDrafts(builder);
+  } catch (err) {
+    return { ok: false, reason: `${kind}: ${String(err)}`, warnings: builder.warnings };
+  }
+
+  const { spec, values } = builder.build(root);
+  const error = validateProjectedSpec(spec, values);
+  if (error) return { ok: false, reason: `${kind}: ${error}`, warnings: builder.warnings };
+
+  return {
+    ok: true,
+    warnings: builder.warnings,
+    structure: {
+      v: 2, stage: 'structure', status: 'complete', requestId: ids.requestId, generationId: ids.generationId,
+      spec, maxWidth: ids.maxWidth ?? DEFAULT_MAX_WIDTH,
+    },
+    // No content: every slot is pending until the model answers.
+    content: { v: 2, stage: 'content', requestId: ids.requestId, generationId: ids.generationId, complete: false, values: {} },
+  };
+}
+
+/** An answer to something nobody scripted. The judge's unplanned question. */
+function genericAnswer(builder: SurfaceBuilder): string {
+  builder.leaf({ key: 'kind', type: 'Label', generate: ['text'] });
+  builder.leaf({ key: 'title', type: 'Heading', generate: ['text'], fixed: { level: 1 }, lines: 2 });
+  builder.leaf({ key: 'body', type: 'Text', generate: ['text'], lines: 3 });
+  // Three points, because a surface that sometimes has two and sometimes four
+  // cannot reserve its own height. An instance with less to say collapses the
+  // spare ones (`ContentPatch` null) rather than leaving them shimmering.
+  for (const n of [1, 2, 3]) {
+    builder.leaf({ key: `point${n}`, type: 'ListItem', generate: ['title'] });
+  }
+  builder.leaf({ key: 'action', type: 'Button', generate: ['text'], fixed: { variant: 'primary' }, action: 'acknowledge' });
+
+  builder.container('stack', 'Stack', ['kind', 'title', 'body', 'point1', 'point2', 'point3', 'action']);
+  builder.container('card', 'Card', ['stack']);
+  return 'card';
+}
+
+/** Share the result: a few drafts to pick from. */
+function messageDrafts(builder: SurfaceBuilder): string {
+  builder.leaf({ key: 'kind', type: 'Label', generate: ['text'] });
+  builder.leaf({ key: 'title', type: 'Heading', generate: ['text'], fixed: { level: 1 }, lines: 2 });
+  const keys: string[] = [];
+  for (const n of [1, 2, 3]) {
+    const key = `draft${n}`;
+    builder.leaf({ key, type: 'ListItem', generate: ['title', 'detail'], fixed: { hasDetail: true }, action: `pick_draft_${n}` });
+    keys.push(key);
+  }
+  builder.container('stack', 'Stack', ['kind', 'title', ...keys]);
+  builder.container('card', 'Card', ['stack']);
+  return 'card';
+}
+
 export function composeProjected(input: ProjectedInput, ids: ProjectedIds): ProjectedResult {
   const builder = new SurfaceBuilder(ids.now, ids.maxHeight ?? DEFAULT_MAX_HEIGHT, ids.enforceHeight ?? false);
   let root: string;
@@ -885,7 +986,7 @@ export function composeProjected(input: ProjectedInput, ids: ProjectedIds): Proj
       case 'recovery': root = recovery(input.state, builder); break;
       case 'summary_done': root = summaryDone(input.state, builder); break;
       case 'choice_cards': root = choiceCards(input.options, builder); break;
-      case 'people_picker': root = peoplePicker(input.contacts, builder); break;
+      case 'people_picker': root = peoplePicker(input.contacts, input.chosen ?? [], builder); break;
     }
   } catch (err) {
     return { ok: false, reason: `${input.kind}: ${String(err)}`, warnings: builder.warnings };

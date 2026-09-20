@@ -24,6 +24,8 @@ import type { Node } from '../types.js';
  */
 export type ProjectInput = {
   state: TaskState;
+  /** `people_picker` only: who has been chosen so far. */
+  chosen?: readonly string[];
   /**
    * Which surface to project. Still typed as `TemplateId` because that is
    * what `JevAnswer` carries (`../types.ts`); the two names outside the
@@ -103,7 +105,7 @@ export const project: Node<ProjectInput, ProjectResult> = {
         templateId === 'choice_cards'
           ? { kind: 'choice_cards', options: CHOICE_OPTIONS }
           : templateId === 'people_picker'
-            ? { kind: 'people_picker', contacts: CONTACTS }
+            ? { kind: 'people_picker', contacts: CONTACTS, chosen: input.chosen ?? [] }
             : { kind: templateId, state };
 
       const result = composeProjected(projected, {

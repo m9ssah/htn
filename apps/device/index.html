@@ -17,14 +17,27 @@
         <section class="surface" id="surface"></section>
       </div>
 
-      <!-- The mic stand-in until apps/bridge + STT exist. Same wire frame. -->
+      <!--
+        Push to talk. Hold it (or the space key) to listen, release to send.
+        It carries the mic's state itself, so there is one thing to look at
+        rather than a button and a separate indicator that can disagree.
+      -->
+      <button class="talk" id="talk" type="button" aria-label="Hold to talk">
+        <span class="talk-vu" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="talk-label" id="talk-label">Hold to talk</span>
+      </button>
+
+      <!--
+        Only shown when the microphone cannot work at all — a Chromium without
+        the speech service, or a denied permission. Without it such a device
+        has no way to be driven at all; it is not an everyday affordance.
+      -->
       <input class="utterance" id="utterance" type="text" autocomplete="off"
-             placeholder="say something…" aria-label="Utterance" />
+             placeholder="type instead" aria-label="Utterance" hidden />
       <p class="status" id="status" hidden></p>
 
       <footer class="rail" id="rail"></footer>
       <div class="fader" id="fader" hidden></div>
-      <div class="listening" id="listening" hidden><i></i><i></i><i></i><span>Listening</span></div>
       <!-- What the device is hearing, while it is still being said. -->
       <p class="heard" id="heard" hidden></p>
     </div>

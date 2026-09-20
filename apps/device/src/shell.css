@@ -131,10 +131,9 @@ body {
   overflow: hidden;
   width: 100vw;
   height: 100vh;
-  /* stage · utterance · rail. The utterance bar is a ROW, not an overlay:
-     laid over the stage it covered whatever the generated surface put at the
-     bottom, which is reliably the primary button. */
-  grid-template-rows: minmax(0, 1fr) auto auto;
+  /* stage · rail. Push-to-talk floats over the stage's top-right corner, so
+     it costs the surface no height — the panel has none to spare. */
+  grid-template-rows: minmax(0, 1fr) auto;
 }
 
 .stage {
@@ -793,8 +792,13 @@ body {
  * vocabulary does not grow (same reasoning as the tiles).
  * ------------------------------------------------------------------ */
 
+/* The fallback, revealed only when the microphone cannot work. */
 .utterance {
-  margin: 0 var(--sh-pad) 6px;
+  position: absolute;
+  right: var(--sh-pad);
+  bottom: calc(var(--sh-rail-h) + 10px);
+  left: var(--sh-pad);
+  z-index: 5;
   padding: 6px 12px;
   border: 1px solid color-mix(in srgb, var(--sh-fg) 20%, transparent);
   border-radius: 2px;
@@ -874,3 +878,80 @@ body {
 .shell[data-mic='live'] .utterance::placeholder {
   color: color-mix(in srgb, var(--sh-accent) 70%, transparent);
 }
+
+
+/* ------------------------------------------------------------------ *
+ * Push to talk
+ *
+ * Top right, where the listening chip used to sit — it now IS the indicator,
+ * so there is one thing to look at rather than a control and a status light
+ * that can disagree with each other.
+ *
+ * Held, not toggled. A device that must be held to hear you cannot be driven
+ * by the room, which is what always-listening did: the turn log filled with
+ * bystanders' conversation and the screen repainted on every sentence.
+ *
+ * Only `transform` and `opacity` animate, per the shell's motion budget.
+ * ------------------------------------------------------------------ */
+
+.talk {
+  position: absolute;
+  top: var(--sh-pad);
+  right: var(--sh-pad);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border: 1px solid color-mix(in srgb, var(--sh-fg) 24%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sh-fg) 7%, transparent);
+  color: var(--sh-fg);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 140ms var(--sh-ease), opacity 140ms var(--sh-ease);
+  /* A touch target that also stops a long press selecting the label. */
+  touch-action: none;
+  user-select: none;
+}
+
+.talk:active,
+.shell[data-mic='live'] .talk {
+  border-color: transparent;
+  background: var(--sh-accent);
+  color: #23070f;
+  transform: scale(1.04);
+}
+
+.shell[data-mic='off'] .talk {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* The level meter only animates while actually listening — a device that
+   looks like it is hearing you when it is not is the failure worth avoiding. */
+.talk-vu {
+  display: none;
+  align-items: center;
+  gap: 3px;
+}
+
+.shell[data-mic='live'] .talk-vu {
+  display: flex;
+}
+
+.talk-vu i {
+  display: block;
+  width: 3px;
+  height: 11px;
+  border-radius: 2px;
+  background: currentColor;
+  animation: vu 900ms ease-in-out infinite;
+}
+
+.talk-vu i:nth-child(2) { animation-delay: 140ms; }
+.talk-vu i:nth-child(3) { animation-delay: 280ms; }

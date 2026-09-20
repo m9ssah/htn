@@ -37,6 +37,7 @@ export type PolicyRule =
   | 'correct_keep'
   | 'select_mapped'
   | 'select_keep'
+  | 'other_answer'
   | 'other_keep';
 
 export type PolicyResult = { templateId: TemplateId; rule: PolicyRule };
@@ -51,6 +52,9 @@ export type PolicyResult = { templateId: TemplateId; rule: PolicyRule };
 const SELECT_TARGET: Partial<Record<TemplateId, TemplateId>> = {
   choice_cards: 'item_detail',
 };
+
+/** Surfaces that answer rather than navigate — safe to honour on `other`. */
+const GENERATED: ReadonlySet<TemplateId> = new Set<TemplateId>(['generic_answer', 'message_drafts']);
 
 const templateOf = (slot: SlotId): TemplateId => slot.split('.')[0] as TemplateId;
 
@@ -84,6 +88,18 @@ function decide(input: PolicyInput): PolicyResult {
 
     case 'other':
     default:
+      /**
+       * `other` means "not one of the four task routes", which covers two
+       * very different things: noise that must not disturb the surface, and
+       * someone talking TO the device. Keeping the current surface for both
+       * is what made "my name is Massah" answer with a cookie recipe — Jev
+       * had correctly chosen `generic_answer` and this rule discarded it.
+       *
+       * A generated surface is the one template safe to honour here: it
+       * answers rather than navigates, so it cannot lose task state, and
+       * ignoring a person who just spoke to the device is the worse failure.
+       */
+      if (GENERATED.has(jevTemplateId)) return { templateId: jevTemplateId, rule: 'other_answer' };
       return currentTemplate
         ? { templateId: currentTemplate, rule: 'other_keep' }
         : { templateId: jevTemplateId, rule: 'honour_jev' };

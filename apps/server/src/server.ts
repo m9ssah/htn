@@ -36,7 +36,23 @@ if (existsSync(envFile)) process.loadEnvFile(envFile);
 if (!process.env.TYPESAFE_API_KEY && process.env.JEV_API) process.env.TYPESAFE_API_KEY = process.env.JEV_API;
 
 const port = Number(process.env.JIT_PORT ?? 8787);
-const host = process.env.JIT_HOST ?? '127.0.0.1';
+
+/**
+ * Bind where the device can actually reach us.
+ *
+ * `apps/device`'s Vite server listens on every interface (`host: true`), so
+ * the device is routinely opened at the machine's LAN address — from the Pi,
+ * or from a phone held over it. The device then derives `ws://<that host>:8787`
+ * from its own URL. Binding loopback only made those two disagree: the page
+ * loaded, the socket was refused, and speaking reported "nothing was sent"
+ * with no indication that the server was listening somewhere else entirely.
+ *
+ * This does expose the orchestrator to the local network, which is a real
+ * consideration on a venue's wifi — it holds API keys and can spend money. The
+ * boot log says so rather than leaving it implied, and `JIT_HOST=127.0.0.1`
+ * puts it back on loopback.
+ */
+const host = process.env.JIT_HOST ?? '0.0.0.0';
 
 /**
  * The real content model only when it is actually configured, and the boot log
@@ -70,6 +86,7 @@ process.stderr.write(
   `${JSON.stringify({
     event: 'listening',
     url: server.url,
+    reachable: host === '0.0.0.0' ? 'ON THIS NETWORK — set JIT_HOST=127.0.0.1 to restrict to loopback' : `${host} only`,
     graph: 'wired: decide -> policy -> paint -> style',
     jev: hasJevKey ? 'live' : 'STUB — every utterance routes to generic_answer',
     contentModel: contentModelUrl ? `live: ${contentModelUrl}` : 'STUB — set OPENAI_KEY (or JIT_CONTENT_MODEL_URL) for a real model',

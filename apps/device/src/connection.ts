@@ -35,6 +35,8 @@ export type ConnectionHandlers = {
 };
 
 export type Connection = {
+  /** Where this device is trying to reach the server. Shown when it cannot. */
+  readonly url: string;
   say(text: string): boolean;
   act(action: string, elementId: string, value?: string | number | boolean): boolean;
   readonly status: ConnectionStatus;
@@ -165,6 +167,7 @@ export function connect(handlers: ConnectionHandlers): Connection {
   };
 
   return {
+    url: serverUrl(),
     say: (text) => send({ type: 'utterance', text }),
     act: (action, elementId, value) => send({ type: 'action', action, elementId, ...(value !== undefined ? { value } : {}) }),
     get status(): ConnectionStatus {

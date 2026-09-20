@@ -1,11 +1,30 @@
 import { Annotation, END, START, StateGraph, type LangGraphRunnableConfig } from '@langchain/langgraph';
 import type { TemplateId } from '@jit/schema';
 import { applyDeviation, findDeviations, type TaskState } from './domain/recipe.js';
+import { applyCommand, resolveCommand } from './domain/commands.js';
 import { DEVIATION_FACTORS } from './harness/clients/jev-questions.js';
-import { CLASSIC_CHOCOLATE_CHIP } from './domain/recipes.js';
-import { isProjectedSurface } from './compose/projected.js';
+import { CONTACTS } from './seed.js';
+import { contextFor, createSession, describeTask, remember, type Session } from './session.js';
+
+export { createSession, type Session } from './session.js';
+
+/**
+ * Applies a command to the session and reports where it leaves the user.
+ *
+ * Shared by the spoken fast path and the device's `action` frames, so a button
+ * press and "what's next" cannot drift into meaning different things.
+ */
+export function runCommand(session: Session, action: string, value?: string | number | boolean): { template: TemplateId | null; note: string } {
+  const outcome = applyCommand({ action, task: session.task, chosen: session.chosen, ...(value !== undefined ? { value } : {}) });
+  session.task = outcome.task;
+  session.chosen = outcome.chosen;
+  if (outcome.template) session.currentTemplate = outcome.template;
+  return { template: outcome.template ?? session.currentTemplate, note: outcome.note };
+}
+import { composeGenerated, isGeneratedSurface, isProjectedSurface } from './compose/projected.js';
 import { runGuarded, runtimeOf, type TurnRuntime } from './harness/graph-runtime.js';
 import { decide } from './harness/nodes.js';
+import { generate } from './harness/nodes/generate.js';
 import { policy } from './harness/nodes/policy.js';
 import { project } from './harness/nodes/project.js';
 import { style } from './harness/nodes/style.js';
@@ -28,42 +47,63 @@ import type { JevAnswer } from './harness/types.js';
  */
 
 /**
- * What survives between turns. The device is one session on one screen, so
- * this is a single mutable object rather than a store — but it is explicitly
- * NOT graph state: LangGraph state is per-invocation, and "actually it was
- * three times" only works if the bowl is still there on the next utterance.
- */
-export type Session = {
-  task: TaskState;
-  currentTemplate: TemplateId | null;
-};
-
-export const createSession = (now = Date.now()): Session => ({
-  task: { recipe: CLASSIC_CHOCOLATE_CHIP, scale: 1, stepIndex: 0, inBowl: {}, stepStartedAt: now },
-  currentTemplate: null,
-});
-
-/**
- * What Jev is told about the task, as one line.
+ * What the content model is actually being asked to write.
  *
- * p18 measured that route is unanswerable from the utterance alone — "the
- * second one" and "actually it was three times" are only classifiable against
- * what is already on screen — so this is a real input, not decoration.
+ * For `generic_answer` the utterance IS the intent — it is the question. For
+ * `message_drafts` it is not: "send it" says nothing about what the messages
+ * should say, and handing that over produced drafts about flour and baking
+ * soda, because the only other thing in the prompt was the recipe step. The
+ * surface's PURPOSE is the intent; the utterance is just what triggered it.
  */
-function describeTask(session: Session): string {
-  const { task } = session;
-  const step = task.recipe.steps[task.stepIndex];
-  const deviations = findDeviations(task);
-  return [
-    `recipe=${task.recipe.name}`,
-    `scale=${task.scale}`,
-    `step=${task.stepIndex + 1}/${task.recipe.steps.length}${step ? ` (${step.instruction})` : ''}`,
-    deviations.length > 0 ? `offPlan=${deviations.map((d) => `${d.name}x${d.factor}`).join(',')}` : 'onPlan',
-  ].join(' ');
+/** Fills in what the last remembered exchange actually put on screen. */
+function noteShown(session: Session, templateId: TemplateId): void {
+  const last = session.history.at(-1);
+  if (last && last.showed === null) {
+    session.history = [...session.history.slice(0, -1), { ...last, showed: templateId }];
+  }
+}
+
+const SOCIAL = /^\s*(hi|hey|hello|yo|good (morning|afternoon|evening)|how are you|what'?s up|nice to meet you|my name is|i'?m |im |call me |this is |thanks|thank you|bye|goodbye)/i;
+
+function intentFor(templateId: TemplateId, session: Session, utterance: string): string {
+  if (templateId === 'generic_answer' && SOCIAL.test(utterance)) {
+    /**
+     * A greeting is not a prompt for the task.
+     *
+     * Told someone's name, the device replied "Welcome to the recipe, let's
+     * make cookies" — it had the recipe in context and nothing else, so it
+     * pitched it. Being spoken to socially deserves a social answer, and the
+     * task is not mentioned unless they raise it.
+     */
+    const who = session.name ? ` Their name is ${session.name}.` : '';
+    return `The person said: "${utterance}".${who} Reply to THEM, warmly and in one short line. `
+      + `Do not mention the recipe, the current step, or suggest starting anything — they have not asked to. `
+      + `Keep any list items to things about them or the conversation, not about cooking.`;
+  }
+  if (templateId !== 'message_drafts') return utterance;
+  const names = session.chosen
+    .map((id) => CONTACTS.find((c) => c.id === id)?.name)
+    .filter((name): name is string => Boolean(name));
+  const who = names.length > 0 ? names.join(' and ') : 'a friend';
+  /**
+   * The lengths are the ROW's, not a preference: a draft's `title` is a
+   * ListItem title (42 characters) and its `detail` the second line (56).
+   * Asking for 90 produced drafts that were all rejected for length and rows
+   * that rendered empty — the constraint has to be in the ask, not just in
+   * the schema the model is free to overshoot.
+   */
+  return `Text messages offering ${who} some of the ${session.task.recipe.name.toLowerCase()} just baked. `
+    + `For each draft: "title" is who it is to, at most 20 characters (e.g. "To ${names[0] ?? 'a friend'}"); `
+    + `"detail" is the message itself, at most 50 characters, warm and casual, no emoji.`;
 }
 
 const GraphState = Annotation.Root({
   utterance: Annotation<string>,
+  /** Set when a command already decided the surface, so routing is skipped. */
+  commanded: Annotation<boolean>({ reducer: (_prev, next) => next, default: () => false }),
+  /** A control event — a button, a row, the fader. Bypasses routing entirely. */
+  action: Annotation<string | null>({ reducer: (_prev, next) => next, default: () => null }),
+  value: Annotation<string | number | boolean | null>({ reducer: (_prev, next) => next, default: () => null }),
   halted: Annotation<boolean>({ reducer: (_prev, next) => next, default: () => false }),
   jev: Annotation<JevAnswer | null>({ reducer: (_prev, next) => next, default: () => null }),
   templateId: Annotation<TemplateId | null>({ reducer: (_prev, next) => next, default: () => null }),
@@ -80,6 +120,41 @@ export function createGraph(session: Session): PatchStream {
      */
     .addNode('decide', async (state: State, config: LangGraphRunnableConfig) => {
       const turn: TurnRuntime = runtimeOf(config);
+
+      /**
+       * Recorded before anything is decided, so a name given THIS turn is
+       * available to THIS turn's answer. Extracting it afterwards would make
+       * "my name is Massah" the one utterance that could not be answered by
+       * name, which is the only one where it matters.
+       */
+      if (state.utterance) remember(session, state.utterance, null);
+
+      /**
+       * A control event names its action directly, so there is nothing to
+       * route: the surface declared it, the user pressed it. No model call,
+       * which is also what keeps a slider scrub inside one frame.
+       */
+      if (state.action) {
+        const { template, note } = runCommand(session, state.action, state.value ?? undefined);
+        turn.note('command', { action: state.action, note, template, source: 'control' });
+        return { templateId: template, commanded: true };
+      }
+
+      /**
+       * The spoken fast path.
+       *
+       * "What's next" and "Ari" are selections from what is already on
+       * screen, so they resolve here in TypeScript and skip the model
+       * entirely — no round trip, and no chance of the router deciding a
+       * contact's name was a `correct` about sugar, which is what it did.
+       */
+      const command = resolveCommand(session.currentTemplate, state.utterance ?? '');
+      if (command) {
+        const { template, note } = runCommand(session, command);
+        turn.note('command', { utterance: state.utterance, action: command, note, template });
+        return { templateId: template, commanded: true };
+      }
+
       const result = await runGuarded(
         decide,
         { utterance: state.utterance, currentTemplate: session.currentTemplate, taskState: describeTask(session) },
@@ -158,13 +233,82 @@ export function createGraph(session: Session): PatchStream {
      */
     .addNode('paint', async (state: State, config: LangGraphRunnableConfig) => {
       const turn = runtimeOf(config);
-      const templateId = state.templateId!;
+      let templateId = state.templateId!;
+
+      /**
+       * A correction screen with nothing to correct is not an answer.
+       *
+       * `policy` only routes `correct` to `recovery` when the bowl has
+       * actually drifted, but `honour_jev` can hand back `recovery` for a
+       * `new_task` or `query` — and it did: unrelated speech produced a
+       * recovery surface announcing "18 new cookies" over an empty bowl.
+       * The guard is here rather than in `policy` because it needs the task
+       * state, which `policy` is deliberately kept ignorant of.
+       */
+      /**
+       * Being greeted must never navigate the task.
+       *
+       * Jev picks a template for every utterance, and for "hi there, my name
+       * is Massah" it picked `focus_step` — so saying hello jumped the device
+       * into step one of a recipe nobody had asked for. A social utterance can
+       * only ever be answered, never acted on.
+       */
+      if (SOCIAL.test(state.utterance ?? '') && isProjectedSurface(templateId)) {
+        turn.note('social-answered', { templateId, reason: 'a greeting is answered, not acted on' });
+        templateId = 'generic_answer';
+      }
+
+      if (templateId === 'recovery' && findDeviations(session.task).length === 0) {
+        const fallback = session.currentTemplate ?? 'item_detail';
+        turn.note('recovery-suppressed', { reason: 'nothing in the bowl deviates from the plan', fallback });
+        templateId = fallback;
+      }
+
+      /**
+       * The generated surfaces. Structure paints at once and the copy follows
+       * when the content model answers, which is what makes the device
+       * respond to something nobody scripted — a projected cookie screen is
+       * the wrong answer to "what's the most expensive ingredient".
+       */
+      if (isGeneratedSurface(templateId)) {
+        const requestId = `${turn.turnId}-surface`;
+        const generationId = `${turn.turnId}-gen`;
+        const composed = composeGenerated(templateId, { requestId, generationId });
+        if (!composed.ok) {
+          turn.note('paint-failed', { templateId, reason: composed.reason });
+          return { halted: true };
+        }
+
+        // Skeleton first, at its final dimensions. Nothing blocks this paint.
+        turn.ctx.sink.emit(composed.structure);
+        session.currentTemplate = templateId;
+        noteShown(session, templateId);
+
+        const filled = await runGuarded(
+          generate,
+          {
+            requestId,
+            generationId,
+            locale: 'en-CA',
+            intent: intentFor(templateId, session, state.utterance ?? ''),
+            context: contextFor(session, { social: SOCIAL.test(state.utterance ?? '') }),
+            spec: composed.structure.spec,
+          },
+          turn,
+          'node-crashed',
+        );
+
+        if (!filled.ok) {
+          turn.note('halted', { after: 'generate', aborted: filled.aborted });
+          return { halted: true };
+        }
+        for (const warning of filled.out.warnings) turn.note('paint-warning', { warning });
+        if (filled.out.content) turn.ctx.sink.emit(filled.out.content);
+        return {};
+      }
 
       if (!isProjectedSurface(templateId)) {
-        // generic_answer/message_drafts compose their structure rather than
-        // projecting it. Reported by name instead of painting something else,
-        // which would be a fallback that hides the gap.
-        turn.note('paint-skipped', { templateId, reason: 'generated surface — composer not wired' });
+        turn.note('paint-skipped', { templateId, reason: 'neither projected nor generated' });
         return { halted: true };
       }
 
@@ -177,6 +321,7 @@ export function createGraph(session: Session): PatchStream {
         {
           state: session.task,
           templateId,
+          chosen: session.chosen,
           requestId: `${turn.turnId}-surface`,
           generationId: `${turn.turnId}-gen`,
         },
@@ -199,6 +344,7 @@ export function createGraph(session: Session): PatchStream {
       turn.ctx.sink.emit(result.out.structure);
       if (result.out.content) turn.ctx.sink.emit(result.out.content);
       session.currentTemplate = templateId;
+      noteShown(session, templateId);
       return {};
     })
 
@@ -215,7 +361,11 @@ export function createGraph(session: Session): PatchStream {
     })
 
     .addEdge(START, 'decide')
-    .addConditionalEdges('decide', (state: State) => (state.halted ? END : 'policy'), [END, 'policy'])
+    .addConditionalEdges(
+      'decide',
+      (state: State) => (state.halted ? END : state.commanded ? 'paint' : 'policy'),
+      [END, 'policy', 'paint'],
+    )
     .addConditionalEdges('policy', (state: State) => (state.halted ? END : 'paint'), [END, 'paint'])
     // `style` still runs when `paint` halted on a GENERATED template: the
     // route was understood and a style ask is independent of whether this

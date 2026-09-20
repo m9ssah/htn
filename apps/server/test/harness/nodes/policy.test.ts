@@ -122,9 +122,26 @@ describe('policy', () => {
     expect(result).toEqual({ templateId: 'people_picker', rule: 'select_keep' });
   });
 
-  it('other / no current surface: total fallback is honouring Jev, not throwing', async () => {
+  it('other / no current surface: total fallback is answering, not throwing', async () => {
     const result = await policy.run({ route: 'other', jevTemplateId: 'generic_answer', currentTemplate: null }, ctx);
 
-    expect(result).toEqual({ templateId: 'generic_answer', rule: 'honour_jev' });
+    expect(result).toEqual({ templateId: 'generic_answer', rule: 'other_answer' });
+  });
+
+  /**
+   * The reported bug: "my name is Massah" was answered with a cookie recipe.
+   * Jev had correctly chosen `generic_answer`; `other_keep` discarded it and
+   * kept whatever surface happened to be up.
+   */
+  it('other / a generated template is honoured even with a surface up — being spoken to deserves an answer', async () => {
+    const result = await policy.run({ route: 'other', jevTemplateId: 'generic_answer', currentTemplate: 'focus_step' }, ctx);
+
+    expect(result).toEqual({ templateId: 'generic_answer', rule: 'other_answer' });
+  });
+
+  it('other / a projected template still keeps the surface — noise must not navigate', async () => {
+    const result = await policy.run({ route: 'other', jevTemplateId: 'recovery', currentTemplate: 'focus_step' }, ctx);
+
+    expect(result).toEqual({ templateId: 'focus_step', rule: 'other_keep' });
   });
 });

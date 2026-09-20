@@ -116,7 +116,10 @@ for (const utterance of utterances) {
   if (structure) {
     const types = Object.values(structure.spec.elements).map((el) => el.type);
     const tally = [...new Set(types)].map((t) => `${t}×${types.filter((x) => x === t).length}`).join(' ');
-    console.log(`  structure   : PROJECTED from task state (code, no model) — ${types.length} elements: ${tally}`);
+    const origin = template === 'generic_answer' || template === 'message_drafts'
+      ? 'GENERATED (template + content model)'
+      : 'PROJECTED from task state (code, no model)';
+    console.log(`  structure   : ${origin} — ${types.length} elements: ${tally}`);
   } else if (skipped) {
     console.log(`  structure   : none — ${String(skipped.reason)}`);
   } else if (halted) {

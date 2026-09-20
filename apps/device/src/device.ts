@@ -111,9 +111,22 @@ function syncRail(): void {
  * normal case should be invisible; only a problem earns pixels.
  */
 const status = $('status');
-function showStatus(text: string | null): void {
-  status.textContent = text ?? '';
-  status.hidden = text === null;
+
+/**
+ * A microphone that cannot work outranks everything else here.
+ *
+ * It was being clobbered: the mic reported "no recogniser", then the
+ * websocket connected a moment later and cleared the line — so the one
+ * message explaining why the device could not hear anything lasted about a
+ * second. A sticky message stays until it is explicitly cleared.
+ */
+let sticky: string | null = null;
+
+function showStatus(text: string | null, options: { sticky?: boolean } = {}): void {
+  if (options.sticky) sticky = text;
+  const shown = sticky ?? text;
+  status.textContent = shown ?? '';
+  status.hidden = shown === null;
 }
 
 let painted = false;
@@ -142,7 +155,10 @@ function say(text: string): void {
   const trimmed = text.trim();
   if (!trimmed) return;
   if (!connection.say(trimmed)) {
-    showStatus('not connected — nothing was sent');
+    // Name the address, because the usual cause is that the device was opened
+    // at one host and the server is listening on another — which is invisible
+    // from a message that only says it failed.
+    showStatus(`no server at ${connection.url} — "${trimmed}" was not sent`);
     return;
   }
   face.setMood('thinking');
@@ -163,7 +179,7 @@ const connection: Connection = connect({
   onStatus(next: ConnectionStatus, detail) {
     if (next === 'live') showStatus(null);
     else if (next === 'connecting') showStatus('connecting…');
-    else showStatus(`server unreachable — ${detail ?? 'retrying'}`);
+    else showStatus(`no server at ${connection.url} — ${detail ?? 'retrying'}`);
   },
   onTurnStart() {
     face.setMood('thinking');
@@ -209,7 +225,8 @@ const input = $<HTMLInputElement>('utterance');
  * Voice
  * ------------------------------------------------------------------ */
 
-const listening = $('listening');
+const talk = $<HTMLButtonElement>('talk');
+const talkLabel = $('talk-label');
 const heard = $('heard');
 
 /**
@@ -236,23 +253,58 @@ const dictation = createDictation({
     say(text);
   },
   onState(next: DictationState, detail) {
-    listening.hidden = next !== 'listening';
     if (next === 'listening') {
       shell.dataset['mic'] = 'live';
+      talkLabel.textContent = 'Listening';
       return;
     }
     showPartial('');
     if (next === 'unavailable') {
       shell.dataset['mic'] = 'off';
-      // Loud, because the alternative is a device that looks like it is
-      // listening and never hears anything (constraint 5).
-      showStatus(`${detail ?? 'microphone unavailable'} — type instead`);
+      talkLabel.textContent = 'No mic';
+      talk.disabled = true;
+      // Loud, and with a way out: without the fallback a device whose
+      // recogniser cannot work has no way to be driven at all (constraint 5).
+      showStatus(`${detail ?? 'microphone unavailable'} — type instead`, { sticky: true });
+      input.hidden = false;
       input.focus();
       return;
     }
     shell.dataset['mic'] = 'idle';
+    talkLabel.textContent = 'Hold to talk';
   },
 });
+
+/* ------------------------------------------------------------------ *
+ * Hold to talk
+ * ------------------------------------------------------------------ */
+
+/**
+ * Press starts listening, release sends.
+ *
+ * The pointer is captured on press, so a finger that slides off the button —
+ * or off the panel entirely — still delivers its `pointerup` here. Without
+ * that the microphone stays open after the user has plainly stopped, which is
+ * how the room gets transcribed again.
+ */
+function press(event: PointerEvent): void {
+  if (!dictation.available) return;
+  event.preventDefault();
+  talk.setPointerCapture(event.pointerId);
+  showStatus(null);
+  dictation.start();
+}
+
+function release(event: PointerEvent): void {
+  if (talk.hasPointerCapture(event.pointerId)) talk.releasePointerCapture(event.pointerId);
+  if (dictation.state === 'listening') dictation.finish();
+}
+
+talk.addEventListener('pointerdown', press);
+talk.addEventListener('pointerup', release);
+// A cancelled pointer (the browser taking over the gesture) is not a release:
+// nothing was finished, so the partial is dropped rather than sent.
+talk.addEventListener('pointercancel', () => dictation.stop());
 
 input.addEventListener('keydown', (event) => {
   if (event.key !== 'Enter') return;
@@ -275,19 +327,11 @@ window.addEventListener('keydown', (event) => {
   }
 
   switch (event.key) {
-    case '/':
-      // Focus the mic stand-in without typing a slash into it.
-      event.preventDefault();
-      input.focus();
-      break;
     case ' ':
-      // Hard mute. A hackathon floor is loud, and a device that must be told
-      // to stop listening is easier to trust than one that cannot be.
+      // Hold to talk. The device listens while the key is down and sends on
+      // release; it hears nothing the rest of the time.
       event.preventDefault();
-      if (dictation.state === 'listening') {
-        dictation.stop();
-        showStatus('microphone off — press space to listen again');
-      } else if (dictation.available) {
+      if (dictation.available && dictation.state !== 'listening') {
         showStatus(null);
         dictation.start();
       }
@@ -309,12 +353,28 @@ $('surface').addEventListener('click', (event) => {
 });
 
 $('greeting').addEventListener('click', () => setState('home'));
-$('home').addEventListener('click', () => input.focus());
+// Tapping the home tiles does nothing yet — the tiles are shell decoration,
+// and inventing an action for them would be a flow nobody asked for.
+
+/**
+ * Release sends what was heard.
+ *
+ * The microphone is NOT opened at boot. It was, and the device spent the
+ * evening transcribing the room — the turn log filled with bystanders'
+ * conversation, each sentence routed and each one repainting the screen.
+ * Listening now starts when someone holds the key and stops when they let go.
+ */
+window.addEventListener('keyup', (event) => {
+  if (event.key !== ' ' || event.target === input) return;
+  event.preventDefault();
+  if (dictation.state === 'listening') dictation.finish();
+});
+
+// The mic stays shut until asked, but the permission prompt should not land
+// in the middle of the first utterance — so ask for it now and release it.
+void navigator.mediaDevices?.getUserMedia({ audio: true })
+  .then((stream) => { for (const track of stream.getTracks()) track.stop(); })
+  .catch(() => { /* denied is reported by `dictation` on first press */ });
 
 paintHome();
 reset();
-
-// Open the microphone at boot: the device is meant to be spoken to, and a
-// stream opened on first press would put permission and startup cost inside
-// the utterance the user is already saying.
-dictation.start();
