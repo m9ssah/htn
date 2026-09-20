@@ -3,3 +3,7 @@ CLAUDE.md
 node_modules/
 dist/
 *.tsbuildinfo
+
+# Python bytecode from the probe harness
+__pycache__/
+*.pyc
