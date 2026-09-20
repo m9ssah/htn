@@ -43,13 +43,13 @@ const style: StylePatch = {
 const polish: PolishPatch = {
   v: 1,
   tokens: {
-    '--jit-bg': '#fdf2f4',
-    '--jit-surface': '#fffafb',
-    '--jit-border': '#f0d3dc',
-    '--jit-accent': '#a8325c',
-    '--jit-on-accent': '#fffafc',
-    '--jit-fg': '#432630',
-    '--jit-muted': '#7d5460',
+    '--jit-bg': '#1d0a14',
+    '--jit-surface': '#271020',
+    '--jit-border': '#3e1e2e',
+    '--jit-accent': '#d64a7e',
+    '--jit-on-accent': '#1a0a12',
+    '--jit-fg': '#f7eaf0',
+    '--jit-muted': '#bb95a6',
     '--jit-radius': '26px',
   },
   interpretedAs: 'soft, calm, generous air',
@@ -174,7 +174,7 @@ describe('applying a polish patch', () => {
     renderer.applySkeleton(skeleton('generic_answer'));
     renderer.applyPolish(polish);
     expect(root.style.getPropertyValue('--jit-radius')).toBe('26px');
-    expect(root.style.getPropertyValue('--jit-accent')).toBe('#a8325c');
+    expect(root.style.getPropertyValue('--jit-accent')).toBe('#d64a7e');
   });
 
   it('leaves untouched axes on the enum base', () => {
@@ -263,17 +263,25 @@ describe('a polish patch that fails AA', () => {
   });
 
   it('re-evaluates when a later style patch changes the base underneath it', () => {
+    /*
+     * #7b7b7b has a relative luminance of 0.198. `contrast` paints its Card on
+     * pure black, which needs 0.175 to clear AA, so the grey passes there;
+     * `mono`'s Card is #1c191d, which needs 0.221, so the same grey fails once
+     * the base moves under it. Every ground is dark now, and that ~0.046 window
+     * between the darkest and lightest of them is the whole range there is —
+     * which is itself the point: enforcing a dark ground leaves the contrast
+     * gate much less room to swing.
+     */
     const renderer = createRenderer(root);
-    renderer.applySkeleton(skeleton('generic_answer'));
+    renderer.applySkeleton(skeleton('item_detail'));
+    renderer.applyStyle({ v: 1, theme: { ...BOOTSTRAP_THEME, palette: 'contrast' } });
     renderer.applyPolish({
       v: 1,
-      tokens: { '--jit-fg': '#ffffff' },
-      interpretedAs: 'white text',
+      tokens: { '--jit-fg': '#7b7b7b' },
+      interpretedAs: 'mid grey text',
     });
-    // White on slate's dark bg passes.
     expect(renderer.getLastRejection()).toBeNull();
 
-    // mono is a light palette; the same white text is now invisible.
     renderer.applyStyle({ v: 1, theme: { ...BOOTSTRAP_THEME, palette: 'mono' } });
     expect(renderer.getLastRejection()?.report.pass).toBe(false);
     expect(root.style.getPropertyValue('--jit-fg')).toBe(resolve({

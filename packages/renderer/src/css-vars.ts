@@ -19,6 +19,7 @@ export const RENDERER_CSS_VARS: readonly CssVar[] = [
   '--jit-muted',
   '--jit-accent',
   '--jit-accent-2',
+  '--jit-accent-3',
   '--jit-on-accent',
   '--jit-accent-soft',
   '--jit-input',

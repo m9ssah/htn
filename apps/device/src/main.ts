@@ -68,11 +68,11 @@ const face = createEmoticon(faceHost);
 function paintHome(): void {
   const head = document.createElement('p');
   head.className = 'home-head';
-  head.textContent = 'Ready';
-
-  const ask = document.createElement('h1');
-  ask.className = 'home-ask';
-  ask.textContent = 'What do you\nwant to do?';
+  const ready = document.createElement('b');
+  ready.textContent = 'Ready';
+  const hint = document.createElement('span');
+  hint.textContent = 'Hold to speak';
+  head.append(ready, hint);
 
   const tiles = document.createElement('div');
   tiles.className = 'tiles';
@@ -80,7 +80,11 @@ function paintHome(): void {
     const el = document.createElement('div');
     el.className = 'tile';
     el.style.setProperty('--i', String(i));
-    if (tile.accent) el.dataset['accent'] = 'true';
+    // Spans are written even when they are 1, because the CSS keys the focal
+    // tile's display type off the literal `--w: 2`/`--h: 2` pair.
+    el.style.setProperty('--w', String(tile.w ?? 1));
+    el.style.setProperty('--h', String(tile.h ?? 1));
+    if (tile.tone) el.dataset['tone'] = tile.tone;
     const b = document.createElement('b');
     b.textContent = tile.title;
     const span = document.createElement('span');
@@ -89,7 +93,7 @@ function paintHome(): void {
     tiles.append(el);
   });
 
-  $('home').replaceChildren(head, ask, tiles);
+  $('home').replaceChildren(head, tiles);
 }
 
 /* ------------------------------------------------------------------ *
