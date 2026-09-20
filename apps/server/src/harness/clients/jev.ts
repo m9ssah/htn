@@ -7,7 +7,14 @@ import type { Density, FontPairing, Motif, Palette, Radius, TemplateId } from '@
 import type { JevAnswer, JevChoiceAnswer, JevClient, JevState, Route } from '../types.js';
 import { sleep } from '../signal.js';
 import { readFixture } from './fixtures.js';
-import { AXIS_DESCRIPTIONS, ROUTES, TEMPLATE_DESCRIPTIONS, buildQuestions, buildWireState } from './jev-questions.js';
+import {
+  AXIS_DESCRIPTIONS,
+  ROUTE_QUESTION,
+  ROUTES,
+  TEMPLATE_DESCRIPTIONS,
+  buildQuestions,
+  buildWireState,
+} from './jev-questions.js';
 import type { JevChoiceQuestion } from './jev-questions.js';
 
 const HOST = 'api.typesafe.ai';
@@ -24,7 +31,7 @@ const USD_PER_INPUT_TOKEN = 42 / 1e9;
  * "keep waiting" is what not aborting already does. `HARD_DEADLINE_MS` is
  * enforced below via `AbortSignal.timeout`.
  */
-export const SOFT_DEADLINE_MS = 500;
+const SOFT_DEADLINE_MS = 500;
 export const HARD_DEADLINE_MS = 1500;
 
 function loadKey(): string {
@@ -160,20 +167,27 @@ export class JevHttpClient implements JevClient {
     return this.inputTokens * USD_PER_INPUT_TOKEN;
   }
 
-  /** There is no ping endpoint — warming the connection means a real minimal call. */
+  /**
+   * There is no ping endpoint — warming the connection means a real minimal
+   * call. Minimal means minimal: one question, not the full 7-question batch
+   * `ask` sends — this is a boot-path call, not a `decide` call, and there is
+   * no reason to pay full input-token freight just to open a socket.
+   */
   async warmup(): Promise<void> {
-    await this.ask({ utterance: 'warmup', currentTemplate: null, taskState: '' }, AbortSignal.timeout(this.timeoutMs));
+    const question: Record<string, JevChoiceQuestion> = { route: { type: 'choice', instructions: ROUTE_QUESTION, criteria: ROUTES } };
+    await this.evaluate({ utterance: 'warmup', currentTemplate: null, taskState: '' }, question, AbortSignal.timeout(this.timeoutMs));
   }
 
   async ask(state: JevState, signal: AbortSignal): Promise<JevAnswer> {
-    const raw = await this.evaluate(state, buildQuestions(), signal);
-    return parseJevResponse(raw);
+    const { answer } = await this.askRecording(state, signal);
+    return answer;
   }
 
   /**
    * Same as `ask`, but also hands back the raw wire response — used only by
-   * the live fixture recorder (`live-jev.ts`), which needs the full
-   * distribution on disk for P2, not just the parsed `JevAnswer`.
+   * the live fixture recorder (`live-jev.ts`/`record-fixtures.ts`), which
+   * needs the full distribution on disk for P2, not just the parsed
+   * `JevAnswer`.
    */
   async askRecording(state: JevState, signal: AbortSignal): Promise<{ answer: JevAnswer; raw: JevWireResponse }> {
     const raw = await this.evaluate(state, buildQuestions(), signal);
@@ -185,16 +199,12 @@ export class JevHttpClient implements JevClient {
     questions: Record<string, JevChoiceQuestion>,
     signal: AbortSignal,
   ): Promise<JevWireResponse> {
-    if (this.requests >= this.maxRequests) throw new JevBudgetError(`request cap reached (${this.maxRequests})`);
-    if (this.usd >= this.maxUsd) throw new JevBudgetError(`spend cap reached ($${this.usd.toFixed(4)})`);
-
     const body = JSON.stringify({ state: buildWireState(state), model: this.model, questions });
     // Barge-in and the hard deadline come from one object, so either one
     // actually tears down the socket rather than just stop waiting.
     const combined = AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]);
     const raw = await this.send(body, combined);
 
-    this.requests += 1;
     this.inputTokens += raw.usage?.input_tokens ?? 0;
     this.outputTokens += raw.usage?.output_tokens ?? 0;
     return raw;
@@ -204,19 +214,48 @@ export class JevHttpClient implements JevClient {
    * One retry, only for a pooled socket the server closed between calls
    * (mirrors `_send_keepalive` in `backend/jev/client.py`). This is a
    * connection-reuse concern, not a general retry policy — a barge-in or
-   * hard-deadline abort propagates on the first attempt.
+   * hard-deadline abort propagates on the first attempt (guarded twice: the
+   * mapped error is no longer stale-socket-shaped once `request()` surfaces
+   * `signal.reason` on an abort, AND `signal.aborted` is checked directly).
    */
   private async send(body: string, signal: AbortSignal): Promise<JevWireResponse> {
     try {
-      return await this.request(body, signal);
+      return await this.attempt(body, signal);
     } catch (err) {
       if (!isStaleSocketError(err) || signal.aborted) throw err;
-      return await this.request(body, signal);
+      return await this.attempt(body, signal);
     }
+  }
+
+  /**
+   * One physical HTTP attempt, budget-checked and counted immediately before
+   * it goes out — not after a response comes back. Counting only on success
+   * means a transport that only ever throws (a `while` loop hammering a dead
+   * endpoint, a retry storm) never increments `requests`, and the request cap
+   * — the one thing meant to bound exactly that failure — never fires. A
+   * retry from `send()` calls this again, so it counts as two requests, which
+   * is what actually happened on the wire.
+   */
+  private attempt(body: string, signal: AbortSignal): Promise<JevWireResponse> {
+    if (this.requests >= this.maxRequests) throw new JevBudgetError(`request cap reached (${this.maxRequests})`);
+    if (this.usd >= this.maxUsd) throw new JevBudgetError(`spend cap reached ($${this.usd.toFixed(4)})`);
+    this.requests += 1;
+    return this.request(body, signal);
   }
 
   private request(body: string, signal: AbortSignal): Promise<JevWireResponse> {
     return new Promise((resolve, reject) => {
+      // On an aborted signal, Node wraps it as a generic AbortError (or, if
+      // the abort lands mid-*response*, as a bare `Error: aborted` with
+      // `code: 'ECONNRESET'` on the response stream — indistinguishable from
+      // a genuinely stale pooled socket unless mapped the same way here) and
+      // puts the real reason (our `TimeoutError`, or the caller's barge-in
+      // Error) one level down in `.cause`. Surface that reason directly on
+      // BOTH the request's and the response's error event — the caller (and
+      // `send()`'s stale-socket-retry check) needs to tell "hit the hard
+      // deadline"/"barge-in" apart from "the pooled socket actually went
+      // stale", not just "something aborted".
+      const rejectWithReason = (err: unknown): void => reject(signal.aborted ? signal.reason : err);
       const req = this.mod.request(
         this.url,
         {
@@ -246,15 +285,10 @@ export class JevHttpClient implements JevClient {
               reject(new Error('Jev: malformed JSON response', { cause }));
             }
           });
-          res.on('error', reject);
+          res.on('error', rejectWithReason);
         },
       );
-      // On an aborted signal, Node wraps it as a generic AbortError and puts
-      // the real reason (our `TimeoutError`, or the caller's barge-in Error)
-      // one level down in `.cause`. Surface that reason directly instead —
-      // the caller (and the replay client's matching behaviour) needs to
-      // tell "hit the hard deadline" apart from "barge-in", not just "aborted".
-      req.on('error', (err) => reject(signal.aborted ? signal.reason : err));
+      req.on('error', rejectWithReason);
       req.end(body);
     });
   }
@@ -266,14 +300,17 @@ export class JevHttpClient implements JevClient {
  * therefore throwing if it is missing) happens lazily on first use, not at
  * import time — a wrong `Ctx` shape should fail loudly when it is USED, not
  * make every import of this module require a key.
+ *
+ * Exported as the concrete instance, not wrapped behind the bare `JevClient`
+ * interface — whoever owns boot (P4) needs to call `.warmup()` on the SAME
+ * instance it then puts on `Ctx.jev`, which a wrapper that only exposes
+ * `ask` cannot do.
  */
 let singleton: JevHttpClient | undefined;
-export const realJevClient: JevClient = {
-  ask(state, signal) {
-    singleton ??= new JevHttpClient();
-    return singleton.ask(state, signal);
-  },
-};
+export function getRealJevClient(): JevHttpClient {
+  singleton ??= new JevHttpClient();
+  return singleton;
+}
 
 /** Hand-written, deterministic. No network, safe for CI. */
 export const stubJevClient: JevClient = {

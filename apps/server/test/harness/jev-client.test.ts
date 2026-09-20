@@ -90,6 +90,25 @@ describe('JevHttpClient', () => {
     expect(client.inputTokens).toBe(10);
   });
 
+  it('reuses one socket across sequential calls — connection reuse is the point of the explicit Agent', async () => {
+    const { baseUrl, sockets } = await listen((req, res) => {
+      req.on('data', () => {});
+      req.on('end', () => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(VALID_RESPONSE));
+      });
+    });
+    const client = new JevHttpClient({ baseUrl, timeoutMs: 2000 });
+
+    await client.ask(STATE, new AbortController().signal);
+    await client.ask(STATE, new AbortController().signal);
+
+    // If `agent` were silently dropped, each call would open its own TCP
+    // connection and this would be 2, not 1 — the whole ~260ms/63% latency
+    // saving this client exists for would be gone with the suite still green.
+    expect(sockets).toHaveLength(1);
+  });
+
   it(
     'a black hole (accepts, never responds) hits the hard deadline and releases the socket',
     { timeout: 10_000 },
@@ -136,10 +155,55 @@ describe('JevHttpClient', () => {
     expect(sockets[0]?.destroyed).toBe(true);
   });
 
+  it('an abort mid-response does not look like a stale socket and does not retry', async () => {
+    let requestCount = 0;
+    const { baseUrl } = await listen((_req, res) => {
+      requestCount += 1;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.write('{"mo'); // headers + a partial body; deliberately never res.end()
+    });
+    const client = new JevHttpClient({ baseUrl, timeoutMs: 5000 });
+    const controller = new AbortController();
+
+    const run = client.ask(STATE, controller.signal);
+    await new Promise((resolve) => setTimeout(resolve, 30)); // let the partial response arrive
+    controller.abort(new Error('barge-in'));
+
+    // Same reason as a pre-response barge-in — not a generic/ECONNRESET-style
+    // error that `isStaleSocketError` would mistake for a genuinely stale
+    // pooled socket and retry, resurrecting a turn the caller already
+    // cancelled.
+    await expect(run).rejects.toThrow('barge-in');
+    expect(client.requests).toBe(1);
+    expect(requestCount).toBe(1);
+  });
+
   it('throws a JevBudgetError before spending past the request cap', async () => {
     const client = new JevHttpClient({ baseUrl: 'http://127.0.0.1:1/v1/systemone', maxRequests: 0 });
 
     await expect(client.ask(STATE, new AbortController().signal)).rejects.toThrow(JevBudgetError);
+  });
+
+  it('a transport that only ever throws hits the request cap rather than looping forever', async () => {
+    // Counters only update from a response, so a persistently-failing
+    // transport (a dead endpoint, a retry storm) must still be bounded by
+    // `requests` — the cap that exists precisely for this failure mode.
+    const client = new JevHttpClient({ baseUrl: 'http://127.0.0.1:1/v1/systemone', maxRequests: 3, timeoutMs: 2000 });
+    let calls = 0;
+    (client as unknown as { request: (body: string, signal: AbortSignal) => Promise<unknown> }).request = () => {
+      calls += 1;
+      return Promise.reject(new Error('boom'));
+    };
+
+    for (let i = 0; i < 3; i++) {
+      await expect(client.ask(STATE, new AbortController().signal)).rejects.toThrow('boom');
+    }
+    await expect(client.ask(STATE, new AbortController().signal)).rejects.toThrow(JevBudgetError);
+
+    // Exactly 3 physical attempts happened, not a 4th — the cap fired
+    // BEFORE a request went out, which is the property that actually bounds
+    // a runaway loop.
+    expect(calls).toBe(3);
   });
 
   it('throws a JevBudgetError before spending past the dollar cap', async () => {

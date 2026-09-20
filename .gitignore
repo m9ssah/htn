@@ -3,3 +3,6 @@ CLAUDE.md
 node_modules/
 dist/
 *.tsbuildinfo
+
+# Agent worktrees created by the harness
+.claude/

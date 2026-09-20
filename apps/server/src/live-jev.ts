@@ -1,26 +1,21 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
 import type { TemplateId } from '@jit/schema';
 import { JevHttpClient } from './harness/clients/jev.js';
 import type { JevState } from './harness/types.js';
 
 /**
- * The one entry point in this repo that spends real money and touches the
- * real network — deliberately separate from `npm run node --`, which stays
- * CI-safe on stub/replay clients. Not run by `npm test`.
+ * The cold-vs-warm latency smoke test — one of the two entry points in this
+ * repo that touch the real network (the other, `record-fixtures.ts`, records
+ * fixtures for P2; this one only measures). Not run by `npm test`.
  *
- *   npm run live-jev -- "make it high contrast" --template item_detail --task "cookie recipe open" [--record path.json]
+ *   npm run live-jev -- "make it high contrast" --template item_detail --task "cookie recipe open"
  *
- * `--template`/`--task` matter: `route`/`templateId` are unanswerable from
- * the utterance alone (p18), so a fixture recorded with `currentTemplate:
- * null` can only ever exercise the `new_task`/`query` policy branches — P2's
- * `refine`/`correct`/`select` table tests need fixtures recorded WITH a
- * current template.
+ * `--template`/`--task` matter even for a timing run: `route`/`templateId`
+ * are unanswerable from the utterance alone (p18), so a call with
+ * `currentTemplate: null` only ever exercises the `new_task`/`query` shape.
  *
  * Prints cold vs several warm latencies (first call pays the TLS handshake,
  * later ones reuse the keep-alive socket — docs/orchestration-plan.md
- * "Reliability"), total spend, and the parsed answer. `--record` additionally
- * writes a `{ state, response }` fixture for `createReplayJevClient`/P2.
+ * "Reliability"), total spend, and the parsed answer.
  */
 const argv = process.argv.slice(2);
 function takeFlag(name: string): string | undefined {
@@ -31,7 +26,6 @@ function takeFlag(name: string): string | undefined {
   return value;
 }
 
-const recordPath = takeFlag('--record');
 const currentTemplate = (takeFlag('--template') ?? null) as TemplateId | null;
 const taskState = takeFlag('--task') ?? 'nothing started';
 const utterance = argv.join(' ') || 'what should I make tonight';
@@ -43,22 +37,15 @@ const state: JevState = { utterance, currentTemplate, taskState };
 const signal = (): AbortSignal => AbortSignal.timeout(5000);
 
 const t0 = performance.now();
-const cold = await client.askRecording(state, signal());
+const cold = await client.ask(state, signal());
 console.log(`cold: ${(performance.now() - t0).toFixed(1)}ms`);
 
 const warmMs: number[] = [];
-let lastWarm = cold;
 for (let i = 0; i < 5; i++) {
   const t = performance.now();
-  lastWarm = await client.askRecording(state, signal());
+  await client.ask(state, signal());
   warmMs.push(performance.now() - t);
 }
 console.log(`warm: ${warmMs.map((ms) => ms.toFixed(1)).join(', ')}ms`);
 console.log(`spend: $${client.usd.toFixed(5)} over ${client.requests} requests`);
-console.log(JSON.stringify(cold.answer, null, 2));
-
-if (recordPath) {
-  mkdirSync(dirname(recordPath), { recursive: true });
-  writeFileSync(recordPath, `${JSON.stringify({ state, response: lastWarm.raw }, null, 2)}\n`);
-  console.log(`recorded -> ${recordPath}`);
-}
+console.log(JSON.stringify(cold, null, 2));
