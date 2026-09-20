@@ -12,8 +12,9 @@
     "record-jev-fixtures": "tsc -b && node dist/record-fixtures.js"
   },
   "dependencies": {
+    "@jit/renderer": "*",
     "@jit/schema": "*",
     "@jit/tokens": "*",
-    "@jit/renderer": "*"
+    "@langchain/langgraph": "^1.4.16"
   }
 }

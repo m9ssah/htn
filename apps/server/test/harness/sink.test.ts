@@ -42,7 +42,7 @@ describe('PatchSinkStore turn gating', () => {
     expect(store.patches).toHaveLength(0);
   });
 
-  it('calls onDrop with the turn id and patch when a stale sink emits', () => {
+  it('calls onDrop with the turn id, patch and reason when a stale sink emits', () => {
     const onDrop = vi.fn();
     const store = createMemorySinkStore(onDrop);
     const turn1 = store.beginTurn('turn-1');
@@ -51,7 +51,55 @@ describe('PatchSinkStore turn gating', () => {
     turn1.emit(patch);
 
     expect(onDrop).toHaveBeenCalledTimes(1);
-    expect(onDrop).toHaveBeenCalledWith('turn-1', patch);
+    // P4 added the third argument: three different conditions close a sink
+    // and the turn log has to say which one fired, or "nothing painted" is
+    // indistinguishable from "the wrong turn painted".
+    expect(onDrop).toHaveBeenCalledWith('turn-1', patch, 'stale-turn');
+    expect(store.patches).toHaveLength(0);
+  });
+});
+
+describe('PatchSink: the abort gate', () => {
+  /**
+   * The epoch alone leaves a hole: it only advances when the NEXT turn
+   * begins, and a barge-in need not be followed by another turn at all. For
+   * that entire window an aborted turn's sink was still live — measured in
+   * P5, where a content source that ignores the signal landed two patches
+   * after an abort.
+   */
+  it('stops emitting the instant the turn signal aborts, with no later turn involved', () => {
+    const onDrop = vi.fn();
+    const store = createMemorySinkStore(onDrop);
+    const controller = new AbortController();
+    const sink = store.beginTurn('turn-1', controller.signal);
+
+    sink.emit(patch);
+    controller.abort(new Error('barge-in'));
+    sink.emit(patch);
+    sink.emit(patch);
+
+    expect(store.patches).toHaveLength(1);
+    expect(onDrop).toHaveBeenCalledTimes(2);
+    expect(onDrop).toHaveBeenLastCalledWith('turn-1', patch, 'aborted');
+  });
+
+  it('close() silences a turn that neither aborted nor was superseded', () => {
+    const onDrop = vi.fn();
+    const store = createMemorySinkStore(onDrop);
+    const sink = store.beginTurn('turn-1');
+
+    sink.emit(patch);
+    sink.close();
+    sink.emit(patch);
+
+    expect(store.patches).toHaveLength(1);
+    expect(onDrop).toHaveBeenCalledWith('turn-1', patch, 'closed');
+  });
+
+  it('a signal that aborts before the turn starts yields no patches at all', () => {
+    const store = createMemorySinkStore();
+    const sink = store.beginTurn('turn-1', AbortSignal.abort());
+    sink.emit(patch);
     expect(store.patches).toHaveLength(0);
   });
 });

@@ -10,3 +10,6 @@ dist/
 # Python bytecode from the probe harness
 __pycache__/
 *.pyc
+
+# Turn logs written by the orchestrator (DEFAULT_TURN_LOG_PATH)
+turns.jsonl
