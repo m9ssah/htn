@@ -649,7 +649,11 @@ function peoplePicker(contacts: readonly Contact[], builder: SurfaceBuilder): st
       key,
       type: 'ListItem',
       copy: { title: contact.name },
-      fixed: { interactive: true },
+      // `near` is seed data, so it is `fixed`, not `copy` — a language model
+      // must never be the source of it (constraint 2). `detail` is a template
+      // reservation the builder declares at build time, which is what keeps
+      // the row height from changing when content lands.
+      fixed: { interactive: true, detail: contact.near },
       action: `choose_${contact.id}`,
     });
     return key;

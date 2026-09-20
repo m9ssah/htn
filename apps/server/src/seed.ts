@@ -46,12 +46,24 @@ export const CHOICE_OPTIONS: ChoiceOption[] = [
   },
 ];
 
-export type Contact = { id: string; name: string };
+/**
+ * `near` is seed data exactly like the rest of this file, and it exists
+ * because of a measurement: with contacts carrying a name and nothing else,
+ * "who lives closest to me" sat on a knife edge between `people_picker`
+ * (0.43) and `generic_answer` (0.42) across repeated p22 runs — the model
+ * could not tell, correctly, because neither surface held an answer.
+ *
+ * Routing it to `people_picker` without this would have moved the failure
+ * rather than fixed it: three bare names do not answer "who is closest".
+ * Routing it to `generic_answer` is worse — that surface's content is
+ * model-generated, so it would invent where Ari lives.
+ */
+export type Contact = { id: string; name: string; near: string };
 
 export const CONTACTS: Contact[] = [
-  { id: 'ari', name: 'Ari' },
-  { id: 'blake', name: 'Blake' },
-  { id: 'cass', name: 'Cass' },
+  { id: 'ari', name: 'Ari', near: '5 min away' },
+  { id: 'blake', name: 'Blake', near: '15 min away' },
+  { id: 'cass', name: 'Cass', near: '40 min away' },
 ];
 
 /**

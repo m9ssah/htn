@@ -318,7 +318,7 @@ describe('projected composer — overflow is visible, never silent', () => {
 
 describe('projected composer — refuses to ship a surface the hardware cannot drive', () => {
   it(`fails loudly at ${BUTTON_COUNT_V2 + 1} press actions rather than letting getActions() return []`, () => {
-    const contacts = ['ari', 'blake', 'cass', 'dee'].map((id) => ({ id, name: id }));
+    const contacts = ['ari', 'blake', 'cass', 'dee'].map((id) => ({ id, name: id, near: '5 min away' }));
     const result = composeProjected({ kind: 'people_picker', contacts }, ids);
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -445,7 +445,7 @@ describe('projectedComposer — the StructureComposer seam', () => {
   });
 
   it('reports a surface the hardware cannot drive instead of yielding it', async () => {
-    const contacts = ['a', 'b', 'c', 'd'].map((id) => ({ id, name: id }));
+    const contacts = ['a', 'b', 'c', 'd'].map((id) => ({ id, name: id, near: '5 min away' }));
     const seen = [];
     for await (const event of projectedComposer({ kind: 'people_picker', contacts }).compose(
       { intent: '', requestId: 'r', generationId: 'g' },

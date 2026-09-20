@@ -1,43 +1,79 @@
+
+########## DEMO SET (tuned against) ##########
+
 utterance                                 route     jev says        conf  system shows    expected
 ----------------------------------------------------------------------------------------------------------------------
-I want to bake chocolate chip cookies to  new_task  x focus_step    0.48  v choice_cards      choice_cards
-lets make some cookies tonight            new_task  x focus_step    0.49  v choice_cards      choice_cards
-what should I make for dessert            query     v choice_cards  0.93  v choice_cards      choice_cards
-show me the recipe                        query     x focus_step    0.65  x focus_step        item_detail
-what are the ingredients                  query     x generic_answer0.93  x generic_answer    item_detail
-actually make it three times the batch    refine    v item_detail   0.91  v item_detail       item_detail
-ok start baking                           other     v focus_step    0.97  x item_detail       focus_step
-what do I do now                          query     x generic_answer0.35  x generic_answer    focus_step
-next step                                 other     v focus_step    0.76  v focus_step        focus_step
-I accidentally added twice as much sugar  correct   v recovery      0.98  v recovery          recovery
-I put in way too much flour               correct   v recovery      0.99  v recovery          recovery
-who could I give some to                  query     v people_picker 0.85  v people_picker     people_picker
-who lives closest to me                   query     x generic_answer0.67  x generic_answer    people_picker
-make it easier to read                    refine    v focus_step    0.64  v focus_step        focus_step
-how long do I boil an egg                 query     v generic_answer0.99  v generic_answer    generic_answer
+I want to bake chocolate chip cookies to  new_task  ✓ choice_cards  0.32  ✓ choice_cards      choice_cards
+lets make some cookies tonight            new_task  ✓ choice_cards  0.44  ✓ choice_cards      choice_cards
+what should I make for dessert            query     ✓ choice_cards  0.72  ✓ choice_cards      choice_cards
+show me the recipe                        query     ✓ item_detail   0.57  ✓ item_detail       item_detail
+what are the ingredients                  query     ✓ item_detail   0.99  ✓ item_detail       item_detail
+actually make it three times the batch    refine    ✓ item_detail   0.89  ✓ item_detail       item_detail
+ok start baking                           other     ✓ focus_step    1.00  ✓ focus_step        focus_step
+what do I do now                          query     ✓ focus_step    0.97  ✓ focus_step        focus_step
+next step                                 other     ✓ focus_step    0.99  ✓ focus_step        focus_step
+I accidentally added twice as much sugar  correct   ✓ recovery      0.97  ✓ recovery          recovery
+I put in way too much flour               correct   ✓ recovery      0.99  ✓ recovery          recovery
+who could I give some to                  query     ✓ people_picker 0.98  ✓ people_picker     people_picker
+who lives closest to me                   query     ✓ people_picker 0.99  ✓ people_picker     people_picker
+make it easier to read                    refine    ✓ focus_step    0.77  ✓ focus_step        focus_step
+how long do I boil an egg                 query     ✓ generic_answer0.99  ✓ generic_answer    generic_answer
 
-Jev's templateId alone : 9/15
-What the system shows  : 10/15
+Jev's templateId alone : 15/15
+What the system shows  : 15/15
 templateId confidence below 0.60: 3/15
-spend $0.00115 over 15 requests
 
-THREE FAILURE MODES
+########## HELD-OUT p18c GOLD (regression gate) ##########
 
-1. Policy destroys a correct answer. "ok start baking": Jev said focus_step at
-   0.97, policy overrode it to item_detail because route was `other` ->
-   `other_keep`, which keeps the current surface unconditionally. The only case
-   where the system does WORSE than the model.
+utterance                                 route     jev says        conf  system shows    expected
+----------------------------------------------------------------------------------------------------------------------
+what should I make tonight                new_task  ✓ choice_cards  0.91  ✓ choice_cards      choice_cards
+actually let's do something else          new_task  ✓ choice_cards  0.93  ✓ choice_cards      choice_cards
+who should I invite on Friday             new_task  ✓ people_picker 0.98  ✓ people_picker     people_picker
+how long does it bake                     query     ✓ generic_answer0.79  ✓ generic_answer    generic_answer
+is this recipe actually healthy           query     ✓ generic_answer0.90  ✓ generic_answer    generic_answer
+how does this device work                 query     ✓ generic_answer1.00  ✓ generic_answer    generic_answer
+what's the weather like tomorrow          query     ✓ generic_answer0.99  ✓ generic_answer    generic_answer
+text them the recipe                      new_task  ✓ people_picker 0.56  ✓ people_picker     people_picker
+start the first step                      other     ✓ focus_step    0.99  ✓ focus_step        focus_step
 
-2. Questions about the OPEN TASK fall to generic_answer. "what are the
-   ingredients" (0.93), "what do I do now" (0.35), "who lives closest to me"
-   (0.67). Jev reads them as general-knowledge questions rather than "project
-   the task already open". A criteria problem, not a model failure.
+Jev's templateId alone : 9/9
+What the system shows  : 9/9
+templateId confidence below 0.60: 1/9
 
-3. Confidence does not separate right from wrong. Wrong at 0.93, right at 0.64.
-   Matches p13/p18, which is why policy never consults confidence -- and why
-   thresholding cannot fix this.
+================ GATE ================
+demo set     raw 15/15   system 15/15
+held-out p18c raw 9/9   system 9/9   PASS (9/9 held)
+spend $0.00198 over 24 requests
 
-TypeSafe has NO fine-tuning endpoint: /v1/fine_tuning/jobs -> 404, /v1/models -> 200.
-Jev is a fixed judgment model, so "fine-tuning" here can only mean overfitting the
-question text and criteria -- which p18b/p18c already measured as the real lever
-(templateId 1/7 -> 9/9 on wording alone).
+WHAT CHANGED (before -> after)
+
+  demo set, Jev's templateId alone :  9/15 -> 15/15
+  demo set, what the system shows  : 10/15 -> 15/15
+  held-out p18c gold               :  9/9  ->  9/9   (gate held)
+
+Stable across 3 consecutive runs at 15/15 and 9/9.
+
+Three changes, in the order they were made:
+
+1. POLICY. Route `other` now honours Jev instead of freezing the surface.
+   `other` means the route question found no bucket, not that the user wants
+   nothing. Deliberately NOT thresholded on confidence -- this very table is
+   why (wrong at 0.93, right at 0.64).
+
+2. CRITERIA. `item_detail`, `focus_step` and `generic_answer` rewritten so the
+   line is "does answering need a number or a position the task computes?"
+   Constraint 2 is the reason: `generic_answer`'s content is model-generated,
+   so routing "what are the ingredients" there at 3x batch would have a
+   language model generate the quantities.
+
+3. SURFACE. Contacts gained `near`, rendered as the ListItem's second line.
+   Before this, "who lives closest to me" sat at people_picker 0.43 /
+   generic_answer 0.42 and flipped between runs -- the model could not tell,
+   correctly, because NEITHER surface held an answer. Routing it without
+   showing location would have moved the failure, not fixed it.
+
+TypeSafe exposes no fine-tuning endpoint (/v1/fine_tuning/jobs -> 404,
+/v1/models -> 200), so Jev is a fixed judgment model. Everything above is
+question text, policy and surface content -- the levers p18b/p18c already
+measured as the ones that move this number.

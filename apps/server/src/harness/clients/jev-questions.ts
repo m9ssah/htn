@@ -26,20 +26,44 @@ import { CLASSIC_CHOCOLATE_CHIP } from '../../domain/recipes.js';
 // answers onto `generic_answer`, scoring 1/7 against this wording's 7/9.
 export const TEMPLATE_QUESTION = 'Which template should the interface switch to?';
 
-// p18c arm E ("FIXED"). Two of these differ from the plain descriptions a
-// human would write (`choice_cards`, `generic_answer`) precisely because the
-// plain versions were the last two sources of error at 8/9.
+// p18c arm E ("FIXED"), then RE-TUNED at p22 — `item_detail`, `focus_step`,
+// `people_picker` and `generic_answer` no longer match p18c verbatim.
+//
+// p18c's 9 cases are all questions whose answers are world knowledge, so its
+// `generic_answer` description ("a question that wants a factual ANSWER")
+// won them all and nothing pushed back. p22 added questions about the OPEN
+// TASK and found the same description swallowed those too: "what are the
+// ingredients" 0.93, "what do I do now" 0.35, "who lives closest to me" 0.67
+// — all wrong, and wrong in the one direction that breaks constraint 2,
+// because `generic_answer`'s content is model-generated. A model asked "what
+// are the ingredients" for a 3x batch would GENERATE the quantities. Those
+// numbers are computed by `plannedAmount` and belong on `item_detail`.
+//
+// So the line these descriptions now draw is: does answering require a
+// number or a position the task computes? If yes it is a task surface; if it
+// is world knowledge it is `generic_answer`. That line reconciles both gold
+// sets rather than overwriting one with the other — "how long does it bake"
+// is still `generic_answer` (a constant), "what are the ingredients" is
+// `item_detail` (scaled), and p18c's 9/9 is held as a regression gate inside
+// backend/probes/p22_template_accuracy.mjs.
+//
+// Measured, 3 consecutive runs: p22's 15 demo cases 15/15, p18c's 9 held-out
+// 9/9. Changing a word here is still a measurement — run p22 and read BOTH
+// halves of the gate.
 export const TEMPLATE_DESCRIPTIONS: Record<TemplateId, string> = {
   choice_cards:
     'The user is deciding WHAT to do and has not chosen yet -- generated options to pick between; a slider scrubs the axis they vary on',
-  item_detail: 'The chosen thing, whole, with quantities a slider can rescale',
-  focus_step: 'One instruction at a time; sparse; encoder scrubs steps',
+  item_detail:
+    'The chosen thing, whole: every part it is made of, the current amount of each, and what it costs. Shows this when asked what is in it, what it needs, or to see it again. A slider rescales the quantities.',
+  focus_step:
+    'The one instruction the user is on RIGHT NOW, out of the ordered list of them. Shows this when asked what to do next, or told to begin or carry on. Sparse; the encoder scrubs steps.',
   recovery: 'Something went wrong: diagnosis, recommended fix, consequence',
   summary_done: 'The task is done; an open prompt, not a button row',
-  people_picker: 'Pick people',
+  people_picker:
+    'The people the user could involve -- who they are and how near each one is. Shows this when asked who to pick, who to send to, or which of them is closest.',
   message_drafts: 'Generated drafts, one per recipient, with a tone axis',
   generic_answer:
-    'A question that wants a factual ANSWER and no change to the task. Not for choosing, not for starting something.',
+    'A question about the WORLD, answerable without looking at what is open -- general knowledge, how something works, what something is like. Not for anything the open task already holds: its parts, its amounts, its cost, or which step it is on. Not for choosing, not for starting something.',
 };
 
 export const ROUTE_QUESTION = 'What is the user trying to do to the interface or the task right now?';
